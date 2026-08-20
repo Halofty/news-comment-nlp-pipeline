@@ -300,9 +300,12 @@ news-comment-nlp-pipeline/
 │   └── synthetic-events.jsonl
 └── docs/
     ├── data-contract.md
-    ├── architecture.md
+    ├── system-architecture.html
+    ├── ingestion-code-review.md
     └── cost-design.md
 ```
+
+현재 시스템 전체 구조는 [시스템 구성도](docs/system-architecture.html), Ingestion 구현의 장점·위험·개선 순서는 [Ingestion 코드 리뷰](docs/ingestion-code-review.md)에서 확인할 수 있습니다.
 
 ## 14. 공개 저장소 주의사항
 
