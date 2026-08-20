@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 
-from collectors.common import stable_event_id, utc_now_iso, write_jsonl
+from core.events import stable_event_id, utc_now_iso
+from storage.jsonl import write_jsonl
 
 DATASET_ID = "fddemarco/pushshift-reddit-comments"
 

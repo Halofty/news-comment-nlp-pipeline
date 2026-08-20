@@ -9,7 +9,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from collectors.common import stable_event_id, utc_now_iso, write_jsonl
+from core.events import stable_event_id, utc_now_iso
+from storage.jsonl import write_jsonl
 
 GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
 GDELT_DATETIME_FORMAT = "%Y%m%d%H%M%S"
@@ -63,7 +64,13 @@ def fetch_articles(
     client = session or build_session()
     response = client.get(GDELT_DOC_API, params=params, timeout=(5, 30))
     response.raise_for_status()
-    payload = response.json()
+    try:
+        payload = response.json()
+    except requests.exceptions.JSONDecodeError as error:
+        preview = response.text.strip().replace("\n", " ")[:160]
+        raise RuntimeError(
+            f"GDELT returned a non-JSON response: {preview or 'empty response'}"
+        ) from error
     articles = payload.get("articles", [])
     if not isinstance(articles, list):
         raise ValueError("GDELT response does not contain an article list")
@@ -80,6 +87,10 @@ def article_to_event(
         return None
 
     event_time = datetime.strptime(seen_date, "%Y%m%dT%H%M%SZ").isoformat() + "Z"
+    # MVP에서는 GDELT가 직접 제공하는 제목만 분석한다. 향후 원문 URL에서
+    # 본문을 추출할 때는 text를 정제 본문으로 교체하고 text_scope를
+    # "full_text"로 기록한다. 원문 수집 실패 시에는 현재 title_only 이벤트를
+    # fallback으로 유지한다.
     return {
         "event_id": stable_event_id("gdelt", url),
         "source_type": "news",
@@ -91,12 +102,13 @@ def article_to_event(
         "text": title,
         "url": url,
         "community": None,
-        "engagement": 0,
+        "engagement": None,
         "schema_version": 1,
         "metadata": {
             "domain": article.get("domain"),
             "source_country": article.get("sourcecountry"),
             "query": query,
+            "text_scope": "title_only",
         },
     }
 

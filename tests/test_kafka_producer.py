@@ -4,25 +4,27 @@ import json
 import tempfile
 from pathlib import Path
 
-from producers.kafka import (
-    DeliveryError,
-    KafkaEventProducer,
-    order_events,
-    parse_event_time,
-    read_jsonl,
-    replay_events,
-)
+from core.events import parse_event_time, stable_event_id
+from jobs.replay_to_kafka import order_events, replay_events
+from producers.kafka import DeliveryError, KafkaEventProducer
+from storage.jsonl import read_jsonl
 
 
 def make_event(event_id: str, event_time: str) -> dict:
     return {
-        "event_id": event_id,
+        "event_id": stable_event_id("reddit", event_id),
         "source_type": "comment",
         "source_name": "reddit",
         "event_time": event_time,
         "collected_at": "2026-08-20T00:00:00Z",
+        "language": "unknown",
+        "title": None,
         "text": f"event {event_id}",
+        "url": None,
+        "community": "example_community",
+        "engagement": 0,
         "schema_version": 1,
+        "metadata": {},
     }
 
 
@@ -59,7 +61,7 @@ def test_send_uses_event_id_key_and_event_time_timestamp() -> None:
 
     topic, message = client.records[0]
     assert topic == "raw-text"
-    assert message["key"] == b"event-1"
+    assert message["key"] == stable_event_id("reddit", "event-1").encode()
     assert message["timestamp"] == int(
         parse_event_time("2026-08-20T01:02:03Z").timestamp() * 1000
     )
@@ -95,7 +97,7 @@ def test_order_events_sorts_when_requested() -> None:
         make_event("earlier", "2026-08-20T01:00:00Z"),
     ]
     ordered = order_events(events, sort_by_event_time=True)
-    assert [event["event_id"] for event in ordered] == ["earlier", "later"]
+    assert [event["text"] for event in ordered] == ["event earlier", "event later"]
 
 
 def test_read_jsonl_reports_invalid_line() -> None:

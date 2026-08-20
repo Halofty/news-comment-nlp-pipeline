@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import requests
+
 from collectors.gdelt import article_to_event, fetch_articles
 from collectors.reddit import collect_events, comment_to_event
 
 
 class FakeResponse:
+    text = ""
+
     def raise_for_status(self) -> None:
         return None
 
@@ -22,6 +26,18 @@ class FakeSession:
         return FakeResponse()
 
 
+class NonJsonResponse(FakeResponse):
+    text = "Please limit requests to one every 5 seconds"
+
+    def json(self) -> dict:
+        raise requests.exceptions.JSONDecodeError("invalid", self.text, 0)
+
+
+class NonJsonSession(FakeSession):
+    def get(self, url, *, params, timeout):
+        return NonJsonResponse()
+
+
 def test_fetch_articles_builds_expected_query() -> None:
     session = FakeSession()
     articles = fetch_articles(
@@ -35,6 +51,15 @@ def test_fetch_articles_builds_expected_query() -> None:
     assert session.params["query"] == "climate change"
     assert session.params["maxrecords"] == 10
     assert session.params["startdatetime"] == "20260101000000"
+
+
+def test_fetch_articles_reports_non_json_rate_limit_response() -> None:
+    try:
+        fetch_articles("example", session=NonJsonSession())
+    except RuntimeError as error:
+        assert "limit requests" in str(error)
+    else:
+        raise AssertionError("non-JSON GDELT response must raise RuntimeError")
 
 
 def test_article_to_event_uses_title_as_analysis_text() -> None:
@@ -54,6 +79,8 @@ def test_article_to_event_uses_title_as_analysis_text() -> None:
     assert event["source_type"] == "news"
     assert event["event_time"] == "2026-08-16T19:00:00Z"
     assert event["text"] == "Example headline"
+    assert event["engagement"] is None
+    assert event["metadata"]["text_scope"] == "title_only"
     assert len(event["event_id"]) == 64
 
 

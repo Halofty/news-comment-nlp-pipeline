@@ -32,7 +32,9 @@ GDELT 뉴스와 Reddit 댓글을 Kafka로 수집하고 Spark Structured Streamin
 - 수집 주기 후보: 15분
 - 사용할 정보: 뉴스 제목, URL, 언론사 도메인, 언어, 게시 시각, 검색 키워드, 수집 시각
 
-기사 전문을 무단으로 크롤링하지 않고 GDELT가 제공하는 제목과 메타데이터를 중심으로 사용합니다. GDELT가 제공하는 기존 감정 및 주제 정보는 직접 만든 분석 결과와 비교하기 위한 참고값으로만 활용합니다.
+MVP에서는 기사 전문을 별도로 수집하지 않고 GDELT가 제공하는 제목과 메타데이터만 사용합니다. 뉴스 이벤트의 `text`에는 제목을 저장하고 `metadata.text_scope`를 `title_only`로 기록해 분석 범위를 구분합니다. GDELT가 제공하는 기존 감정 및 주제 정보는 직접 만든 분석 결과와 비교하기 위한 참고값으로만 활용합니다.
+
+기사 전문 수집은 선택적 확장 기능으로 남겨둡니다. 확장 시에는 GDELT의 원문 URL에서 본문을 추출하는 별도 Collector를 두고, 성공한 이벤트는 `text_scope=full_text`, 실패한 이벤트는 `text_scope=title_only`로 처리합니다. 저작권, robots 정책, paywall, 언론사별 HTML 차이와 LLM 입력 토큰 상한을 함께 검토한 뒤 적용합니다.
 
 ### 3.2 댓글 데이터
 
@@ -209,6 +211,8 @@ Spark foreachBatch
 
 ## 9. 공통 이벤트 스키마 초안
 
+필드 의미와 출처별 매핑은 [데이터 계약 문서](docs/data-contract.md)에 정의하고, 기계 판독 규칙은 [JSON Schema](sample/schema.json)로 관리합니다.
+
 ```json
 {
   "event_id": "unique-id",
@@ -245,6 +249,7 @@ Spark foreachBatch
 
 ### 확장 기능
 
+- GDELT 원문 URL 기반 기사 본문 추출과 제목 fallback
 - 부정 반응과 토픽 급증 Slack 알림
 - Kafka Broker 장애와 복구 실험
 - Kubernetes 기반 분석 Worker 확장
@@ -280,17 +285,21 @@ news-comment-nlp-pipeline/
 ├── docker-compose.yml
 ├── requirements.txt
 ├── .env.example
-├── dags/
+├── core/                         # 공통 이벤트 계약과 설정
 ├── collectors/
-├── producers/
-├── spark/
-├── nlp/
-├── llm/
+├── storage/                      # JSONL 및 PostgreSQL 어댑터
+├── producers/                    # Kafka 전송 계층
+├── jobs/                         # CLI 및 Airflow 실행 단위
+├── spark_jobs/
+├── llm/                          # Batch 요청 및 결과 처리
+├── dags/
 ├── sql/
 ├── tests/
 ├── sample/
-│   └── schema.json
+│   ├── schema.json
+│   └── synthetic-events.jsonl
 └── docs/
+    ├── data-contract.md
     ├── architecture.md
     └── cost-design.md
 ```
@@ -363,7 +372,7 @@ python3 -m pytest -q
 Kafka Broker가 실행 중인 상태에서 다음 명령을 사용합니다.
 
 ```bash
-python3 -m producers.kafka \
+python3 -m jobs.replay_to_kafka \
   --input data/raw/gdelt.jsonl \
   --bootstrap-servers localhost:9092 \
   --topic raw-text
@@ -375,13 +384,13 @@ Broker 주소와 토픽은 환경 변수로도 설정할 수 있습니다.
 export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 export KAFKA_RAW_TOPIC=raw-text
 
-python3 -m producers.kafka --input data/raw/gdelt.jsonl
+python3 -m jobs.replay_to_kafka --input data/raw/gdelt.jsonl
 ```
 
 Reddit 과거 댓글을 이벤트 시간 순서로 100배 빠르게 재생하려면 다음과 같이 실행합니다. `--sort-by-event-time`은 전체 파일을 메모리에 올려 정렬하므로 큰 파일에는 사용하지 않고, 가능하면 수집 단계에서 정렬된 표본을 준비합니다.
 
 ```bash
-python3 -m producers.kafka \
+python3 -m jobs.replay_to_kafka \
   --input data/raw/reddit.jsonl \
   --sort-by-event-time \
   --speed 100 \

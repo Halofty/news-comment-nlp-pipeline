@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/text-event-v1.json",
+  "title": "TextEvent",
+  "type": "object",
+  "required": [
+    "event_id",
+    "source_type",
+    "source_name",
+    "event_time",
+    "collected_at",
+    "language",
+    "title",
+    "text",
+    "url",
+    "community",
+    "engagement",
+    "schema_version",
+    "metadata"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": ["news", "comment"]
+    },
+    "source_name": {
+      "type": "string",
+      "enum": ["gdelt", "reddit"]
+    },
+    "event_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "language": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": ["string", "null"]
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "url": {
+      "type": ["string", "null"],
+      "format": "uri"
+    },
+    "community": {
+      "type": ["string", "null"]
+    },
+    "engagement": {
+      "type": ["integer", "null"]
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}
