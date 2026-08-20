@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+
+# 내려받거나 생성한 원문 데이터는 공개 저장소에 포함하지 않습니다.
+data/
+*.parquet
+
+# 로컬 개발 진행 기록
+/PROJECT_STATUS.md

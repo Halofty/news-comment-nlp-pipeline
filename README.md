@@ -2,9 +2,9 @@
 
 ## 프로젝트 소개
 
-GDELT 뉴스와 Reddit 댓글을 Kafka로 수집하고 Spark Structured Streaming으로 정제한 뒤, 로컬 NLP 모델로 감정과 토픽을 분석해 PostgreSQL에 저장하는 데이터 파이프라인 프로젝트입니다.
+GDELT 뉴스와 Reddit 댓글을 Kafka로 수집하고 Spark Structured Streaming으로 정제한 뒤, LLM Batch API로 감정과 토픽을 분석해 PostgreSQL에 저장하는 데이터 파이프라인 프로젝트입니다.
 
-로컬 NLP 모델이 전체 텍스트의 감정 분석과 토픽 분석을 담당합니다. LLM API는 핵심 분석에 필수로 사용하지 않고, 주요 토픽의 이름과 요약을 만드는 선택 기능으로만 사용합니다. 따라서 API가 중단되거나 예산을 초과해도 데이터 수집과 핵심 분석은 계속 동작합니다.
+프로젝트의 중심은 NLP 모델을 직접 개발하는 것이 아니라 수집, 정제, API 요청 생성, 비동기 작업 추적, 결과 적재와 재처리까지 이어지는 데이터 파이프라인 구축입니다. 감정 분류, 토픽 추출과 요약은 LLM API가 담당하며, 즉시 응답이 필요하지 않은 분석은 Batch API로 묶어 비용을 절감합니다.
 
 ---
 
@@ -19,8 +19,8 @@ GDELT 뉴스와 Reddit 댓글을 Kafka로 수집하고 Spark Structured Streamin
 - 뉴스와 댓글은 지속해서 생성되므로 Kafka 기반 스트리밍 수집의 필요성이 분명합니다.
 - 텍스트에는 빈 문서, 중복, 지연, 서로 다른 언어와 형식 등 다양한 품질 문제가 있어 Spark를 이용한 정제 과정을 보여주기 좋습니다.
 - 뉴스 보도량과 댓글 반응을 시간대와 토픽 단위로 비교하면 단순 수집을 넘어 활용 가능한 분석 결과를 만들 수 있습니다.
-- 감정 분석과 토픽 분석을 로컬 NLP 모델로 처리하면 대량의 문서를 외부로 보내지 않고 비용도 절감할 수 있습니다.
-- LLM API를 선택적으로 연결하면 토픽 이름과 요약의 가독성을 높이는 동시에 요청 수, 토큰 수, 비용까지 관리하는 구조로 확장할 수 있습니다.
+- 감정 및 토픽 모델 개발보다 데이터 파이프라인의 신뢰성과 운영 구조에 집중할 수 있습니다.
+- LLM Batch API를 이용하면 대량의 텍스트를 비동기로 처리하면서 요청 수, 토큰 수와 비용을 함께 관리할 수 있습니다.
 - Kafka, Spark, PostgreSQL의 장애와 복구, 중복 처리, 지연 데이터 처리 과정을 실험하기에 적합합니다.
 
 ## 3. 사용할 데이터와 출처
@@ -65,13 +65,11 @@ flowchart TD
     B["Reddit 댓글 재생"] --> C
     C --> D["Spark 정제 및 중복 제거"]
     D --> E["PostgreSQL 원본 및 정제 저장"]
-    E --> F["로컬 감정 분석"]
-    E --> G["로컬 토픽 분석"]
-    F --> H["감정 결과 저장"]
-    G --> I["토픽 결과 저장"]
-    I --> J["주요 토픽 선별"]
-    J --> K["선택적 LLM API 요약"]
-    K --> L["요약 및 비용 저장"]
+    E --> F["LLM Batch 요청 JSONL 생성"]
+    F --> G["Batch API 제출 및 상태 추적"]
+    G --> H["감정·토픽·요약 결과 수신"]
+    H --> I["결과 검증 및 PostgreSQL 저장"]
+    G --> J["요청·토큰·비용 기록"]
 ```
 
 ### 단계별 처리 과정
@@ -82,11 +80,11 @@ flowchart TD
 4. Spark가 빈 텍스트 제거, 중복 제거, 개인정보 마스킹, 언어 구분을 수행합니다.
 5. watermark를 적용해 늦게 도착한 이벤트를 정해진 범위까지 처리합니다.
 6. `foreachBatch`가 원본 이벤트와 정제 문서를 PostgreSQL에 적재합니다.
-7. 로컬 감정 분석 Worker가 미처리 문서를 읽고 긍정, 중립, 부정 점수를 저장합니다.
-8. 토픽 분석 Worker가 유사한 문서를 군집화하고 토픽 ID와 대표 키워드를 저장합니다.
-9. 시간 윈도우별 문서 수, 감정 비율, 토픽 점유율과 변화율을 집계합니다.
-10. 급증한 주요 토픽은 선택적으로 LLM API에 전달해 토픽 이름과 요약을 생성합니다.
-11. 모든 결과와 파이프라인 실행 이력을 PostgreSQL에 저장합니다.
+7. LLM Batch Worker가 미처리 문서를 모아 감정, 토픽과 요약을 요청하는 JSONL 파일을 생성합니다.
+8. Worker가 Batch API에 작업을 제출하고 batch ID와 처리 상태를 추적합니다.
+9. 완료된 결과를 내려받아 JSON 스키마, 누락 응답과 오류 응답을 검사합니다.
+10. 감정, 토픽, 요약 결과를 PostgreSQL에 저장하고 시간 윈도우별 지표를 집계합니다.
+11. 실패하거나 누락된 요청은 별도로 분리해 재처리하고 요청 수, 토큰 수와 예상 비용을 기록합니다.
 
 ## 5. 프로세스별 역할
 
@@ -97,48 +95,48 @@ flowchart TD
 | Kafka | 수집 속도와 처리 속도를 분리하고 이벤트를 보관 | 상시 실행 |
 | Spark Structured Streaming | 파싱, 정제, 중복 제거, watermark, 윈도우 집계 | 상시 실행 |
 | PostgreSQL | 원본, 정제 문서, 분석 결과, 처리 상태 저장 | 상시 실행 |
-| 감정 분석 Worker | 전체 문서의 긍정, 중립, 부정 분류 | 작은 배치로 지속 실행 |
-| 토픽 분석 Worker | 문서 임베딩, 군집화, 대표 키워드 추출 | 주기적 배치 실행 |
-| LLM API Worker | 주요 토픽 이름과 요약 생성 | 선택적 실행 |
+| LLM Batch Worker | JSONL 생성, Batch 제출, 상태 추적 | 주기적 배치 실행 |
+| 결과 적재 Worker | 결과 검증, 감정·토픽·요약 저장, 실패 요청 재처리 | Batch 완료 후 실행 |
 | Airflow | 작업 예약, 의존성, 재시도, 실패 이력 관리 | 상시 실행 후보 |
 
-Kafka, Spark, PostgreSQL은 핵심 데이터 파이프라인이므로 상시 실행합니다. 토픽 모델 재학습처럼 메모리를 많이 사용하는 작업은 실시간 경로에서 분리해 주기적으로 실행합니다.
+Kafka, Spark, PostgreSQL은 핵심 데이터 파이프라인이므로 상시 실행합니다. LLM 분석은 즉시 응답이 필요하지 않으므로 실시간 수집 경로에서 분리해 주기적으로 실행합니다.
 
 ## 6. 분석 방법
 
-### 6.1 감정 분석
+### 6.1 LLM Batch API 분석
 
-Hugging Face Transformers의 경량 분류 모델을 로컬에서 실행해 문서별 감정을 분석합니다.
+정제된 문서를 일정 크기로 모아 GPT-5.6 Luna(`gpt-5.6-luna`) 모델의 Batch API에 제출합니다. [OpenAI Batch API 문서](https://developers.openai.com/api/docs/guides/batch)에 따르면 Batch API는 동기식 API보다 비용이 50% 낮고 각 Batch는 24시간 이내 완료되므로, 실시간 응답이 필요하지 않은 본 프로젝트에 적합합니다. 구현 전 소량의 테스트 요청으로 해당 계정에서 `gpt-5.6-luna`의 Batch 엔드포인트 지원 여부와 결과 스키마를 확인합니다.
 
 ```text
 정제 텍스트
-→ tokenizer
-→ 감정 분류 모델
-→ 긍정, 중립, 부정 확률
-→ PostgreSQL 저장
+→ 분석 대기 문서 조회
+→ Batch 요청 JSONL 생성
+→ Batch API 제출 및 상태 추적
+→ 결과 JSON 검증
+→ PostgreSQL 적재
 ```
 
-영어 댓글에는 Twitter-RoBERTa 계열 모델을 우선 후보로 사용합니다. 여러 언어를 함께 처리할 경우 XLM-RoBERTa 계열 다국어 감정 모델을 검토합니다.
+각 요청은 가능한 한 하나의 문서에서 감정, 토픽 후보, 대표 키워드와 짧은 요약을 함께 반환하도록 구성해 중복 입력 토큰을 줄입니다. 결과는 일관된 JSON 스키마로 제한합니다.
 
 주요 결과는 다음과 같습니다.
 
-- 문서별 감정 분류와 확률
+- 문서별 긍정, 중립, 부정 분류와 신뢰도
+- 문서별 토픽 이름과 대표 키워드
+- 문서별 짧은 요약
 - 시간대별 긍정, 중립, 부정 비율
 - 뉴스와 댓글의 감정 차이
 - 부정 반응 급증 구간
 
-### 6.2 토픽 분석
+### 6.2 토픽 통합과 집계
 
-MVP에서는 TF-IDF와 LDA를 기준 모델로 사용합니다. 확장 단계에서는 Sentence Transformer 임베딩과 BERTopic을 적용해 결과를 비교합니다.
+LLM이 문서마다 생성한 토픽 표현을 그대로 집계하면 비슷한 토픽이 여러 이름으로 나뉠 수 있습니다. 따라서 일정 기간의 토픽 후보와 대표 키워드를 다시 Batch API로 보내 유사 토픽을 공통 토픽 ID로 통합합니다.
 
-| 방법 | 역할 | 특징 |
+| 단계 | 역할 | 결과 |
 |---|---|---|
-| TF-IDF | 문서별 주요 단어 계산 | 가볍고 구현이 단순함 |
-| LDA | 단어 분포 기반 토픽 생성 | MVP 기준 모델로 적합함 |
-| MiniLM | 문장을 의미 벡터로 변환 | 비교적 가볍고 군집화에 적합함 |
-| BERTopic | 임베딩 기반 토픽 군집화 | 의미가 비슷한 문서를 묶기 좋음 |
-
-BERTopic은 새 이벤트마다 다시 학습하지 않습니다. 최근 1만 건에서 3만 건을 대상으로 하루 한 번 재학습하고, 분석 중에도 Kafka와 Spark 수집 파이프라인은 계속 실행합니다.
+| 문서 분석 | 문서별 토픽 후보와 키워드 생성 | 임시 토픽 |
+| 토픽 통합 | 유사한 임시 토픽을 공통 분류로 병합 | 공통 토픽 ID와 이름 |
+| 윈도우 집계 | 시간대와 출처별 문서 수 계산 | 토픽 점유율과 변화율 |
+| 요약 | 주요 토픽의 대표 문서를 요약 | 대시보드용 설명 |
 
 주요 결과는 다음과 같습니다.
 
@@ -148,19 +146,17 @@ BERTopic은 새 이벤트마다 다시 학습하지 않습니다. 최근 1만 �
 - 새롭게 등장한 토픽
 - 급상승하거나 사라지는 토픽
 
-### 6.3 선택적 LLM API
+### 6.3 비용과 실패 관리
 
-LLM API는 전체 문서의 감정 분석이나 토픽 군집화에 사용하지 않습니다. 다음과 같은 일부 결과만 전달합니다.
+API 요청과 결과는 다음 항목과 함께 PostgreSQL에 기록합니다.
 
-- 급상승한 토픽
-- 부정 반응이 크게 증가한 토픽
-- 사람이 읽을 토픽 이름이 필요한 경우
-- 대시보드나 보고서용 요약이 필요한 경우
-- 로컬 모델의 품질을 확인하기 위한 소량 표본
+- batch ID와 요청별 custom ID
+- 사용 모델과 프롬프트 버전
+- 입력 및 출력 토큰 수와 예상 비용
+- 제출, 완료와 만료 시각
+- 성공, 오류, 누락과 재처리 상태
 
-API에는 토픽별 대표 키워드와 비식별화한 대표 문서만 전달합니다. 결과는 짧은 JSON으로 받고 요청 수, 입력 및 출력 토큰, 응답 시간, 오류 횟수와 예상 비용을 PostgreSQL에 기록합니다.
-
-API가 실패하거나 예산을 초과하면 대표 키워드를 토픽 이름으로 사용합니다. 따라서 LLM API 없이도 핵심 파이프라인과 분석 결과는 정상적으로 동작합니다.
+API 오류나 Batch 만료가 발생해도 수집과 정제는 계속 수행합니다. 분석 대상은 `pending` 또는 `retry` 상태로 남겨 다음 실행에서 재처리하며, 일별 예산 한도에 도달하면 신규 Batch 제출만 중단합니다. 외부 API로 보내기 전에 작성자 정보와 사용자 식별값을 제거하고 필요한 텍스트만 전달합니다.
 
 ## 7. PostgreSQL 저장 구조 초안
 
@@ -177,6 +173,8 @@ PostgreSQL
 ├── topic_summaries              # 주요 토픽 이름과 요약
 ├── text_alert_events            # 급증 및 이상 이벤트
 ├── text_data_quality            # 결측, 중복, 지연 통계
+├── llm_batch_jobs               # Batch 작업 ID와 처리 상태
+├── llm_batch_requests           # 요청별 결과와 재처리 상태
 ├── llm_usage_ledger             # API 토큰과 비용 기록
 ├── stream_batch_commits         # Spark batch_id 중복 방지
 └── pipeline_run_history         # 작업 실행 이력
@@ -203,9 +201,7 @@ Spark foreachBatch
 | 이벤트 전달 | Apache Kafka | 실시간 이벤트 버퍼 |
 | 스트리밍 처리 | Apache Spark Structured Streaming | 정제, 중복 제거, 윈도우 처리 |
 | 영구 저장소 | PostgreSQL, JSONB | 원본, 정제, 분석 결과 저장 |
-| 감정 분석 | Hugging Face Transformers, OpenVINO | 로컬 감정 분류 |
-| 토픽 분석 | TF-IDF, LDA, MiniLM, BERTopic | 키워드와 토픽 생성 및 비교 |
-| 선택적 생성 모델 | LLM API | 주요 토픽 이름과 요약 |
+| 텍스트 분석 | OpenAI Batch API, GPT-5.6 Luna(`gpt-5.6-luna`) | 감정, 토픽, 키워드와 요약 생성 |
 | 워크플로 관리 | Apache Airflow | 예약, 의존성, 재시도 |
 | 실행 환경 | Docker Compose | 서비스별 실행 환경 구성 |
 | 알림 | Slack Webhook | 장애와 주요 토픽 알림 |
@@ -240,16 +236,15 @@ Spark foreachBatch
 - Spark 기반 파싱, 정제, 비식별화, 중복 제거
 - watermark와 시간 윈도우 집계
 - PostgreSQL 원본 및 정제 데이터 저장
-- 로컬 감정 분석
-- TF-IDF와 LDA 기반 토픽 분석
+- LLM Batch API 기반 감정, 토픽과 요약 분석
+- Batch 요청 JSONL 생성, 상태 추적과 결과 적재
+- API 오류, 누락과 만료 요청 재처리
+- API 토큰과 비용 원장 구축
 - 감정과 토픽 결과 조회용 SQL
 - checkpoint 기반 Spark 재시작 검증
 
 ### 확장 기능
 
-- MiniLM과 BERTopic을 이용한 토픽 분석 고도화
-- 주요 토픽의 LLM API 이름 및 요약 생성
-- API 토큰과 비용 원장 구축
 - 부정 반응과 토픽 급증 Slack 알림
 - Kafka Broker 장애와 복구 실험
 - Kubernetes 기반 분석 Worker 확장
@@ -262,8 +257,8 @@ Spark foreachBatch
 - 순서를 섞은 지연 이벤트로 watermark 전후 결과를 비교합니다.
 - Spark를 중단한 뒤 같은 checkpoint로 재시작해 미처리 이벤트가 복구되는지 확인합니다.
 - PostgreSQL 연결을 중단한 뒤 동일 `batch_id`를 재실행해 중복 적재 여부를 확인합니다.
-- 감정 또는 토픽 Worker를 중단한 뒤 `pending` 문서부터 다시 처리되는지 확인합니다.
-- LLM API 오류와 예산 초과 시 키워드 기반 대체 결과가 사용되는지 확인합니다.
+- LLM Batch Worker를 중단한 뒤 `pending` 문서부터 다시 처리되는지 확인합니다.
+- API 오류, 누락 응답, Batch 만료와 예산 초과 시 재처리 또는 제출 중단 상태가 정확히 기록되는지 확인합니다.
 
 ## 12. 기대 결과
 
@@ -273,7 +268,7 @@ Spark foreachBatch
 - 토픽별 뉴스와 댓글 수 및 점유율
 - 새롭게 등장하거나 급상승한 토픽
 - 뉴스 보도와 댓글 반응의 차이
-- 주요 토픽의 선택적 자연어 요약
+- LLM API가 생성한 문서별 감정, 토픽과 주요 토픽 요약
 - 중복, 지연, 장애 후 복구 결과
 - LLM API 요청량과 예상 비용 기록
 
@@ -308,3 +303,94 @@ news-comment-nlp-pipeline/
 - `.env`, PostgreSQL 비밀번호, LLM API 키와 Slack Webhook을 커밋하지 않습니다.
 - 공개 저장소에는 수집 코드, 데이터 생성 또는 표본 추출 코드, 스키마와 합성 샘플만 올립니다.
 - 데이터 출처, 사용 범위, 보관 기간과 비식별화 방식을 기록합니다.
+
+## 15. 데이터 수집기 실행 방법
+
+현재 GDELT 뉴스 메타데이터 수집기와 Hugging Face의 월별 Reddit 댓글 표본 수집기를 구현했습니다. 두 수집기는 공통 이벤트 스키마의 JSONL 파일을 생성하며, `data/` 디렉터리는 Git에 포함되지 않습니다.
+
+### 실행 환경 준비
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+```
+
+### GDELT 뉴스 수집
+
+```bash
+python3 -m collectors.gdelt \
+  --query "climate change" \
+  --max-records 100 \
+  --output data/raw/gdelt.jsonl
+```
+
+기간을 지정할 때는 UTC 기준 `YYYYMMDDHHMMSS` 형식을 사용합니다.
+
+```bash
+python3 -m collectors.gdelt \
+  --query "artificial intelligence" \
+  --start 20260801000000 \
+  --end 20260801235959 \
+  --output data/raw/gdelt-ai.jsonl
+```
+
+### Reddit 댓글 표본 수집
+
+월별 Parquet 파일을 스트리밍 방식으로 읽고, 지정한 커뮤니티와 건수만 JSONL로 저장합니다. `--subreddit` 옵션은 여러 번 사용할 수 있습니다.
+
+```bash
+python3 -m collectors.reddit \
+  --month 2016-01 \
+  --subreddit worldnews \
+  --subreddit technology \
+  --limit 1000 \
+  --output data/raw/reddit.jsonl
+```
+
+Reddit 이벤트에는 작성자 정보를 포함하지 않으며 `[deleted]`, `[removed]`와 빈 댓글을 제외합니다. 선택한 커뮤니티의 댓글이 파일 뒤쪽에 몰려 있으면 스트리밍 탐색에 시간이 오래 걸릴 수 있으므로 먼저 작은 `--limit`으로 수집 시간을 확인합니다.
+
+### 테스트
+
+```bash
+python3 -m pytest -q
+```
+
+## 16. Kafka Producer 실행 방법
+
+수집기가 생성한 공통 스키마 JSONL을 Kafka `raw-text` 토픽으로 전송합니다. 메시지 키는 `event_id`, Kafka timestamp는 `event_time`을 사용하며 멱등성 전송과 `acks=all`을 적용합니다.
+
+Kafka Broker가 실행 중인 상태에서 다음 명령을 사용합니다.
+
+```bash
+python3 -m producers.kafka \
+  --input data/raw/gdelt.jsonl \
+  --bootstrap-servers localhost:9092 \
+  --topic raw-text
+```
+
+Broker 주소와 토픽은 환경 변수로도 설정할 수 있습니다.
+
+```bash
+export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+export KAFKA_RAW_TOPIC=raw-text
+
+python3 -m producers.kafka --input data/raw/gdelt.jsonl
+```
+
+Reddit 과거 댓글을 이벤트 시간 순서로 100배 빠르게 재생하려면 다음과 같이 실행합니다. `--sort-by-event-time`은 전체 파일을 메모리에 올려 정렬하므로 큰 파일에는 사용하지 않고, 가능하면 수집 단계에서 정렬된 표본을 준비합니다.
+
+```bash
+python3 -m producers.kafka \
+  --input data/raw/reddit.jsonl \
+  --sort-by-event-time \
+  --speed 100 \
+  --max-delay 5
+```
+
+- `--speed 0`: 이벤트 간 대기 없이 최대 속도로 전송하는 기본값
+- `--speed 1`: 원래 이벤트 시간 간격으로 재생
+- `--speed 100`: 원래 시간보다 100배 빠르게 재생
+- `--max-delay 5`: 두 이벤트 사이의 실제 대기를 최대 5초로 제한
+
+전송 과정에서 JSON 스키마와 이벤트 시각을 검사합니다. Broker 전송 실패나 flush 시간 초과가 발생하면 성공 메시지를 출력하지 않고 오류로 종료합니다.
