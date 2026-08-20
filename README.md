@@ -403,3 +403,48 @@ python3 -m jobs.replay_to_kafka \
 - `--max-delay 5`: 두 이벤트 사이의 실제 대기를 최대 5초로 제한
 
 전송 과정에서 JSON 스키마와 이벤트 시각을 검사합니다. Broker 전송 실패나 flush 시간 초과가 발생하면 성공 메시지를 출력하지 않고 오류로 종료합니다.
+
+### 로컬 Kafka Broker와 토픽 준비
+
+개발·데모 환경은 공식 Apache Kafka 이미지의 단일 KRaft Broker를 사용합니다.
+
+```bash
+docker compose up -d kafka
+docker compose ps
+```
+
+Broker가 `healthy` 상태가 되면 인제션 토픽을 생성합니다. `raw-text`는 7일, `raw-text-dlq`는 오류 조사와 재처리를 위해 30일 보존합니다. 단일 Broker 개발 환경이므로 replication factor는 1이며, 운영 환경에서는 Broker 수에 맞춰 늘려야 합니다.
+
+```bash
+python3 -m jobs.init_kafka
+```
+
+토픽 생성 명령은 멱등적이므로 이미 존재하는 토픽에 다시 실행해도 실패하지 않습니다.
+
+### End-to-end 인제션 확인
+
+공개 가능한 합성 이벤트를 Kafka에 적재합니다.
+
+```bash
+python3 -m jobs.replay_to_kafka \
+  --input sample/synthetic-events.jsonl
+```
+
+별도 터미널에서 처음부터 최대 10건을 읽고 `TextEvent v1` 계약을 검증합니다.
+
+```bash
+python3 -m jobs.inspect_kafka \
+  --topic raw-text \
+  --from-beginning \
+  --group-id ingestion-check-1 \
+  --limit 10 \
+  --idle-timeout 5
+```
+
+`group-id`에 저장된 offset 이후부터 읽으므로 같은 데이터를 다시 확인하려면 새로운 group ID를 사용합니다. 확인을 마친 Broker는 다음 명령으로 중지합니다.
+
+```bash
+docker compose down
+```
+
+Kafka 데이터는 named volume에 유지됩니다. 데이터까지 제거하는 `docker compose down -v`는 명시적으로 초기화할 때만 사용합니다.
