@@ -35,7 +35,7 @@ Master와 Worker는 장기 실행 서비스이고 `spark-runner`는 `docker comp
 ## 시작과 종료
 
 ```bash
-docker compose up -d kafka spark-master spark-worker
+docker compose up -d --wait postgres kafka spark-master spark-worker
 docker compose ps
 
 # 서비스만 중지하고 데이터 volume은 보존
@@ -76,6 +76,8 @@ docker compose --profile tools run --rm spark-runner \
 ```
 
 Compose의 `spark-runner`에는 `SPARK_MASTER_URL=spark://spark-master:7077`이 설정되어 있어 애플리케이션의 `--master`를 생략해도 Standalone을 사용합니다. 호스트에서 Python으로 직접 실행할 때는 환경 변수가 없으므로 기존 개발 기본값 `local[2]`를 유지합니다.
+
+`spark-runner`에는 Compose 내부 PostgreSQL DSN도 설정되어 있어 streaming consumer 실행 시 DB sink가 함께 활성화됩니다. 제출 이미지에는 `psycopg`가 필요하므로 Dockerfile 변경 후에는 `docker compose build spark-runner`를 다시 실행합니다.
 
 ## 저장 경로 제약
 

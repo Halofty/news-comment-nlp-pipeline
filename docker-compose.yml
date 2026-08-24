@@ -30,6 +30,26 @@ services:
       start_period: 15s
     restart: unless-stopped
 
+  postgres:
+    image: postgres:16.10
+    container_name: news-pipeline-postgres
+    environment:
+      POSTGRES_DB: news_pipeline
+      POSTGRES_USER: news_pipeline
+      POSTGRES_PASSWORD: news_pipeline_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./sql/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U news_pipeline -d news_pipeline"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
   spark-master:
     image: apache/spark:3.5.7-python3
     container_name: news-pipeline-spark-master
@@ -91,18 +111,24 @@ services:
     restart: unless-stopped
 
   spark-runner:
-    image: apache/spark:3.5.7-python3
+    image: news-pipeline-spark:3.5.7-python3
+    build:
+      context: .
+      dockerfile: infra/spark/Dockerfile
     profiles: ["tools"]
     user: "0:0"
     working_dir: /opt/spark/work-dir
     environment:
       PYTHONPATH: /opt/spark/work-dir
       SPARK_MASTER_URL: spark://spark-master:7077
+      POSTGRES_DSN: postgresql://news_pipeline:news_pipeline_dev@postgres:5432/news_pipeline
     volumes:
       - .:/opt/spark/work-dir
       - spark-ivy:/root/.ivy2
     depends_on:
       kafka:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
       spark-master:
         condition: service_healthy
@@ -113,5 +139,6 @@ services:
 
 volumes:
   kafka-data:
+  postgres-data:
   spark-ivy:
 

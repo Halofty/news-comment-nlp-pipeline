@@ -82,6 +82,9 @@ docker compose --profile tools run --rm spark-runner \
 | `--max-offsets-per-trigger` | `10000` | 한 micro-batch의 최대 Kafka 레코드 수 |
 | `--format` | `parquet` | `parquet` 또는 Windows 로컬 검증용 `jsonl` |
 | `--no-publish-dlq` | 꺼짐 | 켜면 계약 오류를 파일에만 보관하고 Kafka DLQ 발행 생략 |
+| `--postgres-dsn` | `POSTGRES_DSN` | 설정하면 transaction 기반 PostgreSQL 멱등 적재 활성화 |
+| `--consumer-name` | `text-event-kafka-consumer` | PostgreSQL에서 `batch_id`와 함께 사용하는 안정적인 commit key |
+| `--postgres-chunk-size` | `500` | Driver iterator에서 한 번에 upsert할 최대 행 수 |
 
 ## 검증
 
@@ -97,5 +100,7 @@ Docker Compose 실제 통합 검증에서는 Kafka 합성 1,000건 중 중복 19
 
 - watermark보다 늦은 이벤트는 stateful 중복 제거에서 제외될 수 있으므로 실제 지연 분포로 지연 허용값을 결정해야 합니다.
 - 현재 품질 판정은 fixture 일치를 위해 scalar Python UDF를 사용합니다. 처리량 검증 후 native Spark 식 또는 Pandas UDF 전환을 검토합니다.
-- 파일 sink와 Kafka DLQ는 하나의 원자적 commit이 아닙니다. PostgreSQL 적재를 추가할 때 `event_id`와 `batch_id` 기반 upsert를 사용합니다.
+- 파일 sink와 Kafka DLQ는 하나의 원자적 commit이 아닙니다. PostgreSQL은 `event_id`와 `batch_id` 기반 멱등 upsert로 재시도를 방어합니다.
+- PostgreSQL sink는 `(consumer_name, batch_id)` commit을 먼저 확인하고 한 트랜잭션에서 event upsert와 commit 기록을 완료합니다. 파일 sink·Kafka DLQ와 PostgreSQL 사이에는 하나의 분산 transaction이 없습니다.
+- 현재 PostgreSQL 적재는 `toLocalIterator()`와 chunk insert 방식입니다. 대규모 확장에서는 JDBC staging 또는 bulk load로 전환합니다.
 - 운영 checkpoint는 로컬 임시 디스크가 아닌 장애 후에도 유지되는 공유 저장소에 둡니다.

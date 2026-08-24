@@ -428,6 +428,7 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 | 2026-08-23 | 4·5 | 명시적 Spark Schema와 공통 변환으로 합성 100·1,000건 처리, JSONL 출력과 행 회계·품질 profile·단계별 운영 로그 작성 | 100건 100/100, 1,000건 1,000/1,000 행 설명, 운영 로그 10개 이벤트 자동 점검 | 6단계 Langfuse 도입 조사 |
 | 2026-08-23 | Streaming 확장 | Kafka Structured Streaming consumer, watermark 중복 제거, checkpoint, 4개 출력 경로와 계약 오류 DLQ 구현 | 실제 Kafka 1,000건에서 고유 981건 처리, 같은 checkpoint 재시작 0건, malformed JSON DLQ 1건 | PostgreSQL 멱등 적재 |
 | 2026-08-24 | Standalone 확장 | Spark Master·Worker·제출 Driver를 Compose 서비스로 분리하고 Job 기본 master URL을 환경 설정화 | Worker 2 cores 등록, batch 100건과 streaming 고유 982건 Executor 처리, checkpoint 재제출 0건 | 장애·부하 실험과 PostgreSQL 적재 |
+| 2026-08-24 | PostgreSQL 적재 | 핵심 4개 테이블 migration, transaction advisory lock, event·batch upsert와 선택적 Streaming sink 구현 | 실제 982건 적재, NUL 실패 rollback 후 재시도, 새 checkpoint 재처리 `already_committed`와 행 수 불변 확인 | 6단계 Langfuse 도입 조사 |
 
 ## 7. 다음 작업
 

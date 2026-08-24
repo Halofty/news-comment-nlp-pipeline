@@ -16,6 +16,7 @@ from pyspark.sql import DataFrame, SparkSession, functions as F
 from spark_jobs.run_logging import JsonlRunLogger
 from spark_jobs.schemas import RAW_EVENT_SCHEMA
 from spark_jobs.transformations import transform_events
+from storage.postgres import write_micro_batch_to_postgres
 
 
 DEFAULT_KAFKA_PACKAGE = "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.7"
@@ -47,6 +48,9 @@ class StreamingConfig:
     max_offsets_per_trigger: int | None = 10_000
     publish_dlq: bool = True
     output_format: str = "parquet"
+    postgres_dsn: str | None = None
+    consumer_name: str = "text-event-kafka-consumer"
+    postgres_chunk_size: int = 500
 
     def validate(self) -> None:
         if not self.bootstrap_servers.strip():
@@ -70,6 +74,10 @@ class StreamingConfig:
             raise ValueError("output_path and checkpoint_path must differ")
         if self.output_format not in {"parquet", "jsonl"}:
             raise ValueError("output_format must be parquet or jsonl")
+        if not self.consumer_name.strip():
+            raise ValueError("consumer_name must not be empty")
+        if self.postgres_chunk_size < 1:
+            raise ValueError("postgres_chunk_size must be positive")
 
 
 def create_streaming_spark_session(
@@ -263,12 +271,26 @@ def process_micro_batch(
                     dlq_topic=config.dlq_topic,
                 )
 
+        postgres_result = None
+        if config.postgres_dsn:
+            postgres_result = write_micro_batch_to_postgres(
+                cached.toLocalIterator(),
+                dsn=config.postgres_dsn,
+                consumer_name=config.consumer_name,
+                batch_id=batch_id,
+                route_counts={route: counts.get(route, 0) for route in OUTPUT_ROUTES},
+                chunk_size=config.postgres_chunk_size,
+            )
+
         if run_logger:
             run_logger.emit(
                 "micro_batch_completed",
                 batch_id=batch_id,
                 input_rows=total_rows,
                 route_counts={route: counts.get(route, 0) for route in OUTPUT_ROUTES},
+                postgres_status=(
+                    postgres_result.status if postgres_result else "disabled"
+                ),
                 stage_duration_seconds=round(time.perf_counter() - started, 3),
             )
     finally:
@@ -329,6 +351,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--available-now", action="store_true")
     parser.add_argument("--no-publish-dlq", action="store_true")
     parser.add_argument(
+        "--postgres-dsn",
+        default=os.getenv("POSTGRES_DSN"),
+        help="Optional PostgreSQL DSN; enables transactional idempotent storage",
+    )
+    parser.add_argument(
+        "--consumer-name",
+        default="text-event-kafka-consumer",
+        help="Stable name used with batch_id as the PostgreSQL commit key",
+    )
+    parser.add_argument("--postgres-chunk-size", type=int, default=500)
+    parser.add_argument(
         "--master",
         default=os.getenv("SPARK_MASTER_URL", "local[2]"),
         help="Spark master URL; Compose uses spark://spark-master:7077",
@@ -362,6 +395,9 @@ def main() -> None:
         max_offsets_per_trigger=args.max_offsets_per_trigger,
         publish_dlq=not args.no_publish_dlq,
         output_format=args.format,
+        postgres_dsn=args.postgres_dsn,
+        consumer_name=args.consumer_name,
+        postgres_chunk_size=args.postgres_chunk_size,
     )
     run_logger.emit(
         "consumer_started",
@@ -370,6 +406,7 @@ def main() -> None:
         starting_offsets=config.starting_offsets,
         watermark_delay=config.watermark_delay,
         available_now=args.available_now,
+        postgres_enabled=bool(config.postgres_dsn),
     )
     spark = None
     query = None

@@ -1,173 +1,103 @@
 # 뉴스 및 댓글 NLP 데이터 파이프라인
 
-GDELT 뉴스와 Reddit 댓글을 공통 이벤트로 수집하고 Kafka와 Spark로 처리한 뒤, LLM Batch API로 감정·토픽·요약을 분석하는 데이터 파이프라인 프로젝트입니다.
+## 해결하려는 문제
 
-> 목표: 뉴스 보도와 커뮤니티 반응의 감정·토픽 변화를 시간대별로 비교할 수 있는 재현 가능하고 장애에 강한 파이프라인을 구축합니다.
+뉴스와 커뮤니티 댓글은 형식, 생성 속도와 품질이 서로 다릅니다. 이 프로젝트는 두 출처의 텍스트를 같은 기준으로 비교할 수 있도록 다음 데이터 엔지니어링 문제를 해결합니다.
 
-## 프로젝트가 해결하려는 문제
+- 서로 다른 원본을 하나의 `TextEvent v1` 계약으로 표준화
+- Kafka로 수집과 처리 속도를 분리하고 과거 데이터를 재생
+- Spark로 계약 검사, 품질 판정, event-time 중복 제거와 경로 분기
+- checkpoint와 PostgreSQL batch commit으로 재시작 시 중복 적재 방지
+- 향후 LLM Batch 분석의 상태·오류·토큰·비용을 추적할 수 있는 기반 마련
 
-뉴스와 커뮤니티 댓글은 형식, 생성 속도와 품질이 서로 다릅니다. 이 프로젝트는 모델 자체를 개발하는 대신 다음 데이터 엔지니어링 문제에 집중합니다.
-
-- 서로 다른 출처를 하나의 데이터 계약으로 표준화
-- 수집 속도와 처리 속도를 Kafka로 분리
-- Spark를 이용한 정제, 중복 제거와 지연 이벤트 처리
-- 비동기 LLM 분석의 상태·오류·토큰·비용 관측
-- 재시작해도 유실과 중복을 통제할 수 있는 저장 구조
+최종 목표는 공통 키워드·토픽과 시간 window를 기준으로 뉴스 보도와 커뮤니티 반응의 감정·토픽 변화를 비교하는 것입니다.
 
 ## 데이터
 
-| 출처 | 사용하는 범위 | 분석 텍스트 |
-|---|---|---|
-| [GDELT DOC API](https://www.gdeltproject.org/) | 뉴스 URL, 제목, 언어, 도메인, 관측 시각 | MVP에서는 기사 제목 |
-| [Pushshift Reddit Comments](https://huggingface.co/datasets/fddemarco/pushshift-reddit-comments) | 댓글 ID, 본문, 작성 시각, subreddit, score | 작성자 정보를 제외한 댓글 본문 |
+| 출처 | 사용하는 범위 | 분석 텍스트 | 현재 검증 |
+|---|---|---|---|
+| [GDELT DOC API](https://www.gdeltproject.org/) | URL, 제목, 언어, 도메인, 관측 시각 | MVP에서는 기사 제목 | Collector 구현, 공유 IP rate limit으로 실제 100건 검증 대기 |
+| [Pushshift Reddit Comments](https://huggingface.co/datasets/fddemarco/pushshift-reddit-comments) | 댓글 ID, 본문, 작성 시각, subreddit, score | 작성자를 제외한 댓글 본문 | 2016-01 실제 100건 계약 검증 완료 |
 
-두 출처를 기사 단위로 직접 조인하지 않습니다. 공통 키워드·토픽과 시간 window를 기준으로 뉴스 보도와 댓글 반응의 변화를 비교합니다.
+두 출처를 기사 단위로 직접 조인하지 않습니다. 실제 원문과 실행 산출물은 Git에 포함하지 않고, `analysis/`에는 공개 가능한 명세·집계·검증 결과만 저장합니다.
 
-필드 정의와 출처별 매핑은 [TextEvent v1 데이터 계약](docs/data-contract.md), 실제 표본 검증 결과는 [검증 보고서](docs/validation-report.md)에서 확인할 수 있습니다.
-
-## 전체 흐름
+## 전체 흐름 — 파이프라인 개요
 
 ```text
 GDELT · Reddit
 → Collector
-→ TextEvent v1 검증
+→ TextEvent v1 계약 검증
 → JSONL staging
 → Kafka raw-text
-→ Spark 정제·중복 제거·window
-→ PostgreSQL
-→ LLM Batch 분석
-→ 감정·토픽·요약 결과
+→ Spark Structured Streaming
+   ├─ 계약 오류 → contract_rejected + Kafka DLQ
+   ├─ 품질 거부 → quality_rejected
+   ├─ 격리 대상 → quarantine
+   └─ 정상·flag → processed
+→ partitioned Parquet + PostgreSQL 멱등 upsert
+→ LLM Batch 감정·토픽·요약                 [예정]
+→ Airflow orchestration·운영 관측           [예정]
 ```
+
+Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runner`가 `spark-submit`과 Driver 역할을 담당합니다.
 
 ![전체 시스템 구성도](docs/system-architecture.png)
 
-## 핵심 기술
+## 구현 상태
 
-| 기술 | 역할 |
-|---|---|
-| Python | Collector, Kafka job과 LLM worker |
-| Apache Kafka | 이벤트 버퍼와 과거 데이터 replay |
-| Apache Spark | Schema parsing, 정제, 중복 제거와 시간 window |
-| PostgreSQL | 원본·정제·분석 결과와 처리 상태 저장 |
-| OpenAI Batch API | 감정, 토픽, 키워드와 요약 생성 |
-| Langfuse | LLM 토큰·비용·지연 관측 도입 검토 |
-| Apache Airflow | 스케줄, 작업 의존성과 재시도 예정 |
-| Docker Compose | 로컬 서비스 실행 환경 |
+| 영역 | 상태 | 검증 근거 |
+|---|---|---|
+| GDELT·Reddit Collector | 구현 완료 | Reddit 실제 100건 통과, GDELT 실제 표본은 rate limit 해제 후 재검증 |
+| `TextEvent v1`·JSON Schema | 구현 완료 | Python 계약과 JSON Schema 일치 |
+| 데이터셋 명세·메타데이터 | 구현 완료 | GDELT·Reddit 명세, YAML 카탈로그와 profile |
+| 텍스트 품질·안전 기준 | 구현 완료 | Unicode·반복·URL·PII·과대 입력 fixture 19개 |
+| Kafka ingestion | 구현·통합 검증 완료 | 실제 Broker에 합성 1,000건 발행·소비 |
+| Spark batch | 구현·검증 완료 | 동일 코드로 100건·1,000건 처리와 행 회계 확인 |
+| Spark Structured Streaming | 구현·통합 검증 완료 | watermark 중복 제거, checkpoint 재시작, 4개 경로와 DLQ |
+| Spark Standalone | 구현·통합 검증 완료 | Master·Worker 분리, Worker Executor 2 cores 실행 |
+| PostgreSQL 적재 | MVP 구현·통합 검증 완료 | 정상 981건·계약 거부 1건, 새 checkpoint 재처리 중복 0건 |
+| LLM Batch·Langfuse | 설계·도입 검토 | 구현 전 |
+| Airflow orchestration | 계획 | 구현 전 |
 
-## 현재 구현 상태
-
-| 영역 | 상태 |
-|---|---|
-| GDELT·Reddit Collector | 구현 완료 |
-| `TextEvent v1`·JSON Schema | 구현 완료 |
-| 데이터셋 명세·기계 판독 메타데이터 | 구현 완료 |
-| 텍스트 품질·안전 기준과 fixture | 구현 완료, Spark batch 적용·검증 완료 |
-| JSONL staging·Kafka replay | 구현 완료 |
-| Kafka Producer·토픽 초기화·검증 Consumer | 구현 완료, 실제 Broker 1,000건 발행·소비 검증 완료 |
-| Spark 100·1,000건 batch 처리 | 합성 표본·단계별 운영 로그 실행·검증 완료 |
-| Spark Kafka Structured Streaming | watermark 중복 제거·checkpoint·경로 분기·DLQ 구현 및 통합 검증 완료 |
-| Spark 실행 환경 | Standalone Master·Worker·별도 제출 Driver 구성 및 실제 Executor 검증 완료 |
-| PostgreSQL 적재 | 설계 단계 |
-| LLM Batch·Langfuse | 설계·도입 검토 단계 |
-| Airflow orchestration | 계획 단계 |
-
-현재 구현과 목표 아키텍처를 구분합니다. Kafka와 Spark consumer까지 구현됐으며 PostgreSQL, LLM과 Airflow는 README의 전체 흐름에는 포함되지만 아직 구현된 상태는 아닙니다.
-
-## 빠른 시작
-
-### 1. 환경 준비
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -r requirements.txt
-```
-
-### 2. 테스트
-
-```bash
-python3 -m pytest -q
-```
-
-### 3. 공개 합성 이벤트로 Kafka Ingestion 확인
-
-```bash
-docker compose up -d kafka
-python3 -m jobs.init_kafka
-python3 -m jobs.replay_to_kafka \
-  --input sample/synthetic-events.jsonl
-python3 -m jobs.inspect_kafka \
-  --topic raw-text \
-  --from-beginning \
-  --group-id ingestion-check-1 \
-  --limit 10
-```
-
-Docker 권한과 Kafka Broker가 필요합니다. 자세한 Collector·Kafka 옵션과 코드 흐름은 [Ingestion 구현 설명](docs/ingestion-implementation.md)을 참고합니다.
-
-### 4. 데이터 수집 예시
-
-```bash
-python3 -m collectors.gdelt \
-  --query "climate change" \
-  --max-records 100 \
-  --output data/raw/gdelt.jsonl
-
-python3 -m collectors.reddit \
-  --month 2016-01 \
-  --subreddit worldnews \
-  --limit 100 \
-  --output data/raw/reddit.jsonl
-```
+전체 자동 테스트는 현재 43개가 통과합니다. PostgreSQL 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
 
 ## 저장소 구조
 
 ```text
 news-comment-nlp-pipeline/
 ├── collectors/                  # GDELT·Reddit 수집과 공통 이벤트 변환
-├── core/                        # TextEvent v1 검증과 공통 유틸리티
-├── storage/                     # JSONL 저장
+├── core/                        # 이벤트 계약과 텍스트 품질 규칙
 ├── producers/                   # Kafka 메시지 발행
-├── jobs/                        # 토픽 초기화·replay·적재 확인 CLI
-├── spark_jobs/                  # 명시적 Schema·품질 변환·batch 처리 CLI
+├── jobs/                        # 토픽 초기화·replay·검증 CLI
+├── spark_jobs/                  # batch·Structured Streaming Spark Job
+├── storage/                     # JSONL과 PostgreSQL 저장 adapter
+├── sql/migrations/              # PostgreSQL 순차 migration
+├── infra/spark/                 # Spark 제출 이미지
 ├── sample/                      # JSON Schema와 공개 합성 이벤트
-├── analysis/                    # 데이터셋 명세·카탈로그·공개 가능 profile
-├── tests/                       # Collector·계약·Kafka 단위 테스트
-├── docs/                        # 상세 설계·구현·검증 문서
-├── docker-compose.yml
+├── analysis/                    # 데이터셋 명세·품질 fixture·검증 보고서
+├── tests/                       # 단위·Spark 변환·저장 테스트
+├── docs/                        # 설계·구현·운영 문서
+├── docker-compose.yml           # Kafka·Spark Standalone·PostgreSQL
 └── requirements.txt
 ```
 
-## 상세 문서
+## 상세 문서 링크
 
 | 문서 | 내용 |
 |---|---|
 | [시스템 구성도](docs/system-architecture.html) | 전체 목표 아키텍처 |
 | [Ingestion 구현 설명](docs/ingestion-implementation.md) | Collector부터 Kafka 적재 확인까지의 코드 흐름 |
 | [TextEvent v1 데이터 계약](docs/data-contract.md) | 공통 Schema와 출처별 필드 매핑 |
-| [실제 표본 검증](docs/validation-report.md) | Reddit 100건 검증과 GDELT 확인 상태 |
-| [데이터셋 명세와 메타데이터](analysis/README.md) | GDELT·Reddit 명세, YAML 카탈로그와 공개 가능 profile |
-| [텍스트 품질·안전 규칙](analysis/quality/text-quality-rules.md) | 길이·Unicode·반복·개인정보 flag와 Spark 출력 규격 |
-| [Spark 100·1,000건 검증](analysis/reports/spark-batch-validation.md) | 명시적 Schema, 행 회계, 품질 분포와 확장성 판단 |
-| [Spark 운영 로그 점검](analysis/reports/spark-run-log-review.md) | 1,000건 실행 단계·소요 시간·행 회계와 payload 미기록 검증 |
-| [Spark Standalone 실행 구조](docs/spark-standalone.md) | Master·Worker·Driver 역할, 자원, UI와 제출 명령 |
-| [Spark Streaming Consumer](docs/spark-streaming-consumer.md) | Kafka 입력, watermark 중복 제거, checkpoint, DLQ와 출력 경로 |
-| [Spark Streaming 통합 검증](analysis/reports/spark-streaming-consumer-validation.md) | Kafka 1,000건 처리, checkpoint 재시작과 malformed JSON DLQ 결과 |
-| [PostgreSQL 저장 구조](docs/storage-schema.md) | 목표 테이블과 적재·멱등성 설계 |
-| [LLM 분석 설계](docs/llm-analysis-design.md) | Batch 분석, 결과 검증과 Langfuse 관측 계획 |
-| [장애·부하 테스트 계획](docs/failure-and-load-test-plan.md) | 잘못된 입력과 서비스 장애 시나리오 |
-| [피드백 구현 계획](docs/feedback-implementation-plan.md) | README·데이터 명세·Spark·Langfuse 단계별 진행 상황 |
-
-## 데이터와 보안 원칙
-
-- 실제 기사·댓글 원문과 생성된 `data/` 파일은 Git에 포함하지 않습니다.
-- Reddit 작성자와 사용자 식별값을 공통 이벤트에 저장하지 않습니다.
-- `.env`, API key, 비밀번호와 webhook을 커밋하지 않습니다.
-- 외부 LLM에는 정제·비식별화한 분석 대상 텍스트만 전달합니다.
-- 기사 전문 수집은 저작권, 이용약관과 robots 정책을 검토한 뒤 선택적으로 확장합니다.
-
-## 향후 순서
-
-1. Spark 출력의 PostgreSQL 멱등 적재
-2. Langfuse 도입 방식 결정 및 LLM Batch 추적
-3. Airflow와 장애·부하 테스트
+| [데이터셋 명세와 메타데이터](analysis/README.md) | 데이터 출처·범위·카탈로그와 공개 가능 profile |
+| [실제 표본 검증](docs/validation-report.md) | Reddit 100건과 GDELT 확인 상태 |
+| [텍스트 품질·안전 규칙](analysis/quality/text-quality-rules.md) | 품질 측정값·임계값·상태와 출력 규격 |
+| [Spark batch 검증](analysis/reports/spark-batch-validation.md) | 100건·1,000건 행 회계와 품질 분포 |
+| [Spark 운영 로그 점검](analysis/reports/spark-run-log-review.md) | 1,000건 단계별 시간·행 회계·payload 미기록 검사 |
+| [Spark Standalone 실행 구조](docs/spark-standalone.md) | Master·Worker·Driver 역할과 제출 명령 |
+| [Spark Streaming Consumer](docs/spark-streaming-consumer.md) | Kafka 입력, watermark, checkpoint, DLQ와 sink |
+| [Spark Streaming 통합 검증](analysis/reports/spark-streaming-consumer-validation.md) | 실제 Kafka 처리와 checkpoint 재시작 결과 |
+| [PostgreSQL 저장 구조](docs/storage-schema.md) | 핵심 테이블, migration과 transaction upsert |
+| [PostgreSQL 통합 검증](analysis/reports/postgres-integration-validation.md) | 982건 적재, rollback·재시도와 멱등성 결과 |
+| [LLM 분석 설계](docs/llm-analysis-design.md) | Batch 분석과 Langfuse 관측 계획 |
+| [장애·부하 테스트 계획](docs/failure-and-load-test-plan.md) | 입력·서비스 장애와 부하 시나리오 |
+| [피드백 구현 계획](docs/feedback-implementation-plan.md) | 단계별 완료 조건과 진행 기록 |
