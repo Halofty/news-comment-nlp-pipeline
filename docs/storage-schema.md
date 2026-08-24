@@ -35,7 +35,7 @@ PostgreSQL
 └── pipeline_run_history         # 작업 실행 이력
 ```
 
-토큰·비용 관측은 Langfuse 도입을 검토하고 있으므로 별도 `llm_usage_ledger`를 확정하지 않습니다. 운영에 반드시 필요한 최소 사용량 정보만 PostgreSQL에 둘지 여부는 Langfuse 도입 결정 후 확정합니다.
+토큰·비용 대시보드는 Langfuse가 담당하므로 별도 `llm_usage_ledger`를 만들지 않습니다. PostgreSQL에는 처리 재개와 대조에 필요한 Batch·요청 상태, 실제 token 합계와 재시도 횟수만 유지합니다. Langfuse는 관측 복제본이며 장애나 trace 유실이 기준 상태에 영향을 주지 않습니다. 세부 경계는 [ADR-0001](adr/0001-langfuse-deployment.md)을 따릅니다.
 
 ## 4. 영역별 책임
 
@@ -72,7 +72,7 @@ Spark foreachBatch
 - [x] 시간·출처 조회 index 결정
 - [x] 1,000건 MVP는 staging 없이 transaction upsert 사용
 - [ ] 보존 기간과 개인정보 삭제 정책 결정
-- [ ] Langfuse와 PostgreSQL의 LLM 관측 데이터 책임 구분
+- [x] Langfuse와 PostgreSQL의 LLM 관측 데이터 책임 구분
 - [ ] migration과 rollback 절차 작성
 
 ## 7. 로컬 실행

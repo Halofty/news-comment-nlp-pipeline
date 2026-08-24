@@ -32,6 +32,7 @@
 
 - 기사 전문 수집은 저작권, 이용약관과 robots 정책을 검토한 뒤 선택적으로 확장합니다.
 - 데이터셋 페이지와 이용 조건의 확인 날짜를 명세에 기록합니다.
-- LLM prompt·응답 원문 저장 여부는 Langfuse 도입 결정과 함께 별도 ADR로 확정합니다.
+- Langfuse에는 prompt·응답·기사·댓글 원문을 보내지 않고 allowlist metadata만 전송합니다.
+- 관리형 서비스의 리전·보존·처리자 정책은 실제 데이터 사용 전에 다시 확인합니다.
 
-세부 품질 규칙은 [텍스트 품질·안전 규칙](../analysis/quality/text-quality-rules.md), 출처별 이용 범위는 [데이터셋 명세](../analysis/README.md)를 참고합니다.
+세부 품질 규칙은 [텍스트 품질·안전 규칙](../analysis/quality/text-quality-rules.md), 출처별 이용 범위는 [데이터셋 명세](../analysis/README.md), 관측 데이터 경계는 [ADR-0001](adr/0001-langfuse-deployment.md)을 참고합니다.

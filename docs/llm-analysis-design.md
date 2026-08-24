@@ -4,7 +4,7 @@
 
 정제된 뉴스·댓글을 LLM Batch API로 분석해 감정, 토픽 후보, 키워드와 요약을 생성하는 목표 설계입니다.
 
-현재 LLM 제출·결과 적재 코드는 아직 구현되지 않았습니다. 토큰·비용 관측은 직접 원장만 구축하는 방식 대신 Langfuse 도입을 검토하도록 계획을 변경했습니다.
+현재 LLM 제출·결과 적재 코드는 아직 구현되지 않았습니다. 토큰·비용 관측은 [ADR-0001](adr/0001-langfuse-deployment.md)에 따라 관리형 Langfuse와 격리된 adapter로 구현합니다.
 
 ## 2. 처리 흐름
 
@@ -61,7 +61,7 @@ PostgreSQL의 분석 대기 문서 조회
 
 ## 6. Langfuse 관측 계획
 
-Langfuse는 바로 설치하지 않고 관리형과 self-hosted 운영 부담을 먼저 비교합니다. 구체적인 도입 순서는 [멘토 피드백 구현 계획](feedback-implementation-plan.md)의 6·7단계를 따릅니다.
+MVP는 관리형 Langfuse 일본 리전을 사용합니다. self-hosted 구성은 현재 로컬 Kafka·Spark 환경에 비해 자원과 운영 부담이 커 보류합니다. 구체적인 근거와 재검토 조건은 [ADR-0001](adr/0001-langfuse-deployment.md)에 기록합니다.
 
 관측 후보:
 
@@ -72,7 +72,7 @@ Langfuse는 바로 설치하지 않고 관리형과 self-hosted 운영 부담을
 - 결과 Schema 검증 성공 여부
 - 오류·누락·재시도 횟수
 
-Langfuse 기록 실패가 핵심 분석 결과 저장을 중단시키지 않도록 adapter 경계를 두고 오류를 격리합니다. prompt와 응답 원문 저장 여부는 개인정보·원문 정책을 검토한 뒤 결정합니다.
+Langfuse 기록 실패가 핵심 분석 결과 저장을 중단시키지 않도록 adapter 경계를 두고 오류를 격리합니다. prompt·응답·기사·댓글 원문은 Langfuse에 보내지 않고 식별 불가능한 ID, 상태, token과 비용 metadata만 전송합니다.
 
 ## 7. 안전과 비용 제한
 
@@ -92,11 +92,13 @@ Langfuse 기록 실패가 핵심 분석 결과 저장을 중단시키지 않도�
 - [ ] 제출·상태 확인·결과 다운로드 구현
 - [ ] 결과 검증과 PostgreSQL 적재 구현
 - [ ] 누락·오류·만료 재처리 구현
-- [ ] Langfuse 도입 방식 결정
+- [x] Langfuse 도입 방식과 데이터 경계 결정
 - [ ] 소량 합성 데이터로 토큰·비용 추적 검증
 
 ## 9. 관련 문서
 
+- [Langfuse 구현·토큰 관리 계획](langfuse-implementation-plan.md)
+- [Langfuse 도입 ADR](adr/0001-langfuse-deployment.md)
 - [PostgreSQL 저장 구조](storage-schema.md)
 - [장애 및 부하 테스트 계획](failure-and-load-test-plan.md)
 - [멘토 피드백 구현 계획](feedback-implementation-plan.md)

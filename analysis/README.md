@@ -28,7 +28,9 @@ analysis/
     ├── spark-streaming-consumer-run-log.jsonl
     ├── spark-streaming-consumer-restart-log.jsonl
     ├── spark-streaming-consumer-dlq-log.jsonl
-    └── spark-streaming-consumer-validation.md
+    ├── spark-streaming-consumer-validation.md
+    ├── langfuse-sample-trace.jsonl
+    └── langfuse-token-validation.md
 ```
 
 ## 문서별 책임
@@ -44,6 +46,8 @@ analysis/
 | `reports/spark-run-log-review.md` | 이벤트 순서·행 회계·시간·민감 payload 미기록 점검 결과 |
 | `reports/spark-streaming-consumer-*.jsonl` | Kafka 1,000건 처리·checkpoint 재시작·DLQ 검증의 원문 제외 운영 로그 |
 | `reports/spark-streaming-consumer-validation.md` | 실제 Kafka→Spark 처리 행 회계, 재시작과 malformed JSON DLQ 결과 |
+| `reports/langfuse-sample-trace.jsonl` | 원문 없이 합성 Batch·단계·generation·token 대조를 기록한 관측 로그 |
+| `reports/langfuse-token-validation.md` | 합성 3건의 token·비용·재시도, SDK와 fallback 검증 결과 |
 | `quality/validation-summary.md` | 데이터셋별 검증 결과와 아직 해소하지 못한 조건 요약 |
 | `quality/text-quality-rules.md` | 커뮤니티 텍스트의 측정값·임계값·상태·Spark 출력 규격 |
 | `quality/text-quality-fixtures.jsonl` | 정상 다국어와 경계·악성 입력의 기계 판독 기대 결과 |

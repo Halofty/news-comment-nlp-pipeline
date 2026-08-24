@@ -1,0 +1,27 @@
+{
+  "id": "batch_sample_20260824",
+  "object": "batch",
+  "status": "completed",
+  "created_at": 1787533200,
+  "completed_at": 1787533260,
+  "request_counts": {
+    "total": 3,
+    "completed": 3,
+    "failed": 0
+  },
+  "usage": {
+    "input_tokens": 300,
+    "input_tokens_details": {
+      "cached_tokens": 20
+    },
+    "output_tokens": 60,
+    "output_tokens_details": {
+      "reasoning_tokens": 5
+    },
+    "total_tokens": 360
+  },
+  "metadata": {
+    "llm_batch_id": "llm-sample-20260824-001",
+    "model": "sample-batch-model"
+  }
+}

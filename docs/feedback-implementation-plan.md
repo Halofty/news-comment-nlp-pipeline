@@ -39,10 +39,10 @@
 | 3 | 커뮤니티 텍스트 품질·안전 기준 설계 | `[x]` | 100% | 정책 문서, 기준 구현, fixture 19개·Schema와 자동 검사 7개 통과 |
 | 4 | Spark 100건 처리 MVP | `[x]` | 100% | 명시적 Schema·공통 변환·CLI, 합성 100건 행 회계와 profile |
 | 5 | Spark 1,000건 이상 확장 검증 | `[x]` | 100% | 동일 코드 1,000건 처리, partition·품질·시간·운영 로그 점검 보고서 |
-| 6 | Langfuse 도입 방식 조사와 결정 | `[ ]` | 0% | 선택안 비교 및 ADR |
-| 7 | Langfuse 토큰·비용 추적 연동 | `[ ]` | 0% | 샘플 trace와 토큰·비용 확인 결과 |
+| 6 | Langfuse 도입 방식 조사와 결정 | `[x]` | 100% | 관리형 일본 리전·metadata-only 정책과 adapter 경계 ADR |
+| 7 | Langfuse 토큰·비용 추적 연동 | `[-]` | 90% | adapter·합성 3건 360 token·비용 대조 완료, 실제 Cloud 확인 대기 |
 
-다음 착수 단계는 **6단계 Langfuse 도입 조사와 결정**입니다. 4·5단계는 확장 가능한 하나의 Spark batch 구현으로 함께 완료했습니다.
+현재 **7단계 Langfuse 토큰·비용 추적 연동**을 진행 중입니다. adapter와 합성 검증은 완료했고 관리형 일본 리전의 실제 trace 확인이 남았습니다.
 
 ## 4. 단계별 구현 계획
 
@@ -342,13 +342,13 @@ LLM 요청의 토큰·비용·지연·오류를 직접 원장으로만 관리하
 
 #### 작업 체크리스트
 
-- [ ] 현재 Langfuse 공식 설치·SDK·OpenAI 연동 문서 확인
-- [ ] 관리형과 self-hosted 구성요소 비교
-- [ ] 로컬 CPU·메모리·디스크 예상 부담 기록
-- [ ] 저장할 trace metadata와 개인정보 정책 결정
-- [ ] OpenAI Batch API 추적 가능 범위 검증
-- [ ] 선택 결과를 ADR로 작성
-- [ ] 채택하지 않을 경우 대체 관측 방식 기록
+- [x] 현재 Langfuse 공식 설치·SDK·OpenAI 연동 문서 확인
+- [x] 관리형과 self-hosted 구성요소 비교
+- [x] 로컬 CPU·메모리·디스크 예상 부담 기록
+- [x] 저장할 trace metadata와 개인정보 정책 결정
+- [x] OpenAI Batch API 추적 가능 범위 검증
+- [x] 선택 결과를 ADR로 작성
+- [x] 장애 시 구조화 로그와 no-op sink 대체 방식 기록
 
 #### 완료 조건
 
@@ -359,6 +359,8 @@ LLM 요청의 토큰·비용·지연·오류를 직접 원장으로만 관리하
 ---
 
 ### 7단계 — Langfuse 토큰·비용 추적 연동
+
+구현 구조, token·비용 대조, 예산 제어와 테스트 항목은 [Langfuse 구현·토큰 관리 계획](langfuse-implementation-plan.md)에서 관리합니다.
 
 #### 목표
 
@@ -385,14 +387,16 @@ Trace: 하나의 LLM Batch 작업
 
 #### 작업 체크리스트
 
-- [ ] Langfuse client wrapper 작성
-- [ ] 환경 변수와 secret 관리 추가
-- [ ] trace 실패가 본 처리 실패로 전파되지 않도록 격리
-- [ ] 합성 문서 소량 요청 추적
-- [ ] 토큰 수를 API 응답과 대조
-- [ ] 재시도 요청의 중복 비용 구분
-- [ ] prompt·응답 저장 범위 검증
-- [ ] 실행·확인 방법 문서화
+- [x] Langfuse client wrapper 작성
+- [x] 환경 변수와 secret 관리 추가
+- [x] trace 실패가 본 처리 실패로 전파되지 않도록 격리
+- [x] 합성 문서 소량 요청 추적
+- [x] 토큰 수를 API 응답과 대조
+- [x] 재시도 요청의 중복 비용 구분
+- [x] prompt·응답 저장 범위 검증
+- [x] 실행·확인 방법 문서화
+
+현재 환경에는 관리형 Langfuse key가 없어 실제 Cloud UI 확인은 남아 있습니다. 로컬에서는 실제 SDK 4.14.4의 tracing 비활성 client로 method 호환성을 확인하고, 구조화 로그 sink로 동일 payload를 검증했습니다. 결과는 [Langfuse 샘플 추적 검증](../analysis/reports/langfuse-token-validation.md)에 기록합니다.
 
 #### 완료 조건
 
@@ -429,14 +433,16 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 | 2026-08-23 | Streaming 확장 | Kafka Structured Streaming consumer, watermark 중복 제거, checkpoint, 4개 출력 경로와 계약 오류 DLQ 구현 | 실제 Kafka 1,000건에서 고유 981건 처리, 같은 checkpoint 재시작 0건, malformed JSON DLQ 1건 | PostgreSQL 멱등 적재 |
 | 2026-08-24 | Standalone 확장 | Spark Master·Worker·제출 Driver를 Compose 서비스로 분리하고 Job 기본 master URL을 환경 설정화 | Worker 2 cores 등록, batch 100건과 streaming 고유 982건 Executor 처리, checkpoint 재제출 0건 | 장애·부하 실험과 PostgreSQL 적재 |
 | 2026-08-24 | PostgreSQL 적재 | 핵심 4개 테이블 migration, transaction advisory lock, event·batch upsert와 선택적 Streaming sink 구현 | 실제 982건 적재, NUL 실패 rollback 후 재시도, 새 checkpoint 재처리 `already_committed`와 행 수 불변 확인 | 6단계 Langfuse 도입 조사 |
+| 2026-08-24 | 6 | 공식 v4 SDK·Cloud·self-hosted 구성과 OpenAI Batch usage 추적 범위를 비교하고 관리형 일본 리전·metadata-only·adapter 경계를 채택 | ADR에 구성요소, 최소 11 vCPU·25.5 GiB RAM, 허용 metadata, fallback과 재검토 조건 기록 | 7단계 Langfuse 추적 adapter 구현 |
+| 2026-08-24 | 7 | vendor 독립 관측 자료형, Langfuse·구조화 로그·no-op sink와 합성 Batch 검증 CLI 구현 | SDK 4.14.4 smoke test, 3건 360 token·$0.000265 대조, 관측 9개·전체 52개 테스트 통과 | 관리형 Cloud trace 확인 후 LLM Batch workflow 연결 |
 
 ## 7. 다음 작업
 
-다음 작업은 **6단계 Langfuse 도입 조사와 결정**입니다.
+다음 작업은 **7단계의 실제 관리형 Langfuse trace 확인**입니다.
 
 구현 순서:
 
-1. 현재 Langfuse 공식 설치·SDK와 OpenAI Batch 추적 범위를 확인합니다.
-2. 관리형과 self-hosted의 운영 부담·비용·데이터 경계를 비교합니다.
-3. trace metadata와 prompt·응답 저장 범위를 결정합니다.
-4. 선택 결과와 대체 관측 방식을 ADR로 기록합니다.
+1. 관리형 일본 리전 project key를 환경 변수로 주입합니다.
+2. `python -m jobs.verify_langfuse --sink langfuse`로 합성 trace를 전송합니다.
+3. UI/API에서 trace 1건, generation 3건과 360 token·비용을 확인합니다.
+4. 이후 실제 LLM Batch workflow와 PostgreSQL 결과 적재에 adapter를 연결합니다.

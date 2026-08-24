@@ -10,7 +10,7 @@
 | PostgreSQL | 원본·정제 이벤트, 계약 오류와 batch commit 저장 | transaction, unique constraint와 조회 편의성 |
 | Docker Compose | Kafka·Spark Standalone·PostgreSQL 로컬 실행 | 재현 가능한 단일 개발 환경 |
 | OpenAI Batch API | 감정·토픽·키워드·요약 분석 | 비동기 대량 분석 후보, 아직 미구현 |
-| Langfuse | LLM trace·토큰·비용·지연 관측 | 관리형·self-hosted 비교 후 도입 결정 예정 |
+| Langfuse | LLM trace·토큰·비용·지연 관측 | MVP는 관리형 일본 리전과 metadata-only adapter 사용 |
 | Apache Airflow | 수집·처리·분석 작업의 스케줄과 재시도 | 실행 단위가 안정화된 후 도입 예정 |
 
 ## 현재 실행 구조
