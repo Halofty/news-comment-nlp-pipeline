@@ -1,0 +1,52 @@
+{
+  "report_version": 1,
+  "dataset": "deterministic-synthetic-text-events",
+  "input_sha256": "8823d0b1c35e192ea42be61348ad4b9919d03b6f9095fa74c02609d87de10d74",
+  "input_rows": 100,
+  "input_bytes": 130273,
+  "schema_parsing_success_rows": 100,
+  "malformed_json_rows": 0,
+  "contract_rejected_rows": 0,
+  "duplicate_event_id_rows": 1,
+  "unique_output_rows": 99,
+  "accounted_rows": 100,
+  "source_counts": {
+    "news": 49,
+    "comment": 50
+  },
+  "quality_status_counts": {
+    "accept": 90,
+    "flag": 5,
+    "quarantine": 3,
+    "reject": 1
+  },
+  "quality_flag_counts": {
+    "SOURCE_TOMBSTONE": 1,
+    "EXCESSIVE_COMBINING_MARKS": 1,
+    "HIGH_REPETITION": 3,
+    "EXCESSIVE_LENGTH": 2,
+    "EXCESSIVE_UTF8_BYTES": 1,
+    "POSSIBLE_PII": 1,
+    "ZERO_WIDTH_CHARACTERS": 1,
+    "CONTROL_CHARACTERS": 1,
+    "URL_HEAVY": 1
+  },
+  "text_metrics": {
+    "minimum_characters": 9,
+    "maximum_characters": 16385,
+    "mean_characters": 282.929,
+    "maximum_utf8_bytes": 65540
+  },
+  "runtime": {
+    "duration_seconds": 11.005,
+    "input_partitions": 1,
+    "processing_partitions": 2,
+    "output_format": "jsonl",
+    "python_version": "3.11.9",
+    "spark_version": "3.5.9",
+    "java_version": "17.0.19",
+    "master": "local[2]",
+    "platform": "Windows local"
+  },
+  "representative": false
+}

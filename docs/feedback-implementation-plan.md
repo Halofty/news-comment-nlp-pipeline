@@ -35,14 +35,14 @@
 |---:|---|:---:|---:|---|
 | 0 | 피드백 구현 계획 작성 | `[x]` | 100% | 이 문서 작성 |
 | 1 | README 축약과 상세 문서 분리 | `[x]` | 100% | README 437→163줄, 상세 문서 3개, 링크·테스트 검사 통과 |
-| 2 | 데이터셋 명세와 메타데이터 작성 | `[ ]` | 0% | 데이터 카탈로그, 기계 판독 메타데이터, 검증 결과 |
-| 3 | 커뮤니티 텍스트 품질·안전 기준 설계 | `[ ]` | 0% | 품질 규칙 문서, 테스트 fixture와 판정 기준 |
-| 4 | Spark 100건 처리 MVP | `[ ]` | 0% | 실행 가능한 Spark job과 100건 결과 보고서 |
-| 5 | Spark 1,000건 이상 확장 검증 | `[ ]` | 0% | 처리 건수·시간·오류·출력 통계 |
+| 2 | 데이터셋 명세와 메타데이터 작성 | `[x]` | 100% | 데이터셋 명세 2개, YAML 카탈로그·Schema, 표본 profile 2개, 자동 검사 6개 통과 |
+| 3 | 커뮤니티 텍스트 품질·안전 기준 설계 | `[x]` | 100% | 정책 문서, 기준 구현, fixture 19개·Schema와 자동 검사 7개 통과 |
+| 4 | Spark 100건 처리 MVP | `[x]` | 100% | 명시적 Schema·공통 변환·CLI, 합성 100건 행 회계와 profile |
+| 5 | Spark 1,000건 이상 확장 검증 | `[x]` | 100% | 동일 코드 1,000건 처리, partition·품질·시간·운영 로그 점검 보고서 |
 | 6 | Langfuse 도입 방식 조사와 결정 | `[ ]` | 0% | 선택안 비교 및 ADR |
 | 7 | Langfuse 토큰·비용 추적 연동 | `[ ]` | 0% | 샘플 trace와 토큰·비용 확인 결과 |
 
-다음 착수 단계는 **2단계 데이터셋 명세와 메타데이터 작성**입니다. 1단계는 완료했습니다.
+다음 착수 단계는 **6단계 Langfuse 도입 조사와 결정**입니다. 4·5단계는 확장 가능한 하나의 Spark batch 구현으로 함께 완료했습니다.
 
 ## 4. 단계별 구현 계획
 
@@ -156,13 +156,13 @@ datasets:
 
 #### 작업 체크리스트
 
-- [ ] `analysis/` 디렉터리와 안내 문서 생성
-- [ ] GDELT 데이터셋 명세 작성
-- [ ] Reddit 데이터셋 명세 작성
-- [ ] `dataset-catalog.yaml` Schema 결정
-- [ ] 현재 100건 표본의 기본 profile 작성
-- [ ] 수집일·기간·건수·필터를 재현할 수 있게 기록
-- [ ] 데이터 명세와 `docs/data-contract.md`의 역할 구분
+- [x] `analysis/` 디렉터리와 안내 문서 생성
+- [x] GDELT 데이터셋 명세 작성
+- [x] Reddit 데이터셋 명세 작성
+- [x] `dataset-catalog.yaml` Schema 결정
+- [x] 현재 100건 표본의 기본 profile 작성
+- [x] 수집일·기간·건수·필터를 재현할 수 있게 기록
+- [x] 데이터 명세와 `docs/data-contract.md`의 역할 구분
 
 #### 완료 조건
 
@@ -202,13 +202,13 @@ datasets:
 
 #### 작업 체크리스트
 
-- [ ] `analysis/quality/text-quality-rules.md` 작성
-- [ ] 최대 문자·byte·예상 token 기준 결정
-- [ ] Unicode 정규화와 제어 문자 정책 결정
-- [ ] 반복·도배 탐지 기준 후보 비교
-- [ ] 제외, truncate, quality flag, DLQ의 적용 기준 구분
-- [ ] 정상·경계·악성 fixture 작성
-- [ ] Collector와 Spark 중 각 검사를 수행할 위치 결정
+- [x] `analysis/quality/text-quality-rules.md` 작성
+- [x] 최대 문자·byte·token 측정 위치와 상한 결정
+- [x] Unicode 정규화와 제어 문자 정책 결정
+- [x] 반복·도배 탐지 기준 후보 비교
+- [x] 제외, truncate, quality flag, DLQ의 적용 기준 구분
+- [x] 정상·경계·악성 fixture 작성
+- [x] Collector와 Spark 중 각 검사를 수행할 위치 결정
 
 #### 완료 조건
 
@@ -267,15 +267,15 @@ tests/
 
 #### 작업 체크리스트
 
-- [ ] Java·PySpark 실행 환경 확인
-- [ ] PySpark 버전과 Python 버전 호환성 확인
-- [ ] `TextEvent v1` Spark Schema 작성
-- [ ] JSONL 100건 batch reader 구현
-- [ ] 공통 transformation 함수 구현
-- [ ] 중복·결측·길이·Unicode quality 컬럼 구현
-- [ ] 출력 경로와 포맷 결정
-- [ ] 100건 실행 결과 보고서 작성
-- [ ] transformation 단위 테스트 작성
+- [x] Java·PySpark 실행 환경 확인
+- [x] PySpark 버전과 Python 버전 호환성 확인
+- [x] `TextEvent v1` Spark Schema 작성
+- [x] JSONL 100건 batch reader 구현
+- [x] 공통 transformation 함수 구현
+- [x] 중복·결측·길이·Unicode quality 컬럼 구현
+- [x] 출력 경로와 포맷 결정
+- [x] 100건 실행 결과 보고서 작성
+- [x] transformation 단위 테스트 작성
 
 #### 완료 조건
 
@@ -295,15 +295,17 @@ tests/
 
 #### 작업 체크리스트
 
-- [ ] Reddit 또는 합성·실제 혼합 표본 1,000건 준비
-- [ ] 1,000건 batch 처리 실행
-- [ ] 처리 시간과 입출력 건수 기록
-- [ ] 메모리 또는 partition 문제 확인
-- [ ] quality flag 분포 검토
-- [ ] 같은 event ID를 넣어 중복 제거 확인
-- [ ] 비정상 Unicode·과대 입력 fixture 포함 실행
-- [ ] 100건 결과와 비교 보고서 작성
-- [ ] 이후 Kafka Structured Streaming 전환 지점 정리
+- [x] Reddit 또는 합성·실제 혼합 표본 1,000건 준비
+- [x] 1,000건 batch 처리 실행
+- [x] 처리 시간과 입출력 건수 기록
+- [x] 메모리 또는 partition 문제 확인
+- [x] quality flag 분포 검토
+- [x] 같은 event ID를 넣어 중복 제거 확인
+- [x] 비정상 Unicode·과대 입력 fixture 포함 실행
+- [x] 100건 결과와 비교 보고서 작성
+- [x] 단계별 구조화 운영 로그 수집
+- [x] 로그 순서·행 회계·원문 payload 미기록 자동 점검
+- [x] 이후 Kafka Structured Streaming 전환 지점 정리
 
 #### 완료 조건
 
@@ -421,15 +423,19 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 |---|---:|---|---|---|
 | 2026-08-21 | 0 | 멘토 피드백을 7단계 구현 계획으로 분리 | 문서 구조·체크리스트 확인 | 1단계 README 내용 분류 |
 | 2026-08-21 | 1 | README를 437줄에서 163줄로 축약하고 저장·LLM·장애 설계를 문서 3개로 분리 | 테스트 16개, Compose, Markdown 8개 로컬 링크 통과 | 2단계 `analysis/` 데이터 명세 작성 |
+| 2026-08-23 | 2 | GDELT·Reddit 명세, YAML 카탈로그·JSON Schema, 검증 요약과 profile 작성 | 메타데이터 자동 검사 6개 통과 | 3단계 텍스트 품질·안전 기준 작성 |
+| 2026-08-23 | 3 | 길이·byte·Unicode·반복·URL·PII 정책과 Spark 출력 컬럼 확정, Python 기준 구현과 fixture 19개 작성 | 품질 검사 7개 포함 전체 테스트 함수 29개 통과 | 4단계 Spark 100건 처리 MVP |
+| 2026-08-23 | 4·5 | 명시적 Spark Schema와 공통 변환으로 합성 100·1,000건 처리, JSONL 출력과 행 회계·품질 profile·단계별 운영 로그 작성 | 100건 100/100, 1,000건 1,000/1,000 행 설명, 운영 로그 10개 이벤트 자동 점검 | 6단계 Langfuse 도입 조사 |
+| 2026-08-23 | Streaming 확장 | Kafka Structured Streaming consumer, watermark 중복 제거, checkpoint, 4개 출력 경로와 계약 오류 DLQ 구현 | 실제 Kafka 1,000건에서 고유 981건 처리, 같은 checkpoint 재시작 0건, malformed JSON DLQ 1건 | PostgreSQL 멱등 적재 |
+| 2026-08-24 | Standalone 확장 | Spark Master·Worker·제출 Driver를 Compose 서비스로 분리하고 Job 기본 master URL을 환경 설정화 | Worker 2 cores 등록, batch 100건과 streaming 고유 982건 Executor 처리, checkpoint 재제출 0건 | 장애·부하 실험과 PostgreSQL 적재 |
 
 ## 7. 다음 작업
 
-다음 작업은 **2단계 데이터셋 명세와 메타데이터 작성**입니다.
+다음 작업은 **6단계 Langfuse 도입 조사와 결정**입니다.
 
 구현 순서:
 
-1. `analysis/`와 데이터셋별 명세 파일을 만듭니다.
-2. GDELT와 Reddit의 출처·기간·필드·제외 규칙을 기록합니다.
-3. 프로그램이 읽을 수 있는 `dataset-catalog.yaml` 형식을 확정합니다.
-4. 현재 Reddit 100건 검증 결과를 공개 가능한 profile로 옮깁니다.
-5. 데이터 명세와 `TextEvent v1` 데이터 계약의 역할을 구분합니다.
+1. 현재 Langfuse 공식 설치·SDK와 OpenAI Batch 추적 범위를 확인합니다.
+2. 관리형과 self-hosted의 운영 부담·비용·데이터 경계를 비교합니다.
+3. trace metadata와 prompt·응답 저장 범위를 결정합니다.
+4. 선택 결과와 대체 관측 방식을 ADR로 기록합니다.

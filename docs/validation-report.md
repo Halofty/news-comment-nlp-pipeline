@@ -3,6 +3,7 @@
 - 검증일: 2026-08-20
 - 데이터 계약: [`data-contract.md`](data-contract.md)
 - JSON Schema: [`../sample/schema.json`](../sample/schema.json)
+- 공개 가능 profile: [`../analysis/reports/`](../analysis/reports/)
 - 실제 원문 저장 위치: `data/validation/` (`.gitignore` 대상)
 
 ## 1. Reddit 월별 표본

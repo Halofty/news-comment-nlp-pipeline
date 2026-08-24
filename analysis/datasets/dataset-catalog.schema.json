@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/dataset-catalog-v1.json",
+  "title": "DatasetCatalog",
+  "type": "object",
+  "required": ["catalog_version", "last_verified_at", "contract", "datasets"],
+  "properties": {
+    "catalog_version": {"const": 1},
+    "last_verified_at": {"type": "string", "format": "date"},
+    "contract": {
+      "type": "object",
+      "required": ["name", "version", "documentation_path", "schema_path"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "version": {"type": "integer", "minimum": 1},
+        "documentation_path": {"type": "string", "minLength": 1},
+        "schema_path": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "datasets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/dataset"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "dataset": {
+      "type": "object",
+      "required": [
+        "id", "name", "provider", "source_type", "source_url",
+        "documentation_url", "specification_path", "access", "project_scope",
+        "fields", "privacy", "usage_terms", "known_issues", "validation",
+        "reproduction"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "name": {"type": "string", "minLength": 1},
+        "provider": {"type": "string", "minLength": 1},
+        "source_type": {"enum": ["news", "comment"]},
+        "source_url": {"type": "string", "format": "uri"},
+        "documentation_url": {"type": "string", "format": "uri"},
+        "specification_path": {"type": "string", "minLength": 1},
+        "access": {"$ref": "#/$defs/access"},
+        "project_scope": {"$ref": "#/$defs/projectScope"},
+        "fields": {"$ref": "#/$defs/fields"},
+        "privacy": {"$ref": "#/$defs/privacy"},
+        "usage_terms": {"$ref": "#/$defs/usageTerms"},
+        "known_issues": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "validation": {"$ref": "#/$defs/validation"},
+        "reproduction": {"$ref": "#/$defs/reproduction"}
+      },
+      "additionalProperties": false
+    },
+    "access": {
+      "type": "object",
+      "required": ["method", "format", "unit", "upstream_scale"],
+      "properties": {
+        "method": {"type": "string", "minLength": 1},
+        "format": {"type": "string", "minLength": 1},
+        "unit": {"type": "string", "minLength": 1},
+        "upstream_scale": {
+          "type": "object",
+          "required": ["value", "unit", "note"],
+          "properties": {
+            "value": {"type": ["integer", "null"], "minimum": 0},
+            "unit": {"type": "string", "minLength": 1},
+            "note": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "projectScope": {
+      "type": "object",
+      "required": ["temporal_scope", "filters", "text_scope", "sample_size", "raw_data_git_tracked"],
+      "properties": {
+        "temporal_scope": {"type": "string", "minLength": 1},
+        "filters": {"type": "array", "items": {"type": "string"}},
+        "text_scope": {"type": "string", "minLength": 1},
+        "sample_size": {"type": "integer", "minimum": 0},
+        "raw_data_git_tracked": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "fields": {
+      "type": "object",
+      "required": ["used", "excluded", "event_time_field", "identifier_fields"],
+      "properties": {
+        "used": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "excluded": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "event_time_field": {"type": "string", "minLength": 1},
+        "identifier_fields": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+      },
+      "additionalProperties": false
+    },
+    "privacy": {
+      "type": "object",
+      "required": ["personal_fields_excluded", "raw_storage", "policy"],
+      "properties": {
+        "personal_fields_excluded": {"type": "array", "items": {"type": "string"}},
+        "raw_storage": {"type": "string", "minLength": 1},
+        "policy": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "usageTerms": {
+      "type": "object",
+      "required": ["status", "checked_at", "url", "note"],
+      "properties": {
+        "status": {"enum": ["declared_by_provider", "not_declared", "review_required"]},
+        "checked_at": {"type": "string", "format": "date"},
+        "url": {"type": "string", "format": "uri"},
+        "note": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": ["status", "checked_at", "profile_path", "note"],
+      "properties": {
+        "status": {"enum": ["passed", "failed", "blocked", "not_run"]},
+        "checked_at": {"type": "string", "format": "date"},
+        "profile_path": {"type": "string", "minLength": 1},
+        "note": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "reproduction": {
+      "type": "object",
+      "required": ["collector", "command"],
+      "properties": {
+        "collector": {"type": "string", "minLength": 1},
+        "command": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  }
+}
+

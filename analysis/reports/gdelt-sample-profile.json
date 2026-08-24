@@ -1,0 +1,36 @@
+{
+  "profile_version": 1,
+  "dataset_id": "gdelt-doc-news",
+  "status": "blocked",
+  "validated_at": "2026-08-20",
+  "sampling": {
+    "query": "climate change",
+    "requested_events": 100,
+    "representative": false
+  },
+  "reproduction": {
+    "command": "python3 -m collectors.gdelt --query \"climate change\" --max-records 100 --output data/validation/gdelt-climate-change-100.jsonl",
+    "raw_output_git_tracked": false
+  },
+  "blocker": {
+    "type": "upstream_rate_limit",
+    "message_summary": "GDELT returned a non-JSON request-rate notice for the shared IP.",
+    "retry_requirements": [
+      "Send one request after a sufficient quiet period.",
+      "Confirm that the response content is JSON before profiling.",
+      "Record an explicit UTC range when reproducibility requires a stable window."
+    ]
+  },
+  "counts": {
+    "events": null,
+    "schema_passed": null,
+    "schema_errors": null,
+    "missing_required_fields": null,
+    "duplicate_event_ids": null
+  },
+  "privacy": {
+    "contains_article_body": false,
+    "contains_article_urls": false
+  }
+}
+

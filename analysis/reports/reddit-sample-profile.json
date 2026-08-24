@@ -1,0 +1,52 @@
+{
+  "profile_version": 1,
+  "dataset_id": "pushshift-reddit-comments",
+  "status": "passed",
+  "validated_at": "2026-08-20",
+  "source_partition": "2016-01",
+  "sampling": {
+    "method": "stream_first_valid_rows",
+    "requested_valid_events": 100,
+    "community_filters": [],
+    "representative": false,
+    "limitation": "The sample covers the beginning of one monthly file and only four seconds of event time."
+  },
+  "reproduction": {
+    "command": "python3 -m collectors.reddit --month 2016-01 --limit 100 --output data/validation/reddit-2016-01-100.jsonl",
+    "raw_output_git_tracked": false
+  },
+  "counts": {
+    "events": 100,
+    "schema_passed": 100,
+    "schema_errors": 0,
+    "missing_required_fields": 0,
+    "duplicate_event_ids": 0,
+    "unique_communities": 79
+  },
+  "engagement": {
+    "minimum": -11,
+    "maximum": 32,
+    "mean": 2.63
+  },
+  "text_length_characters": {
+    "minimum": 9,
+    "maximum": 1634,
+    "mean": 156.91
+  },
+  "event_time": {
+    "minimum": "2016-01-01T00:00:00Z",
+    "maximum": "2016-01-01T00:00:04Z"
+  },
+  "top_communities": [
+    {"name": "AskReddit", "count": 8},
+    {"name": "GlobalOffensive", "count": 4},
+    {"name": "CFB", "count": 3},
+    {"name": "news", "count": 3}
+  ],
+  "privacy": {
+    "contains_raw_text": false,
+    "contains_author": false,
+    "contains_source_ids": false
+  }
+}
+

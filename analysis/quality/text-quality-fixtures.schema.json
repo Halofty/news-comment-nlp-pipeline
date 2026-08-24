@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/text-quality-fixture-v1.json",
+  "title": "TextQualityFixture",
+  "type": "object",
+  "required": ["case_id", "category", "input", "expected"],
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "category": {
+      "enum": ["normal", "boundary", "malformed", "abusive", "privacy"]
+    },
+    "input": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["text"],
+          "properties": {
+            "text": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["generator"],
+          "properties": {
+            "generator": {
+              "type": "object",
+              "required": ["kind", "value", "count"],
+              "properties": {
+                "kind": {"const": "repeat"},
+                "value": {"type": "string", "minLength": 1},
+                "count": {"type": "integer", "minimum": 1},
+                "prefix": {"type": "string"},
+                "suffix": {"type": "string"}
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "expected": {
+      "type": "object",
+      "required": ["status", "required_flags", "forbidden_flags"],
+      "properties": {
+        "status": {"enum": ["accept", "flag", "quarantine", "reject"]},
+        "required_flags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "forbidden_flags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "clean_text": {"type": "string"},
+        "was_normalized": {"type": "boolean"},
+        "exclusion_reason": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+

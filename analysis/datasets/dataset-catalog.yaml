@@ -1,0 +1,126 @@
+catalog_version: 1
+last_verified_at: "2026-08-23"
+contract:
+  name: TextEvent
+  version: 1
+  documentation_path: docs/data-contract.md
+  schema_path: sample/schema.json
+datasets:
+  - id: gdelt-doc-news
+    name: GDELT DOC 2.0 news metadata
+    provider: The GDELT Project
+    source_type: news
+    source_url: https://api.gdeltproject.org/api/v2/doc/doc
+    documentation_url: https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/
+    specification_path: analysis/datasets/gdelt-news.md
+    access:
+      method: http_api
+      format: json
+      unit: article
+      upstream_scale:
+        value: null
+        unit: dynamic_search_results
+        note: API 검색 결과는 검색어·기간·정렬 시점에 따라 변하며 현재 Collector는 요청당 최대 250건을 허용한다.
+    project_scope:
+      temporal_scope: 실행 시 UTC 시작·종료 시각을 선택적으로 지정하며 미지정 시 API 기본 범위를 사용한다.
+      filters:
+        - 실행 시 지정한 query
+      text_scope: title_only
+      sample_size: 0
+      raw_data_git_tracked: false
+    fields:
+      used:
+        - url
+        - title
+        - seendate
+        - language
+        - domain
+        - sourcecountry
+      excluded:
+        - url_mobile
+        - socialimage
+      event_time_field: seendate
+      identifier_fields:
+        - url
+    privacy:
+      personal_fields_excluded: []
+      raw_storage: data/
+      policy: 기사 본문은 수집하지 않고 제목·URL·GDELT 메타데이터만 처리한다.
+    usage_terms:
+      status: declared_by_provider
+      checked_at: "2026-08-23"
+      url: https://www.gdeltproject.org/about.html#termsofuse
+      note: GDELT 데이터는 광범위한 사용과 재배포를 허용하지만 GDELT Project 인용과 공식 사이트 링크가 필요하다. 개별 기사 본문의 권리까지 포함한다고 해석하지 않는다.
+    known_issues:
+      - 공유 IP rate limit으로 실제 100건 검증이 완료되지 않았다.
+      - HTTP 성공 응답과 함께 JSON이 아닌 rate-limit 안내가 반환될 수 있다.
+      - seendate는 원문 사이트의 정확한 최초 게시 시각이 아니다.
+    validation:
+      status: blocked
+      checked_at: "2026-08-20"
+      profile_path: analysis/reports/gdelt-sample-profile.json
+      note: climate change 쿼리 100건 수집이 rate limit으로 중단되었다.
+    reproduction:
+      collector: collectors/gdelt.py
+      command: python3 -m collectors.gdelt --query "climate change" --max-records 100 --output data/validation/gdelt-climate-change-100.jsonl
+
+  - id: pushshift-reddit-comments
+    name: Pushshift Reddit comments mirror
+    provider: fddemarco on Hugging Face
+    source_type: comment
+    source_url: https://huggingface.co/datasets/fddemarco/pushshift-reddit-comments
+    documentation_url: https://huggingface.co/datasets/fddemarco/pushshift-reddit-comments
+    specification_path: analysis/datasets/reddit-comments.md
+    access:
+      method: huggingface_datasets_streaming
+      format: parquet
+      unit: comment
+      upstream_scale:
+        value: 1850000000
+        unit: rows
+        note: 2026-08-23 Hugging Face 페이지 표시값이며 프로젝트가 전체 행을 검증한 것은 아니다.
+    project_scope:
+      temporal_scope: 검증 표본은 2016-01 월별 파일의 앞부분이다.
+      filters: []
+      text_scope: comment_body
+      sample_size: 100
+      raw_data_git_tracked: false
+    fields:
+      used:
+        - id
+        - body
+        - created_utc
+        - subreddit
+        - score
+        - link_id
+        - controversiality
+      excluded:
+        - author
+        - subreddit_id
+      event_time_field: created_utc
+      identifier_fields:
+        - id
+    privacy:
+      personal_fields_excluded:
+        - author
+        - subreddit_id
+      raw_storage: data/
+      policy: 원문과 사용자 식별값을 공개 저장소에 저장하지 않고 공개 보고서에는 집계값만 남긴다.
+    usage_terms:
+      status: not_declared
+      checked_at: "2026-08-23"
+      url: https://huggingface.co/datasets/fddemarco/pushshift-reddit-comments
+      note: 데이터 카드에 명시적 라이선스 식별자가 없어 재배포·상업적 이용 허가를 추정하지 않는다. 실제 사용 전 원천 플랫폼 정책과 적용 법률을 별도 검토한다.
+    known_issues:
+      - 월별 파일 앞부분 표본은 전체 기간이나 커뮤니티 분포를 대표하지 않는다.
+      - 삭제·제거 표시, 장문, URL, 비정상 Unicode와 개인정보성 문자열이 포함될 수 있다.
+      - language는 현재 unknown으로 고정한다.
+    validation:
+      status: passed
+      checked_at: "2026-08-20"
+      profile_path: analysis/reports/reddit-sample-profile.json
+      note: 2016-01 파일에서 유효 댓글 100건이 계약 검증을 통과했다.
+    reproduction:
+      collector: collectors/reddit.py
+      command: python3 -m collectors.reddit --month 2016-01 --limit 100 --output data/validation/reddit-2016-01-100.jsonl
+

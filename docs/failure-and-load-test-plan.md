@@ -4,7 +4,7 @@
 
 수집량 증가, 잘못된 입력과 외부 서비스 장애 상황에서 데이터가 유실·중복되거나 파이프라인 전체가 불필요하게 중단되지 않는지 확인하기 위한 목표 테스트 계획입니다.
 
-현재 일부 Producer 오류만 단위 테스트로 검증했으며 실제 Broker·Spark·PostgreSQL·LLM 장애 실험은 아직 수행하지 않았습니다.
+Producer 오류 단위 테스트와 실제 Kafka 1,000건 발행·Spark 소비, checkpoint 재시작, malformed JSON DLQ 분기는 검증했습니다. Broker 중단, Spark 강제 종료, PostgreSQL·LLM 장애 실험은 아직 수행하지 않았습니다.
 
 ## 2. 공통 측정 지표
 
@@ -68,9 +68,9 @@
 | 단계 | 범위 | 완료 증거 |
 |---:|---|---|
 | 1 | Producer 단위 오류 | 자동화 테스트 결과 |
-| 2 | 실제 Kafka 발행·소비 | 입력과 소비 건수·key·timestamp 비교 |
-| 3 | Spark 100·1,000건 batch | 처리 통계 보고서 |
-| 4 | Kafka→Spark streaming | offset·lag·checkpoint 결과 |
+| 2 | 실제 Kafka 발행·소비 | 완료: 합성 1,000건 발행, Spark 입력 확인 |
+| 3 | Spark 100·1,000건 batch | 완료: 처리 통계 보고서 |
+| 4 | Kafka→Spark streaming | 완료: 중복 제거·checkpoint 재시작·DLQ 결과 |
 | 5 | PostgreSQL 장애·재시작 | batch ID와 중복 적재 결과 |
 | 6 | LLM·Langfuse 장애 | 상태 전이와 토큰·비용 기록 |
 
