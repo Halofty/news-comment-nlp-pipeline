@@ -85,6 +85,8 @@ news-comment-nlp-pipeline/
 
 | 문서 | 내용 |
 |---|---|
+| [로컬 개발과 실행 가이드](docs/getting-started.md) | 환경 준비, 테스트, 서비스 시작과 Job 제출 |
+| [기술 스택과 역할](docs/technology-stack.md) | 구성 요소의 책임, 선택 이유와 확장 지점 |
 | [시스템 구성도](docs/system-architecture.html) | 전체 목표 아키텍처 |
 | [Ingestion 구현 설명](docs/ingestion-implementation.md) | Collector부터 Kafka 적재 확인까지의 코드 흐름 |
 | [TextEvent v1 데이터 계약](docs/data-contract.md) | 공통 Schema와 출처별 필드 매핑 |
@@ -98,6 +100,8 @@ news-comment-nlp-pipeline/
 | [Spark Streaming 통합 검증](analysis/reports/spark-streaming-consumer-validation.md) | 실제 Kafka 처리와 checkpoint 재시작 결과 |
 | [PostgreSQL 저장 구조](docs/storage-schema.md) | 핵심 테이블, migration과 transaction upsert |
 | [PostgreSQL 통합 검증](analysis/reports/postgres-integration-validation.md) | 982건 적재, rollback·재시도와 멱등성 결과 |
+| [데이터와 보안 원칙](docs/data-security.md) | 원문·PII·자격 증명·보존과 외부 전송 기준 |
 | [LLM 분석 설계](docs/llm-analysis-design.md) | Batch 분석과 Langfuse 관측 계획 |
 | [장애·부하 테스트 계획](docs/failure-and-load-test-plan.md) | 입력·서비스 장애와 부하 시나리오 |
+| [구현 로드맵](docs/roadmap.md) | 완료된 기반과 Langfuse·LLM·Airflow·확장 순서 |
 | [피드백 구현 계획](docs/feedback-implementation-plan.md) | 단계별 완료 조건과 진행 기록 |
