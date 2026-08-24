@@ -88,6 +88,7 @@ news-comment-nlp-pipeline/
 |---|---|
 | [로컬 개발과 실행 가이드](docs/getting-started.md) | 환경 준비, 테스트, 서비스 시작과 Job 제출 |
 | [기술 스택과 역할](docs/technology-stack.md) | 구성 요소의 책임, 선택 이유와 확장 지점 |
+| [Week 4 Kafka·Spark 정리](docs/week4.md) | 메시지 명세, 1,000건 검증, 전처리·저장과 실행 명령 |
 | [시스템 구성도](docs/system-architecture.html) | 전체 목표 아키텍처 |
 | [Ingestion 구현 설명](docs/ingestion-implementation.md) | Collector부터 Kafka 적재 확인까지의 코드 흐름 |
 | [TextEvent v1 데이터 계약](docs/data-contract.md) | 공통 Schema와 출처별 필드 매핑 |
