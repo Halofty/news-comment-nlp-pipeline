@@ -2,7 +2,7 @@
 
 - version: 1
 - 적용 범위: GDELT 뉴스 제목, Reddit 댓글
-- 기계 판독 스키마: [`../sample/schema.json`](../sample/schema.json)
+- 기계 판독 스키마: [`../sample/schema.json`](../../sample/schema.json)
 
 ## 1. 목적
 
@@ -88,7 +88,7 @@ Reddit의 `score`는 댓글 작성 시점의 고정값이 아니라 데이터셋
 
 ## 6. 제외 및 품질 규칙
 
-텍스트 길이, Unicode, 반복, URL과 개인정보 후보의 측정·판정 규격은 [`../analysis/quality/text-quality-rules.md`](../analysis/quality/text-quality-rules.md)에서 관리합니다. 이 문서는 공통 이벤트 계약을, 품질 정책은 계약을 통과한 텍스트의 Spark 정제·격리 상태를 정의합니다.
+텍스트 길이, Unicode, 반복, URL과 개인정보 후보의 측정·판정 규격은 [`../analysis/quality/text-quality-rules.md`](../../analysis/quality/text-quality-rules.md)에서 관리합니다. 이 문서는 공통 이벤트 계약을, 품질 정책은 계약을 통과한 텍스트의 Spark 정제·격리 상태를 정의합니다.
 
 - GDELT의 `url`, `title`, `seendate` 중 하나라도 없으면 제외합니다.
 - Reddit의 `id`, `body`, `created_utc` 중 하나라도 없으면 제외합니다.

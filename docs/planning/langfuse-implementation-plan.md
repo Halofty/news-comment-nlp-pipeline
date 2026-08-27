@@ -4,7 +4,7 @@
 
 OpenAI Batch API로 처리하는 뉴스·댓글 분석의 token, 비용, 지연, 오류와 재시도를 Langfuse에서 관측하기 위한 구현 계획입니다.
 
-MVP는 [ADR-0001](adr/0001-langfuse-deployment.md)에 따라 관리형 Langfuse Cloud 일본 리전을 사용합니다. 기사·댓글·prompt·응답 원문은 Langfuse에 보내지 않고 허용된 metadata와 usage만 기록합니다.
+MVP는 [ADR-0001](../adr/0001-langfuse-deployment.md)에 따라 관리형 Langfuse Cloud 일본 리전을 사용합니다. 기사·댓글·prompt·응답 원문은 Langfuse에 보내지 않고 허용된 metadata와 usage만 기록합니다.
 
 이 문서의 범위는 다음과 같습니다.
 
@@ -14,7 +14,7 @@ MVP는 [ADR-0001](adr/0001-langfuse-deployment.md)에 따라 관리형 Langfuse 
 - 개인정보·원문 전송 방지
 - 단위·통합·장애 테스트와 완료 조건
 
-OpenAI Batch 요청 생성, 제출, polling과 분석 결과 적재의 전체 설계는 [LLM 분석 설계](llm-analysis-design.md)를 따릅니다.
+OpenAI Batch 요청 생성, 제출, polling과 분석 결과 적재의 전체 설계는 [LLM 분석 설계](../architecture/llm-analysis-design.md)를 따릅니다.
 
 ## 2. 책임 분리
 
@@ -289,14 +289,14 @@ LLM_BUDGET_WARNING_RATIOS=0.70,0.90,1.00
 - `analysis/reports/langfuse-token-validation.md`
 - `.env.example`의 Langfuse 설정 항목
 
-현재 구현·검증 상태는 [Langfuse 샘플 token·비용 추적 검증](../analysis/reports/langfuse-token-validation.md)에 기록합니다.
+현재 구현·검증 상태는 [Langfuse 샘플 token·비용 추적 검증](../../analysis/reports/langfuse-token-validation.md)에 기록합니다.
 
 ## 12. 관련 문서
 
-- [Langfuse 도입 ADR](adr/0001-langfuse-deployment.md)
-- [LLM 분석 설계](llm-analysis-design.md)
-- [PostgreSQL 저장 구조](storage-schema.md)
-- [데이터와 보안 원칙](data-security.md)
+- [Langfuse 도입 ADR](../adr/0001-langfuse-deployment.md)
+- [LLM 분석 설계](../architecture/llm-analysis-design.md)
+- [PostgreSQL 저장 구조](../architecture/storage-schema.md)
+- [데이터와 보안 원칙](../security/data-security.md)
 - [피드백 구현 계획](feedback-implementation-plan.md)
 - [장애·부하 테스트 계획](failure-and-load-test-plan.md)
 

@@ -6,7 +6,7 @@
 - 공식 API 설명: <https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/>
 - 이용 조건: <https://www.gdeltproject.org/about.html#termsofuse>
 - 확인 기준일: 2026-08-23
-- 공통 계약: [`../../docs/data-contract.md`](../../docs/data-contract.md)
+- 공통 계약: [`../../docs/architecture/data-contract.md`](../../docs/architecture/data-contract.md)
 - 표본 profile: [`../reports/gdelt-sample-profile.json`](../reports/gdelt-sample-profile.json)
 
 ## 프로젝트 사용 범위
@@ -65,4 +65,3 @@ python3 -m collectors.gdelt \
 - 검색어, 시간 범위와 API 정렬 방식에 따라 선택 편향이 생깁니다.
 
 현재 검증 상태는 `blocked`입니다. 성공 표본이 없으므로 건수·언어·도메인 분포를 임의로 작성하지 않습니다.
-

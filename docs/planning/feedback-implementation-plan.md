@@ -41,8 +41,9 @@
 | 5 | Spark 1,000건 이상 확장 검증 | `[x]` | 100% | 동일 코드 1,000건 처리, partition·품질·시간·운영 로그 점검 보고서 |
 | 6 | Langfuse 도입 방식 조사와 결정 | `[x]` | 100% | 관리형 일본 리전·metadata-only 정책과 adapter 경계 ADR |
 | 7 | Langfuse 토큰·비용 추적 연동 | `[-]` | 90% | adapter·합성 3건 360 token·비용 대조 완료, 실제 Cloud 확인 대기 |
+| 8 | Airflow로 기존 Spark batch 자동화 | `[-]` | 80% | 파라미터형 DAG·실행 이미지·100/1,000건 입력·단위 테스트 완료, Docker 권한이 있는 환경에서 UI 2회 실행 대기 |
 
-현재 **7단계 Langfuse 토큰·비용 추적 연동**을 진행 중입니다. adapter와 합성 검증은 완료했고 관리형 일본 리전의 실제 trace 확인이 남았습니다.
+현재 4차시 과제에 맞춰 **8단계 Airflow 자동화**를 진행 중입니다. 코드와 재현 절차는 준비됐으며 Docker daemon을 사용할 수 있는 환경에서 서로 다른 파라미터로 두 번 실행하고 증거를 남기는 작업이 남았습니다. 7단계의 관리형 Langfuse 실제 trace 확인도 외부 key 대기 상태입니다.
 
 ## 4. 단계별 구현 계획
 
@@ -68,12 +69,12 @@
 
 | 현재 README 내용 | 이동 또는 연결할 문서 |
 |---|---|
-| 데이터 필드와 공통 이벤트 Schema | 기존 `docs/data-contract.md` 보강 |
-| PostgreSQL 테이블 구조 | `docs/storage-schema.md` 신규 작성 |
-| LLM Batch 요청·토픽 통합·비용 전략 | `docs/llm-analysis-design.md` 신규 작성 |
-| 로드 테스트와 장애 복구 시나리오 | `docs/failure-and-load-test-plan.md` 신규 작성 |
-| 상세 Collector·Kafka 실행 설명 | 기존 `docs/ingestion-implementation.md` 활용 |
-| 전체 아키텍처 | 기존 `docs/system-architecture.html` 활용 |
+| 데이터 필드와 공통 이벤트 Schema | 기존 `docs/architecture/data-contract.md` 보강 |
+| PostgreSQL 테이블 구조 | `docs/architecture/storage-schema.md` 신규 작성 |
+| LLM Batch 요청·토픽 통합·비용 전략 | `docs/architecture/llm-analysis-design.md` 신규 작성 |
+| 로드 테스트와 장애 복구 시나리오 | `docs/planning/failure-and-load-test-plan.md` 신규 작성 |
+| 상세 Collector·Kafka 실행 설명 | 기존 `docs/guides/ingestion-implementation.md` 활용 |
+| 전체 아키텍처 | 기존 `docs/architecture/system-architecture.html` 활용 |
 
 #### 작업 체크리스트
 
@@ -162,7 +163,7 @@ datasets:
 - [x] `dataset-catalog.yaml` Schema 결정
 - [x] 현재 100건 표본의 기본 profile 작성
 - [x] 수집일·기간·건수·필터를 재현할 수 있게 기록
-- [x] 데이터 명세와 `docs/data-contract.md`의 역할 구분
+- [x] 데이터 명세와 `docs/architecture/data-contract.md`의 역할 구분
 
 #### 완료 조건
 
@@ -396,7 +397,7 @@ Trace: 하나의 LLM Batch 작업
 - [x] prompt·응답 저장 범위 검증
 - [x] 실행·확인 방법 문서화
 
-현재 환경에는 관리형 Langfuse key가 없어 실제 Cloud UI 확인은 남아 있습니다. 로컬에서는 실제 SDK 4.14.4의 tracing 비활성 client로 method 호환성을 확인하고, 구조화 로그 sink로 동일 payload를 검증했습니다. 결과는 [Langfuse 샘플 추적 검증](../analysis/reports/langfuse-token-validation.md)에 기록합니다.
+현재 환경에는 관리형 Langfuse key가 없어 실제 Cloud UI 확인은 남아 있습니다. 로컬에서는 실제 SDK 4.14.4의 tracing 비활성 client로 method 호환성을 확인하고, 구조화 로그 sink로 동일 payload를 검증했습니다. 결과는 [Langfuse 샘플 추적 검증](../../analysis/reports/langfuse-token-validation.md)에 기록합니다.
 
 #### 완료 조건
 
@@ -435,14 +436,15 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 | 2026-08-24 | PostgreSQL 적재 | 핵심 4개 테이블 migration, transaction advisory lock, event·batch upsert와 선택적 Streaming sink 구현 | 실제 982건 적재, NUL 실패 rollback 후 재시도, 새 checkpoint 재처리 `already_committed`와 행 수 불변 확인 | 6단계 Langfuse 도입 조사 |
 | 2026-08-24 | 6 | 공식 v4 SDK·Cloud·self-hosted 구성과 OpenAI Batch usage 추적 범위를 비교하고 관리형 일본 리전·metadata-only·adapter 경계를 채택 | ADR에 구성요소, 최소 11 vCPU·25.5 GiB RAM, 허용 metadata, fallback과 재검토 조건 기록 | 7단계 Langfuse 추적 adapter 구현 |
 | 2026-08-24 | 7 | vendor 독립 관측 자료형, Langfuse·구조화 로그·no-op sink와 합성 Batch 검증 CLI 구현 | SDK 4.14.4 smoke test, 3건 360 token·$0.000265 대조, 관측 9개·전체 52개 테스트 통과 | 관리형 Cloud trace 확인 후 LLM Batch workflow 연결 |
+| 2026-08-27 | 8 | 기존 Spark batch를 호출하는 3-task Airflow DAG, 실행 시 JSONL·label·partition Param, Java·PySpark 실행 이미지와 제출 가이드 작성 | helper 단위 테스트 4개와 비-Spark 전체 47개, Compose 구성, 합성 100·1,000건 입력 확인; 현재 환경 Docker socket 권한 없음 | Docker 가능 환경에서 두 DAG run 성공·캡처·보고서 갱신 |
 
 ## 7. 다음 작업
 
-다음 작업은 **7단계의 실제 관리형 Langfuse trace 확인**입니다.
+다음 작업은 **8단계 Airflow DAG의 실제 2회 실행 확인**입니다.
 
 구현 순서:
 
-1. 관리형 일본 리전 project key를 환경 변수로 주입합니다.
-2. `python -m jobs.verify_langfuse --sink langfuse`로 합성 trace를 전송합니다.
-3. UI/API에서 trace 1건, generation 3건과 360 token·비용을 확인합니다.
-4. 이후 실제 LLM Batch workflow와 PostgreSQL 결과 적재에 adapter를 연결합니다.
+1. Docker daemon 사용 권한이 있는 환경에서 Airflow Compose를 시작합니다.
+2. `assignment-100`과 `assignment-1000` 파라미터로 DAG를 실행합니다.
+3. 두 실행의 Graph 화면과 `verify_row_accounting` task log를 캡처합니다.
+4. `analysis/reports/airflow-assignment-validation.md`를 실제 집계값으로 갱신합니다.

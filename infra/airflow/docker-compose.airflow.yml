@@ -1,0 +1,31 @@
+services:
+  airflow:
+    build:
+      context: ../..
+      dockerfile: infra/airflow/Dockerfile
+    image: news-pipeline-airflow:3.3.1
+    container_name: news-pipeline-airflow
+    command: standalone
+    working_dir: /opt/airflow/project
+    environment:
+      AIRFLOW_HOME: /opt/airflow/home
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/project/dags
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAG_RUN_CONF_OVERRIDES_PARAMS: "true"
+      PYTHONPATH: /opt/airflow/project
+    ports:
+      - "8082:8080"
+    volumes:
+      - ../..:/opt/airflow/project
+      - airflow-home:/opt/airflow/home
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  airflow-home:
+

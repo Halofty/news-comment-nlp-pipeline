@@ -35,4 +35,4 @@
 - Langfuse에는 prompt·응답·기사·댓글 원문을 보내지 않고 allowlist metadata만 전송합니다.
 - 관리형 서비스의 리전·보존·처리자 정책은 실제 데이터 사용 전에 다시 확인합니다.
 
-세부 품질 규칙은 [텍스트 품질·안전 규칙](../analysis/quality/text-quality-rules.md), 출처별 이용 범위는 [데이터셋 명세](../analysis/README.md), 관측 데이터 경계는 [ADR-0001](adr/0001-langfuse-deployment.md)을 참고합니다.
+세부 품질 규칙은 [텍스트 품질·안전 규칙](../../analysis/quality/text-quality-rules.md), 출처별 이용 범위는 [데이터셋 명세](../../analysis/README.md), 관측 데이터 경계는 [ADR-0001](../adr/0001-langfuse-deployment.md)을 참고합니다.

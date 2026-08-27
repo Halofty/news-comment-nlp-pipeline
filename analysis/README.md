@@ -51,7 +51,7 @@ analysis/
 | `quality/validation-summary.md` | 데이터셋별 검증 결과와 아직 해소하지 못한 조건 요약 |
 | `quality/text-quality-rules.md` | 커뮤니티 텍스트의 측정값·임계값·상태·Spark 출력 규격 |
 | `quality/text-quality-fixtures.jsonl` | 정상 다국어와 경계·악성 입력의 기계 판독 기대 결과 |
-| `docs/data-contract.md` | 두 출처를 통합한 `TextEvent v1` 출력 필드의 의미와 변환 계약 |
+| `docs/architecture/data-contract.md` | 두 출처를 통합한 `TextEvent v1` 출력 필드의 의미와 변환 계약 |
 
 데이터셋 명세는 원본을 설명하고, 데이터 계약은 Collector가 만든 표준 출력물을 설명합니다. 원본 명세가 바뀌어도 `TextEvent v1`의 의미가 자동으로 바뀌지는 않습니다.
 

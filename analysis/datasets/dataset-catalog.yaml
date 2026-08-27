@@ -3,7 +3,7 @@ last_verified_at: "2026-08-23"
 contract:
   name: TextEvent
   version: 1
-  documentation_path: docs/data-contract.md
+  documentation_path: docs/architecture/data-contract.md
   schema_path: sample/schema.json
 datasets:
   - id: gdelt-doc-news

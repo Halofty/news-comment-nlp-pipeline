@@ -37,4 +37,4 @@ Spark는 현재 한 컴퓨터의 Master 1대·Worker 1대 구성입니다. 프�
 - 설정과 비밀정보는 Compose 기본 개발값에서 환경별 secret manager로 이동합니다.
 - Airflow는 비즈니스 로직을 포함하지 않고 현재 `jobs/`와 `spark_jobs/` 실행 단위를 호출합니다.
 
-전체 목표 구성은 [시스템 구성도](system-architecture.html), Spark 역할은 [Standalone 실행 구조](spark-standalone.md)에서 확인합니다.
+전체 목표 구성은 [시스템 구성도](system-architecture.html), Spark 역할은 [Standalone 실행 구조](../guides/spark-standalone.md)에서 확인합니다.

@@ -47,7 +47,7 @@
 - partitioned Parquet와 checkpoint 생성
 - 같은 checkpoint 재제출: 새 micro-batch 0건
 
-Standalone 실행의 상세 구조와 재현 명령은 [`docs/spark-standalone.md`](../../docs/spark-standalone.md)에 기록했습니다.
+Standalone 실행의 상세 구조와 재현 명령은 [`docs/guides/spark-standalone.md`](../../docs/guides/spark-standalone.md)에 기록했습니다.
 
 ## 근거 로그
 

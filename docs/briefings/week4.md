@@ -45,7 +45,7 @@ TextEvent v1 JSONL
 | `schema_version` | integer | 현재 계약 버전 `1` |
 | `metadata` | object | 출처별 추가 정보와 `text_scope` |
 
-기계 판독 Schema는 [`sample/schema.json`](../sample/schema.json), 출처별 매핑과 변경 규칙은 [데이터 계약](data-contract.md)에 있습니다.
+기계 판독 Schema는 [`sample/schema.json`](../../sample/schema.json), 출처별 매핑과 변경 규칙은 [데이터 계약](../architecture/data-contract.md)에 있습니다.
 
 ### 2.2 Kafka JSON 예시
 
@@ -144,7 +144,7 @@ python -m jobs.inspect_kafka \
 
 ### 4.1 입력 구조
 
-Spark Batch는 `TextEvent v1` JSONL을, Structured Streaming은 Kafka `raw-text` value를 읽습니다. 두 경로 모두 [`spark_jobs/schemas.py`](../spark_jobs/schemas.py)의 명시적 Schema와 [`transform_events()`](../spark_jobs/transformations.py)를 사용합니다.
+Spark Batch는 `TextEvent v1` JSONL을, Structured Streaming은 Kafka `raw-text` value를 읽습니다. 두 경로 모두 [`spark_jobs/schemas.py`](../../spark_jobs/schemas.py)의 명시적 Schema와 [`transform_events()`](../../spark_jobs/transformations.py)를 사용합니다.
 
 ```text
 Batch: JSONL ───────────────────┐
@@ -292,12 +292,11 @@ PostgreSQL 저장 결과는 다음과 같습니다.
 
 ## 7. 관련 문서
 
-- [데이터 계약](data-contract.md)
-- [Ingestion 구현 설명](ingestion-implementation.md)
-- [Spark Batch 100·1,000건 검증](../analysis/reports/spark-batch-validation.md)
-- [Spark Streaming Consumer](spark-streaming-consumer.md)
-- [Spark Streaming 통합 검증](../analysis/reports/spark-streaming-consumer-validation.md)
-- [Spark Standalone 실행 구조](spark-standalone.md)
-- [PostgreSQL 저장 구조](storage-schema.md)
-- [PostgreSQL 통합 검증](../analysis/reports/postgres-integration-validation.md)
-
+- [데이터 계약](../architecture/data-contract.md)
+- [Ingestion 구현 설명](../guides/ingestion-implementation.md)
+- [Spark Batch 100·1,000건 검증](../../analysis/reports/spark-batch-validation.md)
+- [Spark Streaming Consumer](../guides/spark-streaming-consumer.md)
+- [Spark Streaming 통합 검증](../../analysis/reports/spark-streaming-consumer-validation.md)
+- [Spark Standalone 실행 구조](../guides/spark-standalone.md)
+- [PostgreSQL 저장 구조](../architecture/storage-schema.md)
+- [PostgreSQL 통합 검증](../../analysis/reports/postgres-integration-validation.md)

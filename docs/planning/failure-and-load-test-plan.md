@@ -103,8 +103,7 @@ Producer 오류 단위 테스트와 실제 Kafka 1,000건 발행·Spark 소비, 
 
 ## 8. 관련 문서
 
-- [Ingestion 구현 설명](ingestion-implementation.md)
-- [PostgreSQL 저장 구조](storage-schema.md)
-- [LLM 분석 설계](llm-analysis-design.md)
+- [Ingestion 구현 설명](../guides/ingestion-implementation.md)
+- [PostgreSQL 저장 구조](../architecture/storage-schema.md)
+- [LLM 분석 설계](../architecture/llm-analysis-design.md)
 - [멘토 피드백 구현 계획](feedback-implementation-plan.md)
-

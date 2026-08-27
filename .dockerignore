@@ -1,0 +1,4 @@
+*
+!infra/
+!infra/airflow/
+!infra/airflow/requirements.txt

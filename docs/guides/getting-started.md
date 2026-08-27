@@ -144,4 +144,4 @@ docker compose stop spark-worker spark-master kafka postgres
 
 `docker compose down -v`는 Kafka와 PostgreSQL volume을 삭제하므로 테스트 데이터를 완전히 초기화할 때만 사용합니다.
 
-세부 실행법은 [Spark Standalone](spark-standalone.md), [Streaming Consumer](spark-streaming-consumer.md), [PostgreSQL 저장 구조](storage-schema.md)를 참고합니다.
+세부 실행법은 [Spark Standalone](spark-standalone.md), [Streaming Consumer](spark-streaming-consumer.md), [PostgreSQL 저장 구조](../architecture/storage-schema.md)를 참고합니다.

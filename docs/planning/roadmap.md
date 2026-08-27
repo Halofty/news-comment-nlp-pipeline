@@ -14,7 +14,7 @@
 ## 다음 순서
 
 1. LLM Batch 요청 생성·제출·polling·결과 검증과 PostgreSQL 상태 저장을 구현합니다.
-2. 결정된 [Langfuse adapter 경계](adr/0001-langfuse-deployment.md)로 토큰·비용·지연 trace를 연결하고 장애 시 fallback을 검증합니다.
+2. 결정된 [Langfuse adapter 경계](../adr/0001-langfuse-deployment.md)로 토큰·비용·지연 trace를 연결하고 장애 시 fallback을 검증합니다.
 3. Airflow DAG로 수집·Spark·LLM 실행 단위와 retry/backoff를 연결합니다.
 4. Kafka 중단, Spark Worker 종료, PostgreSQL 장애와 재시작 실험을 수행합니다.
 5. 대규모 입력에서 Consumer lag, Spark 처리량과 PostgreSQL bulk load를 측정합니다.

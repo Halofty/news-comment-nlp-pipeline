@@ -5,7 +5,7 @@
 - 데이터 페이지: <https://huggingface.co/datasets/fddemarco/pushshift-reddit-comments>
 - 원천 표기: Pushshift Reddit comments archive
 - 확인 기준일: 2026-08-23
-- 공통 계약: [`../../docs/data-contract.md`](../../docs/data-contract.md)
+- 공통 계약: [`../../docs/architecture/data-contract.md`](../../docs/architecture/data-contract.md)
 - 표본 profile: [`../reports/reddit-sample-profile.json`](../reports/reddit-sample-profile.json)
 
 ## 원본 범위와 형식
@@ -67,4 +67,3 @@ python3 -m collectors.reddit \
 - 원본에는 삭제 표시, 매우 긴 텍스트, URL, 비정상 Unicode와 개인정보성 문자열이 포함될 수 있습니다.
 
 정확한 집계값과 해석 한계는 profile과 [`../quality/validation-summary.md`](../quality/validation-summary.md)에 기록합니다.
-

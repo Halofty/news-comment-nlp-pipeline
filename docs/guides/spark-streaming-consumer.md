@@ -4,7 +4,7 @@
 
 `raw-text` Kafka 토픽의 `TextEvent v1` 메시지를 명시적 Schema로 읽고, batch 처리와 같은 계약·텍스트 품질 규칙을 적용한 뒤 처리 경로별로 저장합니다. offset과 중복 상태는 checkpoint로 복구합니다.
 
-구현 진입점은 [`../spark_jobs/streaming_consumer.py`](../spark_jobs/streaming_consumer.py)입니다.
+구현 진입점은 [`spark_jobs/streaming_consumer.py`](../../spark_jobs/streaming_consumer.py)입니다.
 
 ## 처리 흐름
 
@@ -94,7 +94,7 @@ python -m pytest -q tests/test_spark_streaming_consumer.py
 
 자동 테스트는 설정 오류, Kafka metadata 보존, 계약·품질별 4개 경로 분기, micro-batch별 파일 기록과 watermark 기반 streaming deduplication plan을 검사합니다.
 
-Docker Compose 실제 통합 검증에서는 Kafka 합성 1,000건 중 중복 19건을 제거하고 `processed` 941건, `quarantine` 30건, `quality_rejected` 10건을 기록했습니다. 같은 checkpoint 재시작 시 재처리는 0건이었고, malformed JSON 1건은 `contract_rejected`와 `raw-text-dlq`에 함께 기록됐습니다. 자세한 근거는 [통합 검증 보고서](../analysis/reports/spark-streaming-consumer-validation.md)에 있습니다.
+Docker Compose 실제 통합 검증에서는 Kafka 합성 1,000건 중 중복 19건을 제거하고 `processed` 941건, `quarantine` 30건, `quality_rejected` 10건을 기록했습니다. 같은 checkpoint 재시작 시 재처리는 0건이었고, malformed JSON 1건은 `contract_rejected`와 `raw-text-dlq`에 함께 기록됐습니다. 자세한 근거는 [통합 검증 보고서](../../analysis/reports/spark-streaming-consumer-validation.md)에 있습니다.
 
 ## 운영 한계
 

@@ -36,12 +36,12 @@ GDELT · Reddit
    └─ 정상·flag → processed
 → partitioned Parquet + PostgreSQL 멱등 upsert
 → LLM Batch 감정·토픽·요약                 [예정]
-→ Airflow orchestration·운영 관측           [예정]
+→ Airflow parameterized batch orchestration
 ```
 
 Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runner`가 `spark-submit`과 Driver 역할을 담당합니다.
 
-![전체 시스템 구성도](docs/system-architecture.png)
+![전체 시스템 구성도](docs/architecture/system-architecture.png)
 
 ## 구현 상태
 
@@ -57,9 +57,9 @@ Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runn
 | Spark Standalone | 구현·통합 검증 완료 | Master·Worker 분리, Worker Executor 2 cores 실행 |
 | PostgreSQL 적재 | MVP 구현·통합 검증 완료 | 정상 981건·계약 거부 1건, 새 checkpoint 재처리 중복 0건 |
 | LLM Batch·Langfuse | 관측 adapter·합성 검증 완료 | 3건 360 token·$0.000265 대조, 실제 Cloud·Batch 연동 전 |
-| Airflow orchestration | 계획 | 구현 전 |
+| Airflow orchestration | DAG·실행 환경 구현 완료 | 입력 JSONL·partition을 Param으로 받아 기존 Spark batch 실행, 실제 UI 2회 검증 대기 |
 
-전체 자동 테스트는 현재 52개가 통과합니다. PostgreSQL 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
+전체 자동 테스트는 기존 52개와 Airflow helper 4개로 구성됩니다. PostgreSQL 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
 
 ## 저장소 구조
 
@@ -72,8 +72,11 @@ news-comment-nlp-pipeline/
 ├── spark_jobs/                  # batch·Structured Streaming Spark Job
 ├── storage/                     # JSONL과 PostgreSQL 저장 adapter
 ├── observability/               # Langfuse·구조화 로그·no-op 관측 adapter
+├── orchestration/               # Airflow에서 재사용하는 실행·검증 helper
+├── dags/                        # 파라미터형 Airflow DAG
 ├── sql/migrations/              # PostgreSQL 순차 migration
 ├── infra/spark/                 # Spark 제출 이미지
+├── infra/airflow/               # Airflow·Java·PySpark 실행 환경
 ├── sample/                      # JSON Schema와 공개 합성 이벤트
 ├── analysis/                    # 데이터셋 명세·품질 fixture·검증 보고서
 ├── tests/                       # 단위·Spark 변환·저장 테스트
@@ -86,27 +89,31 @@ news-comment-nlp-pipeline/
 
 | 문서 | 내용 |
 |---|---|
-| [로컬 개발과 실행 가이드](docs/getting-started.md) | 환경 준비, 테스트, 서비스 시작과 Job 제출 |
-| [기술 스택과 역할](docs/technology-stack.md) | 구성 요소의 책임, 선택 이유와 확장 지점 |
-| [Week 4 Kafka·Spark 정리](docs/week4.md) | 메시지 명세, 1,000건 검증, 전처리·저장과 실행 명령 |
-| [시스템 구성도](docs/system-architecture.html) | 전체 목표 아키텍처 |
-| [Ingestion 구현 설명](docs/ingestion-implementation.md) | Collector부터 Kafka 적재 확인까지의 코드 흐름 |
-| [TextEvent v1 데이터 계약](docs/data-contract.md) | 공통 Schema와 출처별 필드 매핑 |
+| [문서 분류 안내](docs/README.md) | 아키텍처·가이드·브리핑·계획 문서 탐색 |
+| [로컬 개발과 실행 가이드](docs/guides/getting-started.md) | 환경 준비, 테스트, 서비스 시작과 Job 제출 |
+| [기술 스택과 역할](docs/architecture/technology-stack.md) | 구성 요소의 책임, 선택 이유와 확장 지점 |
+| [Week 4 Kafka·Spark 정리](docs/briefings/week4.md) | 메시지 명세, 1,000건 검증, 전처리·저장과 실행 명령 |
+| [Week 5 Airflow 자동화 브리핑](docs/briefings/week5.md) | 과제 요구사항, DAG 구조, 두 번의 파라미터 실행과 제출 자료 |
+| [시스템 구성도](docs/architecture/system-architecture.html) | 전체 목표 아키텍처 |
+| [Ingestion 구현 설명](docs/guides/ingestion-implementation.md) | Collector부터 Kafka 적재 확인까지의 코드 흐름 |
+| [TextEvent v1 데이터 계약](docs/architecture/data-contract.md) | 공통 Schema와 출처별 필드 매핑 |
 | [데이터셋 명세와 메타데이터](analysis/README.md) | 데이터 출처·범위·카탈로그와 공개 가능 profile |
-| [실제 표본 검증](docs/validation-report.md) | Reddit 100건과 GDELT 확인 상태 |
+| [실제 표본 검증](docs/reports/validation-report.md) | Reddit 100건과 GDELT 확인 상태 |
 | [텍스트 품질·안전 규칙](analysis/quality/text-quality-rules.md) | 품질 측정값·임계값·상태와 출력 규격 |
 | [Spark batch 검증](analysis/reports/spark-batch-validation.md) | 100건·1,000건 행 회계와 품질 분포 |
 | [Spark 운영 로그 점검](analysis/reports/spark-run-log-review.md) | 1,000건 단계별 시간·행 회계·payload 미기록 검사 |
-| [Spark Standalone 실행 구조](docs/spark-standalone.md) | Master·Worker·Driver 역할과 제출 명령 |
-| [Spark Streaming Consumer](docs/spark-streaming-consumer.md) | Kafka 입력, watermark, checkpoint, DLQ와 sink |
+| [Spark Standalone 실행 구조](docs/guides/spark-standalone.md) | Master·Worker·Driver 역할과 제출 명령 |
+| [Spark Streaming Consumer](docs/guides/spark-streaming-consumer.md) | Kafka 입력, watermark, checkpoint, DLQ와 sink |
 | [Spark Streaming 통합 검증](analysis/reports/spark-streaming-consumer-validation.md) | 실제 Kafka 처리와 checkpoint 재시작 결과 |
-| [PostgreSQL 저장 구조](docs/storage-schema.md) | 핵심 테이블, migration과 transaction upsert |
+| [PostgreSQL 저장 구조](docs/architecture/storage-schema.md) | 핵심 테이블, migration과 transaction upsert |
 | [PostgreSQL 통합 검증](analysis/reports/postgres-integration-validation.md) | 982건 적재, rollback·재시도와 멱등성 결과 |
-| [데이터와 보안 원칙](docs/data-security.md) | 원문·PII·자격 증명·보존과 외부 전송 기준 |
-| [LLM 분석 설계](docs/llm-analysis-design.md) | Batch 분석과 Langfuse 관측 계획 |
+| [데이터와 보안 원칙](docs/security/data-security.md) | 원문·PII·자격 증명·보존과 외부 전송 기준 |
+| [LLM 분석 설계](docs/architecture/llm-analysis-design.md) | Batch 분석과 Langfuse 관측 계획 |
 | [Langfuse 도입 ADR](docs/adr/0001-langfuse-deployment.md) | 관리형·self-hosted 비교, 데이터 경계와 adapter 결정 |
-| [Langfuse 구현·토큰 관리 계획](docs/langfuse-implementation-plan.md) | adapter 구조, token·비용 대조, 예산과 검증 계획 |
+| [Langfuse 구현·토큰 관리 계획](docs/planning/langfuse-implementation-plan.md) | adapter 구조, token·비용 대조, 예산과 검증 계획 |
 | [Langfuse 샘플 추적 검증](analysis/reports/langfuse-token-validation.md) | 합성 3건의 token·비용·재시도와 metadata-only 결과 |
-| [장애·부하 테스트 계획](docs/failure-and-load-test-plan.md) | 입력·서비스 장애와 부하 시나리오 |
-| [구현 로드맵](docs/roadmap.md) | 완료된 기반과 Langfuse·LLM·Airflow·확장 순서 |
-| [피드백 구현 계획](docs/feedback-implementation-plan.md) | 단계별 완료 조건과 진행 기록 |
+| [Airflow 자동화 실행 가이드](docs/guides/airflow-automation.md) | 파라미터형 Spark DAG와 100건·1,000건 실행·제출 절차 |
+| [Airflow 과제 실행 검증](analysis/reports/airflow-assignment-validation.md) | 사전 검사와 실제 두 DAG run 결과 기록 |
+| [장애·부하 테스트 계획](docs/planning/failure-and-load-test-plan.md) | 입력·서비스 장애와 부하 시나리오 |
+| [구현 로드맵](docs/planning/roadmap.md) | 완료된 기반과 Langfuse·LLM·Airflow·확장 순서 |
+| [피드백 구현 계획](docs/planning/feedback-implementation-plan.md) | 단계별 완료 조건과 진행 기록 |

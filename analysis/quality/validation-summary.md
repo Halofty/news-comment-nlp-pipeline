@@ -1,6 +1,6 @@
 # 데이터셋 검증 요약
 
-- 기준 계약: [`../../docs/data-contract.md`](../../docs/data-contract.md)
+- 기준 계약: [`../../docs/architecture/data-contract.md`](../../docs/architecture/data-contract.md)
 - 검증 원문: `data/validation/` (`.gitignore` 대상)
 - 기계 판독 결과: [`../reports/`](../reports/)
 
@@ -32,4 +32,3 @@ Collector 변환은 단위 테스트로 검증했지만 실제 100건 계약 검
 ## 공개 범위
 
 profile에는 원문 텍스트, 사용자명, 원본 댓글 ID와 기사 URL 목록을 포함하지 않습니다. 집계 결과만 Git에 저장하고 재현에 필요한 원문·중간 데이터는 `data/`에 둡니다.
-

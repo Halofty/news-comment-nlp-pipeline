@@ -4,7 +4,7 @@
 
 정제된 뉴스·댓글을 LLM Batch API로 분석해 감정, 토픽 후보, 키워드와 요약을 생성하는 목표 설계입니다.
 
-현재 LLM 제출·결과 적재 코드는 아직 구현되지 않았습니다. 토큰·비용 관측은 [ADR-0001](adr/0001-langfuse-deployment.md)에 따라 관리형 Langfuse와 격리된 adapter로 구현합니다.
+현재 LLM 제출·결과 적재 코드는 아직 구현되지 않았습니다. 토큰·비용 관측은 [ADR-0001](../adr/0001-langfuse-deployment.md)에 따라 관리형 Langfuse와 격리된 adapter로 구현합니다.
 
 ## 2. 처리 흐름
 
@@ -61,7 +61,7 @@ PostgreSQL의 분석 대기 문서 조회
 
 ## 6. Langfuse 관측 계획
 
-MVP는 관리형 Langfuse 일본 리전을 사용합니다. self-hosted 구성은 현재 로컬 Kafka·Spark 환경에 비해 자원과 운영 부담이 커 보류합니다. 구체적인 근거와 재검토 조건은 [ADR-0001](adr/0001-langfuse-deployment.md)에 기록합니다.
+MVP는 관리형 Langfuse 일본 리전을 사용합니다. self-hosted 구성은 현재 로컬 Kafka·Spark 환경에 비해 자원과 운영 부담이 커 보류합니다. 구체적인 근거와 재검토 조건은 [ADR-0001](../adr/0001-langfuse-deployment.md)에 기록합니다.
 
 관측 후보:
 
@@ -97,9 +97,8 @@ Langfuse 기록 실패가 핵심 분석 결과 저장을 중단시키지 않도�
 
 ## 9. 관련 문서
 
-- [Langfuse 구현·토큰 관리 계획](langfuse-implementation-plan.md)
-- [Langfuse 도입 ADR](adr/0001-langfuse-deployment.md)
+- [Langfuse 구현·토큰 관리 계획](../planning/langfuse-implementation-plan.md)
+- [Langfuse 도입 ADR](../adr/0001-langfuse-deployment.md)
 - [PostgreSQL 저장 구조](storage-schema.md)
-- [장애 및 부하 테스트 계획](failure-and-load-test-plan.md)
-- [멘토 피드백 구현 계획](feedback-implementation-plan.md)
-
+- [장애 및 부하 테스트 계획](../planning/failure-and-load-test-plan.md)
+- [멘토 피드백 구현 계획](../planning/feedback-implementation-plan.md)
