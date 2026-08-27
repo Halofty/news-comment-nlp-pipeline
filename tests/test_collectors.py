@@ -19,8 +19,10 @@ class FakeResponse:
 class FakeSession:
     def __init__(self) -> None:
         self.params = None
+        self.url = None
 
     def get(self, url, *, params, timeout):
+        self.url = url
         self.params = params
         assert timeout == (5, 30)
         return FakeResponse()
@@ -48,6 +50,7 @@ def test_fetch_articles_builds_expected_query() -> None:
         session=session,
     )
     assert articles == [{"url": "https://example.com/article"}]
+    assert session.url == "http://api.gdeltproject.org/api/v2/doc/doc"
     assert session.params["query"] == "climate change"
     assert session.params["maxrecords"] == 10
     assert session.params["startdatetime"] == "20260101000000"

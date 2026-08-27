@@ -1,0 +1,24 @@
+Airflow GDELT HTTP daily run log excerpt
+DAG: gdelt_daily_spark_batch
+Run ID: gdelt-http-2026-08-15
+Parameter date: 2026-08-15 UTC
+
+query=artificial intelligence
+target_records=100
+requested_records=110
+collected_rows=109
+excluded_missing_required_fields=1
+collect_gdelt_day=success
+
+input_rows=109
+contract_rejected_rows=0
+duplicate_event_id_rows=0
+unique_valid_rows=109
+accounted_rows=109
+quality_accept=108
+quality_flag=1
+ZERO_WIDTH_CHARACTERS=1
+duration_seconds=5.331
+run_existing_spark_job=success
+verify_row_accounting=success
+DAG result=success

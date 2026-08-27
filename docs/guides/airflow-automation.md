@@ -8,7 +8,7 @@ docker compose -f infra/airflow/docker-compose.airflow.yml up --build -d
 docker compose -f infra/airflow/docker-compose.airflow.yml logs airflow
 ```
 
-`http://localhost:8082`에서 `reddit_daily_spark_batch`를 활성화합니다.
+`http://localhost:8082`에서 `reddit_daily_spark_batch`와 `gdelt_daily_spark_batch`를 활성화합니다.
 
 ## 변경 전: 2016-01-01
 
@@ -46,3 +46,22 @@ docker compose -f infra/airflow/docker-compose.airflow.yml logs airflow
 2. `run_existing_spark_job`의 Parquet와 report
 3. `verify_row_accounting`의 입력·설명 행 수
 4. 두 날짜 run의 Grid 또는 Graph 화면
+
+## GDELT 날짜 실행
+
+GDELT DAG도 같은 Spark·출력 설정을 사용하고 다음 값만 날짜별로 변경합니다.
+
+```json
+{
+  "start_date": "2026-08-14",
+  "end_date": "2026-08-14",
+  "query": "artificial intelligence",
+  "max_records": 100,
+  "output_root": "data/airflow-output",
+  "output_format": "parquet",
+  "partitions": 2,
+  "spark_master": "local[2]"
+}
+```
+
+두 번째 실행에서는 `start_date`와 `end_date`만 `2026-08-15`로 바꿉니다. Collector는 유효 이벤트 100건을 안정적으로 확보하기 위해 API에 10건을 추가 요청합니다. 이 환경에서는 HTTPS TLS 연결이 실패하므로 HTTP endpoint를 사용합니다.

@@ -10,7 +10,7 @@ datasets:
     name: GDELT DOC 2.0 news metadata
     provider: The GDELT Project
     source_type: news
-    source_url: https://api.gdeltproject.org/api/v2/doc/doc
+    source_url: http://api.gdeltproject.org/api/v2/doc/doc
     documentation_url: https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/
     specification_path: analysis/datasets/gdelt-news.md
     access:
@@ -123,4 +123,3 @@ datasets:
     reproduction:
       collector: collectors/reddit.py
       command: python3 -m collectors.reddit --month 2016-01 --limit 100 --output data/validation/reddit-2016-01-100.jsonl
-

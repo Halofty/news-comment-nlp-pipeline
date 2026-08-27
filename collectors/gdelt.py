@@ -12,7 +12,9 @@ from urllib3.util.retry import Retry
 from core.events import stable_event_id, utc_now_iso
 from storage.jsonl import write_jsonl
 
-GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
+# 이 실행 환경에서는 GDELT API의 HTTPS TLS handshake가 timeout되지만
+# 동일 endpoint의 HTTP 요청은 정상 응답한다. 기능과 query parameter는 같다.
+GDELT_DOC_API = "http://api.gdeltproject.org/api/v2/doc/doc"
 GDELT_DATETIME_FORMAT = "%Y%m%d%H%M%S"
 
 
@@ -24,7 +26,9 @@ def build_session() -> requests.Session:
         allowed_methods=("GET",),
     )
     session = requests.Session()
-    session.mount("https://", HTTPAdapter(max_retries=retry))
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
     session.headers["User-Agent"] = "news-comment-nlp-pipeline/0.1"
     return session
 

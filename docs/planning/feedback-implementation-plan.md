@@ -43,7 +43,7 @@
 | 7 | Langfuse 토큰·비용 추적 연동 | `[-]` | 90% | adapter·합성 3건 360 token·비용 대조 완료, 실제 Cloud 확인 대기 |
 | 8 | Airflow로 Reddit 일별 수집·Spark 자동화 | `[x]` | 100% | 2016-01-01·2016-02-01 각 1,000건 수집, Spark 처리와 행 회계 검증 완료 |
 
-4차시 과제의 **8단계 Airflow 자동화**는 Reddit 하루 날짜 방식으로 완료했습니다. 2016-01-01과 2016-02-01을 날짜만 바꿔 실제 trigger했고, 각각 1,000건 수집부터 Spark 처리와 행 회계 검증까지 성공했습니다. GDELT는 HTTPS API 상태를 별도로 확인합니다. 7단계의 관리형 Langfuse 실제 trace 확인은 외부 key 대기 상태입니다.
+4차시 과제의 **8단계 Airflow 자동화**는 Reddit 하루 날짜 방식으로 완료했습니다. 2016-01-01과 2016-02-01을 날짜만 바꿔 실제 trigger했고, 각각 1,000건 수집부터 Spark 처리와 행 회계 검증까지 성공했습니다. GDELT Collector는 이 환경의 TLS 오류를 피하기 위해 HTTP endpoint를 사용합니다. 7단계의 관리형 Langfuse 실제 trace 확인은 외부 key 대기 상태입니다.
 
 ## 4. 단계별 구현 계획
 

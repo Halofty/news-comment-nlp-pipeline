@@ -57,7 +57,7 @@ Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runn
 | Spark Standalone | 구현·통합 검증 완료 | Master·Worker 분리, Worker Executor 2 cores 실행 |
 | PostgreSQL 적재 | MVP 구현·통합 검증 완료 | 정상 981건·계약 거부 1건, 새 checkpoint 재처리 중복 0건 |
 | LLM Batch·Langfuse | 관측 adapter·합성 검증 완료 | 3건 360 token·$0.000265 대조, 실제 Cloud·Batch 연동 전 |
-| Airflow orchestration | 일별 DAG 실행 완료 | 2016-01-01·2016-02-01 Reddit 각 1,000건 수집→Spark→행 회계 검증 성공 |
+| Airflow orchestration | 일별 DAG 실행 완료 | Reddit 2,000건과 GDELT 219건을 날짜별 수집→Spark→행 회계 검증 성공 |
 
 전체 자동 테스트는 기존 52개와 Airflow helper 4개로 구성됩니다. PostgreSQL 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
 
