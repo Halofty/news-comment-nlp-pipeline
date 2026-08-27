@@ -57,7 +57,7 @@ Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runn
 | Spark Standalone | 구현·통합 검증 완료 | Master·Worker 분리, Worker Executor 2 cores 실행 |
 | PostgreSQL 적재 | MVP 구현·통합 검증 완료 | 정상 981건·계약 거부 1건, 새 checkpoint 재처리 중복 0건 |
 | LLM Batch·Langfuse | 관측 adapter·합성 검증 완료 | 3건 360 token·$0.000265 대조, 실제 Cloud·Batch 연동 전 |
-| Airflow orchestration | DAG·실행 환경 구현 완료 | 입력 JSONL·partition을 Param으로 받아 기존 Spark batch 실행, 실제 UI 2회 검증 대기 |
+| Airflow orchestration | 일별 DAG 실행 완료 | 2016-01-01·2016-02-01 Reddit 각 1,000건 수집→Spark→행 회계 검증 성공 |
 
 전체 자동 테스트는 기존 52개와 Airflow helper 4개로 구성됩니다. PostgreSQL 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
 
@@ -93,7 +93,7 @@ news-comment-nlp-pipeline/
 | [로컬 개발과 실행 가이드](docs/guides/getting-started.md) | 환경 준비, 테스트, 서비스 시작과 Job 제출 |
 | [기술 스택과 역할](docs/architecture/technology-stack.md) | 구성 요소의 책임, 선택 이유와 확장 지점 |
 | [Week 4 Kafka·Spark 정리](docs/briefings/week4.md) | 메시지 명세, 1,000건 검증, 전처리·저장과 실행 명령 |
-| [Week 5 Airflow 자동화 브리핑](docs/briefings/week5.md) | 과제 요구사항, DAG 구조, 두 번의 파라미터 실행과 제출 자료 |
+| [Week 5 Airflow 자동화 브리핑](docs/briefings/week5/week5.md) | 과제 요구사항, DAG 구조, 두 번의 파라미터 실행과 제출 자료 |
 | [시스템 구성도](docs/architecture/system-architecture.html) | 전체 목표 아키텍처 |
 | [Ingestion 구현 설명](docs/guides/ingestion-implementation.md) | Collector부터 Kafka 적재 확인까지의 코드 흐름 |
 | [TextEvent v1 데이터 계약](docs/architecture/data-contract.md) | 공통 Schema와 출처별 필드 매핑 |
@@ -112,7 +112,7 @@ news-comment-nlp-pipeline/
 | [Langfuse 도입 ADR](docs/adr/0001-langfuse-deployment.md) | 관리형·self-hosted 비교, 데이터 경계와 adapter 결정 |
 | [Langfuse 구현·토큰 관리 계획](docs/planning/langfuse-implementation-plan.md) | adapter 구조, token·비용 대조, 예산과 검증 계획 |
 | [Langfuse 샘플 추적 검증](analysis/reports/langfuse-token-validation.md) | 합성 3건의 token·비용·재시도와 metadata-only 결과 |
-| [Airflow 자동화 실행 가이드](docs/guides/airflow-automation.md) | 파라미터형 Spark DAG와 100건·1,000건 실행·제출 절차 |
+| [Airflow 자동화 실행 가이드](docs/guides/airflow-automation.md) | 서로 다른 두 날짜의 GDELT 수집·Spark 실행 절차 |
 | [Airflow 과제 실행 검증](analysis/reports/airflow-assignment-validation.md) | 사전 검사와 실제 두 DAG run 결과 기록 |
 | [장애·부하 테스트 계획](docs/planning/failure-and-load-test-plan.md) | 입력·서비스 장애와 부하 시나리오 |
 | [구현 로드맵](docs/planning/roadmap.md) | 완료된 기반과 Langfuse·LLM·Airflow·확장 순서 |

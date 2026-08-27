@@ -1,0 +1,35 @@
+Airflow Reddit daily run log excerpt
+DAG: reddit_daily_spark_batch
+Run ID: reddit-date-2016-01-01-v2
+Parameter date: 2016-01-01 UTC
+
+===== parameters =====
+start_date=2016-01-01
+end_date=2016-01-01
+month=2016-01
+limit=1000
+input_file=data/airflow-input/reddit-2016-01-01.jsonl
+partitions=2
+spark_master=local[2]
+prepare_parameters=success
+
+===== collection =====
+python -m collectors.reddit --month 2016-01 --start-date 2016-01-01
+  --end-date 2016-01-01 --limit 1000
+  --output data/airflow-input/reddit-2016-01-01.jsonl
+collected_rows=1000
+collect_reddit_day=success
+
+===== Spark and verification =====
+input_rows=1000
+schema_parsing_success_rows=1000
+contract_rejected_rows=0
+duplicate_event_id_rows=0
+unique_valid_rows=1000
+accounted_rows=1000
+quality_accept=989
+quality_quarantine=11
+duration_seconds=5.790
+run_existing_spark_job=success
+verify_row_accounting=success
+DAG result=success

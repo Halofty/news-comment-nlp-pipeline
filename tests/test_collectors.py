@@ -3,7 +3,7 @@ from __future__ import annotations
 import requests
 
 from collectors.gdelt import article_to_event, fetch_articles
-from collectors.reddit import collect_events, comment_to_event
+from collectors.reddit import collect_events, comment_to_event, date_bounds
 
 
 class FakeResponse:
@@ -129,6 +129,25 @@ def test_collect_events_filters_and_stops_at_limit() -> None:
     ]
     events = list(collect_events(rows, subreddits={"worldnews"}, limit=1))
     assert [event["text"] for event in events] == ["keep one"]
+
+
+def test_collect_events_filters_inclusive_utc_date_range() -> None:
+    start, end = date_bounds("1970-01-02", "1970-01-02")
+    rows = [
+        {"id": "1", "body": "before", "created_utc": 86_399},
+        {"id": "2", "body": "keep", "created_utc": 86_400},
+        {"id": "3", "body": "after", "created_utc": 172_800},
+    ]
+    events = list(
+        collect_events(
+            rows,
+            subreddits=set(),
+            limit=10,
+            start_timestamp=start,
+            end_timestamp=end,
+        )
+    )
+    assert [event["text"] for event in events] == ["keep"]
 
 
 def test_deleted_comment_is_dropped() -> None:

@@ -41,9 +41,9 @@
 | 5 | Spark 1,000건 이상 확장 검증 | `[x]` | 100% | 동일 코드 1,000건 처리, partition·품질·시간·운영 로그 점검 보고서 |
 | 6 | Langfuse 도입 방식 조사와 결정 | `[x]` | 100% | 관리형 일본 리전·metadata-only 정책과 adapter 경계 ADR |
 | 7 | Langfuse 토큰·비용 추적 연동 | `[-]` | 90% | adapter·합성 3건 360 token·비용 대조 완료, 실제 Cloud 확인 대기 |
-| 8 | Airflow로 기존 Spark batch 자동화 | `[-]` | 80% | 파라미터형 DAG·실행 이미지·100/1,000건 입력·단위 테스트 완료, Docker 권한이 있는 환경에서 UI 2회 실행 대기 |
+| 8 | Airflow로 Reddit 일별 수집·Spark 자동화 | `[x]` | 100% | 2016-01-01·2016-02-01 각 1,000건 수집, Spark 처리와 행 회계 검증 완료 |
 
-현재 4차시 과제에 맞춰 **8단계 Airflow 자동화**를 진행 중입니다. 코드와 재현 절차는 준비됐으며 Docker daemon을 사용할 수 있는 환경에서 서로 다른 파라미터로 두 번 실행하고 증거를 남기는 작업이 남았습니다. 7단계의 관리형 Langfuse 실제 trace 확인도 외부 key 대기 상태입니다.
+4차시 과제의 **8단계 Airflow 자동화**는 Reddit 하루 날짜 방식으로 완료했습니다. 2016-01-01과 2016-02-01을 날짜만 바꿔 실제 trigger했고, 각각 1,000건 수집부터 Spark 처리와 행 회계 검증까지 성공했습니다. GDELT는 HTTPS API 상태를 별도로 확인합니다. 7단계의 관리형 Langfuse 실제 trace 확인은 외부 key 대기 상태입니다.
 
 ## 4. 단계별 구현 계획
 
@@ -436,15 +436,15 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 | 2026-08-24 | PostgreSQL 적재 | 핵심 4개 테이블 migration, transaction advisory lock, event·batch upsert와 선택적 Streaming sink 구현 | 실제 982건 적재, NUL 실패 rollback 후 재시도, 새 checkpoint 재처리 `already_committed`와 행 수 불변 확인 | 6단계 Langfuse 도입 조사 |
 | 2026-08-24 | 6 | 공식 v4 SDK·Cloud·self-hosted 구성과 OpenAI Batch usage 추적 범위를 비교하고 관리형 일본 리전·metadata-only·adapter 경계를 채택 | ADR에 구성요소, 최소 11 vCPU·25.5 GiB RAM, 허용 metadata, fallback과 재검토 조건 기록 | 7단계 Langfuse 추적 adapter 구현 |
 | 2026-08-24 | 7 | vendor 독립 관측 자료형, Langfuse·구조화 로그·no-op sink와 합성 Batch 검증 CLI 구현 | SDK 4.14.4 smoke test, 3건 360 token·$0.000265 대조, 관측 9개·전체 52개 테스트 통과 | 관리형 Cloud trace 확인 후 LLM Batch workflow 연결 |
-| 2026-08-27 | 8 | 기존 Spark batch를 호출하는 3-task Airflow DAG, 실행 시 JSONL·label·partition Param, Java·PySpark 실행 이미지와 제출 가이드 작성 | helper 단위 테스트 4개와 비-Spark 전체 47개, Compose 구성, 합성 100·1,000건 입력 확인; 현재 환경 Docker socket 권한 없음 | Docker 가능 환경에서 두 DAG run 성공·캡처·보고서 갱신 |
+| 2026-08-27 | 8 | 하루 날짜 Param으로 Reddit Collector와 기존 Spark batch를 연결하는 4-task DAG 및 실행 가이드 작성 | 관련 테스트 15개와 DAG import 오류 0건; 2016-01-01·2016-02-01 각 1,000건 실제 run 성공 | Airflow 성공 화면 캡처·GitHub 링크 제출 |
 
 ## 7. 다음 작업
 
-다음 작업은 **8단계 Airflow DAG의 실제 2회 실행 확인**입니다.
+다음 작업은 **GDELT API 복구 후 날짜형 Airflow DAG 재실행**입니다.
 
 구현 순서:
 
-1. Docker daemon 사용 권한이 있는 환경에서 Airflow Compose를 시작합니다.
-2. `assignment-100`과 `assignment-1000` 파라미터로 DAG를 실행합니다.
-3. 두 실행의 Graph 화면과 `verify_row_accounting` task log를 캡처합니다.
-4. `analysis/reports/airflow-assignment-validation.md`를 실제 집계값으로 갱신합니다.
+1. `http://localhost:8082`에서 `reddit_daily_spark_batch`를 엽니다.
+2. `reddit-date-2016-01-01-v2`와 `reddit-date-2016-02-01` 성공 run을 확인합니다.
+3. 두 run의 `verify_row_accounting` 행 회계와 성공 화면을 캡처합니다.
+4. GitHub에 push한 뒤 4차시 채널에 링크를 공유합니다.

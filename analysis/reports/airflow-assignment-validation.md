@@ -1,38 +1,27 @@
-# Airflow 과제 실행 검증
+# Airflow 날짜형 과제 검증
 
-## 검증 대상
+- DAG: `reddit_daily_spark_batch`
+- 날짜: 2016-01-01, 2016-02-01
+- 고정 조건: 유효 댓글 최대 1,000건, 2 partitions
+- 흐름: Reddit 일별 수집 → 기존 Spark batch → 행 회계 검증
 
-- DAG: `spark_parameterized_text_batch`
-- 자동화 대상: 기존 `spark_jobs.process_sample`
-- 검증일: 2026-08-27
-- 실행 환경: `apache/airflow:3.3.1-python3.11`, Java 17, PySpark 3.5.7
-
-## 사전 검증
+## 자동 검사
 
 | 항목 | 결과 |
 |---|---|
-| DAG·보조 모듈 Python 문법 검사 | 통과 |
-| 파라미터·경로·CLI·결과 검사 단위 테스트 | 4개 통과 |
-| Docker Compose 구성 검사 | 통과 |
-| 합성 입력 생성 | 100건·1,000건 생성 및 행 수 확인 |
+| DAG import | 오류 0건 |
+| Collector·Airflow helper 테스트 | 15개 통과 |
+| 단일 날짜 범위 검사 | 구현 완료 |
+| 최소 100건 검사 | 구현 완료 |
+| Docker Compose | healthy |
 
-## 실제 DAG 실행 결과
+## 실제 실행
 
-실제 Airflow 실행 후 아래 표를 `report.json`과 task log를 근거로 갱신합니다. 실행 전 값을 성공으로 기록하지 않습니다.
+| run ID | 날짜 | 상태 | 수집 | Spark |
+|---|---|---|---:|---|
+| `reddit-date-2016-01-01-v2` | 2016-01-01 | 성공 | 1,000 | 성공·1,000행 회계 |
+| `reddit-date-2016-02-01` | 2016-02-01 | 성공 | 1,000 | 성공·1,000행 회계 |
 
-| run label | 입력 | partitions | DAG 상태 | input/accounted | unique/rejected/duplicate | 실행 시간 |
-|---|---:|---:|---|---|---|---|
-| `assignment-100` | 100 | 2 | 실행 대기 | - | - | - |
-| `assignment-1000` | 1,000 | 4 | 실행 대기 | - | - | - |
+GDELT HTTPS API 연결 실패는 DAG나 날짜 검증 문제가 아니었지만 외부 상태에 의존하므로, 이번 제출 실행은 기존 Reddit Collector를 날짜형으로 확장해 재현합니다.
 
-## 제출 체크리스트
-
-- [x] 입력값을 받는 DAG 코드 작성
-- [x] 기존 Spark 처리 코드와 연결
-- [x] 100건·1,000건 입력 준비
-- [ ] 서로 다른 입력값으로 DAG 두 번 성공
-- [ ] 두 실행의 Airflow 화면 캡처
-- [ ] task log와 집계 결과를 이 문서에 기록
-- [ ] GitHub 업로드 후 4차시 채널에 링크 공유
-
-실행 방법과 파라미터 예시는 [`docs/guides/airflow-automation.md`](../../docs/guides/airflow-automation.md)를 참고합니다.
+재현 설정은 [Airflow 실행 가이드](../../docs/guides/airflow-automation.md)를 참고합니다.

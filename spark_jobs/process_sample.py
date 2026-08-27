@@ -257,10 +257,10 @@ def process_batch(
             "master": spark.sparkContext.master,
         },
         "limitations": [
-            "The input is deterministic synthetic data and is not representative of production distributions.",
+            "A bounded input sample is not representative of the full source distribution.",
             "The reference quality policy currently uses a scalar Python UDF for exact fixture parity.",
             "Performance conclusions require a larger representative dataset and UDF benchmark.",
-            "The local Windows JSONL sink streams partitions through the driver and is not a distributed production sink.",
+            "The local JSONL sink streams partitions through the driver and is not a distributed production sink.",
         ],
     }
 
