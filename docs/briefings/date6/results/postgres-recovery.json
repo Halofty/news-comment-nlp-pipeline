@@ -1,0 +1,22 @@
+{
+  "status": "success",
+  "attempted_rows": 200,
+  "source_rows": {
+    "reddit": 100,
+    "web_news": 100
+  },
+  "failure_reproduced": true,
+  "failure_type": "OperationalError",
+  "failure_message": "connection failed: connection to server at 127.0.0.1, port 55432 failed: Connection refused",
+  "failure_seconds": 0.002,
+  "rows_before_recovery": 0,
+  "rows_after_recovery": 200,
+  "distinct_ids_after_recovery": 200,
+  "missing_rows_after_recovery": 0,
+  "duplicate_rows_after_recovery": 0,
+  "rows_after_duplicate_run": 200,
+  "distinct_ids_after_duplicate_run": 200,
+  "duplicate_rows_after_duplicate_run": 0,
+  "duplicate_run_seconds": 0.014,
+  "recovery_seconds": 0.069
+}

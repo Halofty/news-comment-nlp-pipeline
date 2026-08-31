@@ -29,7 +29,7 @@
     },
     "source_name": {
       "type": "string",
-      "enum": ["gdelt", "reddit"]
+      "enum": ["gdelt", "reddit", "web_news"]
     },
     "event_time": {
       "type": "string",

@@ -14,6 +14,7 @@ from typing import Any
 from pyspark.sql import DataFrame, SparkSession, functions as F
 
 from spark_jobs.run_logging import JsonlRunLogger
+from spark_jobs.runtime import configure_java_home
 from spark_jobs.schemas import RAW_EVENT_SCHEMA
 from spark_jobs.transformations import transform_events
 from storage.postgres import write_micro_batch_to_postgres
@@ -87,6 +88,7 @@ def create_streaming_spark_session(
     kafka_package: str | None,
     kafka_classpath: str | None = None,
 ) -> SparkSession:
+    configure_java_home()
     python_executable = sys.executable
     os.environ["PYSPARK_PYTHON"] = python_executable
     os.environ["PYSPARK_DRIVER_PYTHON"] = python_executable

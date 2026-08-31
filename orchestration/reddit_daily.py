@@ -32,8 +32,8 @@ def prepare_daily_config(
         raise ValueError("start_date and end_date must define exactly 1 calendar day")
 
     limit = int(params["limit"])
-    if not 100 <= limit <= 10_000:
-        raise ValueError("limit must be between 100 and 10000")
+    if limit != 0 and not 100 <= limit <= 10_000:
+        raise ValueError("limit must be 0 (unlimited) or between 100 and 10000")
 
     selected_date = start_date.isoformat()
     input_file = f"data/airflow-input/reddit-{selected_date}.jsonl"

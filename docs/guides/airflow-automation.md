@@ -40,6 +40,8 @@ docker compose -f infra/airflow/docker-compose.airflow.yml logs airflow
 
 두 실행은 날짜만 다릅니다. 날짜에서 `RC_YYYY-MM.parquet`를 결정하고 UTC 하루 범위만 필터링합니다. `start_date`와 `end_date`가 다르면 첫 task에서 실패합니다.
 
+전체 일일 backfill에서는 `limit`을 `0`으로 지정합니다. 이 값은 무제한을 뜻하며, 1~99 또는 10,000 초과 양수는 허용하지 않습니다. 대규모 원격 월 파일은 먼저 로컬 Parquet로 준비한 뒤 Collector의 `--input-parquet` 옵션을 사용하면 날짜 predicate pushdown을 적용할 수 있습니다.
+
 성공 후 다음을 확인합니다.
 
 1. `collect_reddit_day`의 수집 건수

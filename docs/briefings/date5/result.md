@@ -1,6 +1,30 @@
 # Week 5 Reddit·GDELT 일별 실행 결과
 
-## 비교 조건
+## Reddit 일일 전체 수집 추가 검증
+
+기존 과제 실행은 날짜별 1,000건으로 제한했지만, 이후 `limit=0`을 무제한으로 정의하고 같은 두 날짜를 전체 수집했습니다. 아래 결과는 **수집 완료 기준**이며 전체 데이터를 Spark로 처리한 결과는 아직 아닙니다.
+
+| 날짜 | 원본 날짜 필터 행 | 최종 `TextEvent v1` | JSONL 크기 | 수집 상태 |
+|---|---:|---:|---:|:---:|
+| 2016-01-01 | 1,452,563 | 1,452,563 | 약 812MB | 완료 |
+| 2016-02-01 | 1,915,934 | 1,915,934 | 약 1.2GB | 완료 |
+| 합계 | 3,368,497 | 3,368,497 | 약 2.0GB | 완료 |
+
+월별 원본 Parquet는 각각 약 9.80GB와 9.46GB이며 5천만 행을 넘습니다. footer 통계를 검사한 결과 `created_utc` row-group 최소·최대가 두 파일 모두 단조 증가했습니다. 필요한 날짜의 row group 앞부분과 footer만 가진 sparse Parquet를 구성하고 PyArrow predicate pushdown으로 정확한 하루 범위를 읽었습니다. 이벤트는 JSONL에 기록되기 전에 Python `TextEvent v1` 계약 검증을 통과합니다.
+
+```bash
+.venv/bin/python -m collectors.reddit \
+  --month 2016-01 \
+  --input-parquet data/raw/reddit-parquet/RC_2016-01.sparse.parquet \
+  --start-date 2016-01-01 \
+  --end-date 2016-01-01 \
+  --limit 0 \
+  --output data/airflow-input/reddit-2016-01-01.jsonl
+```
+
+`limit=0`은 선택 날짜의 모든 유효 행을 뜻합니다. 양수 제한의 기존 동작은 유지합니다.
+
+## 기존 1,000건 Airflow·Spark 과제 비교 조건
 
 | 항목 | 변경 전 | 변경 후 |
 |---|---|---|

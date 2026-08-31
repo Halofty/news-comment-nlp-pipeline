@@ -18,13 +18,14 @@
 |---|---|---|---|
 | [GDELT DOC API](https://www.gdeltproject.org/) | URL, 제목, 언어, 도메인, 관측 시각 | MVP에서는 기사 제목 | Collector 구현, 공유 IP rate limit으로 실제 100건 검증 대기 |
 | [Pushshift Reddit Comments](https://huggingface.co/datasets/fddemarco/pushshift-reddit-comments) | 댓글 ID, 본문, 작성 시각, subreddit, score | 작성자를 제외한 댓글 본문 | 2016-01 실제 100건 계약 검증 완료 |
+| [Global Voices](https://globalvoices.org/) | 2012-01-01~2016-02-29 영어 아카이브 제목·게시일·URL | 기사 제목 | Scrapy fixture 및 실제 1페이지·5건 계약 검증 완료 |
 
 두 출처를 기사 단위로 직접 조인하지 않습니다. 실제 원문과 실행 산출물은 Git에 포함하지 않고, `analysis/`에는 공개 가능한 명세·집계·검증 결과만 저장합니다.
 
 ## 전체 흐름 — 파이프라인 개요
 
 ```text
-GDELT · Reddit
+Global Voices · GDELT(기존) · Reddit
 → Collector
 → TextEvent v1 계약 검증
 → JSONL staging
@@ -65,7 +66,7 @@ Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runn
 
 ```text
 news-comment-nlp-pipeline/
-├── collectors/                  # GDELT·Reddit 수집과 공통 이벤트 변환
+├── collectors/                  # 웹 뉴스·GDELT·Reddit 수집과 공통 이벤트 변환
 ├── core/                        # 이벤트 계약과 텍스트 품질 규칙
 ├── producers/                   # Kafka 메시지 발행
 ├── jobs/                        # 토픽 초기화·replay·검증 CLI
@@ -96,9 +97,11 @@ news-comment-nlp-pipeline/
 | [Week 5 Airflow 자동화 브리핑](docs/briefings/week5/week5.md) | 과제 요구사항, DAG 구조, 두 번의 파라미터 실행과 제출 자료 |
 | [시스템 구성도](docs/architecture/system-architecture.html) | 전체 목표 아키텍처 |
 | [Ingestion 구현 설명](docs/guides/ingestion-implementation.md) | Collector부터 Kafka 적재 확인까지의 코드 흐름 |
+| [Scrapy 웹 뉴스 수집](docs/guides/web-news-collection.md) | 기간·키워드 실행, 책임 분리, 요청 정책과 검증 방법 |
 | [TextEvent v1 데이터 계약](docs/architecture/data-contract.md) | 공통 Schema와 출처별 필드 매핑 |
 | [데이터셋 명세와 메타데이터](analysis/README.md) | 데이터 출처·범위·카탈로그와 공개 가능 profile |
 | [실제 표본 검증](docs/reports/validation-report.md) | Reddit 100건과 GDELT 확인 상태 |
+| [Global Voices 소량 검증](analysis/reports/global-voices-smoke-validation.md) | robots 준수, 실제 요청 수와 5건 계약 검증 결과 |
 | [텍스트 품질·안전 규칙](analysis/quality/text-quality-rules.md) | 품질 측정값·임계값·상태와 출력 규격 |
 | [Spark batch 검증](analysis/reports/spark-batch-validation.md) | 100건·1,000건 행 회계와 품질 분포 |
 | [Spark 운영 로그 점검](analysis/reports/spark-run-log-review.md) | 1,000건 단계별 시간·행 회계·payload 미기록 검사 |

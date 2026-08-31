@@ -42,9 +42,10 @@ with DAG(
         "limit": Param(
             1000,
             type="integer",
-            minimum=100,
+            minimum=0,
             maximum=10000,
             title="Maximum valid comments",
+            description="Use 0 to collect every comment for the selected day",
         ),
         "output_root": Param(
             "data/airflow-output", type="string", pattern="^data/.+"

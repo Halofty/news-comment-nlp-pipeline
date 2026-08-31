@@ -66,7 +66,10 @@ def add_contract_columns(events: DataFrame) -> DataFrame:
             "INVALID_SOURCE_TYPE",
         ),
         _error_when(
-            ~F.coalesce(F.col("source_name").isin("gdelt", "reddit"), F.lit(False)),
+            ~F.coalesce(
+                F.col("source_name").isin("gdelt", "reddit", "web_news"),
+                F.lit(False),
+            ),
             "INVALID_SOURCE_NAME",
         ),
         _error_when(F.col("event_timestamp").isNull(), "INVALID_EVENT_TIME"),

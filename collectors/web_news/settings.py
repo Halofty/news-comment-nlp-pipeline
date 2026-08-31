@@ -1,0 +1,20 @@
+BOT_NAME = "news_comment_nlp_pipeline"
+
+SPIDER_MODULES = ["collectors.web_news.spiders"]
+NEWSPIDER_MODULE = "collectors.web_news.spiders"
+
+ROBOTSTXT_OBEY = True
+DOWNLOAD_DELAY = 10
+RANDOMIZE_DOWNLOAD_DELAY = True
+CONCURRENT_REQUESTS_PER_DOMAIN = 1
+AUTOTHROTTLE_ENABLED = True
+AUTOTHROTTLE_START_DELAY = 10
+AUTOTHROTTLE_MAX_DELAY = 60
+AUTOTHROTTLE_TARGET_CONCURRENCY = 0.5
+HTTPCACHE_ENABLED = True
+HTTPCACHE_DIR = "data/scrapy-httpcache"
+HTTPCACHE_EXPIRATION_SECS = 86_400
+
+USER_AGENT = "news-comment-nlp-pipeline/0.1 (educational research collector)"
+FEED_EXPORT_ENCODING = "utf-8"
+LOG_LEVEL = "INFO"

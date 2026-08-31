@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator
 
 from core.events import stable_event_id, utc_now_iso
+from core.subreddits import load_subreddit_allowlist
 from storage.jsonl import write_jsonl
 
 DATASET_ID = "fddemarco/pushshift-reddit-comments"
@@ -53,6 +54,41 @@ def stream_month(month: str) -> Iterable[dict[str, Any]]:
     )
 
 
+def stream_local_parquet(
+    input_path: Path,
+    *,
+    start_timestamp: int | None = None,
+    end_timestamp: int | None = None,
+    subreddits: set[str] | None = None,
+) -> Iterable[dict[str, Any]]:
+    """Read a local Parquet with predicate pushdown for large daily backfills."""
+    try:
+        import pyarrow.dataset as ds
+    except ImportError as error:
+        raise RuntimeError(
+            "Local Parquet collection requires pyarrow. "
+            "Run: pip install -r requirements.txt"
+        ) from error
+
+    dataset = ds.dataset(input_path, format="parquet")
+    predicate = None
+    if start_timestamp is not None:
+        predicate = ds.field("created_utc") >= start_timestamp
+    if end_timestamp is not None:
+        upper = ds.field("created_utc") < end_timestamp
+        predicate = upper if predicate is None else predicate & upper
+    if subreddits:
+        subreddit_filter = ds.field("subreddit").isin(sorted(subreddits))
+        predicate = (
+            subreddit_filter
+            if predicate is None
+            else predicate & subreddit_filter
+        )
+    scanner = dataset.scanner(filter=predicate, batch_size=16_384)
+    for batch in scanner.to_batches():
+        yield from batch.to_pylist()
+
+
 def comment_to_event(
     comment: dict[str, Any], *, collected_at: str
 ) -> dict[str, Any] | None:
@@ -97,9 +133,10 @@ def collect_events(
     limit: int,
     start_timestamp: int | None = None,
     end_timestamp: int | None = None,
+    stop_after_end: bool = False,
 ) -> Iterator[dict[str, Any]]:
-    if limit < 1:
-        raise ValueError("limit must be at least 1")
+    if limit < 0:
+        raise ValueError("limit must be 0 (unlimited) or a positive integer")
     normalized = {name.casefold() for name in subreddits}
     collected_at = utc_now_iso()
     emitted = 0
@@ -113,6 +150,8 @@ def collect_events(
             if start_timestamp is not None and timestamp < start_timestamp:
                 continue
             if end_timestamp is not None and timestamp >= end_timestamp:
+                if stop_after_end:
+                    break
                 continue
             subreddit = str(row.get("subreddit") or "").casefold()
             if normalized and subreddit not in normalized:
@@ -122,7 +161,7 @@ def collect_events(
                 continue
             yield event
             emitted += 1
-            if emitted >= limit:
+            if limit and emitted >= limit:
                 break
     finally:
         close = getattr(iterator, "close", None)
@@ -135,6 +174,11 @@ def build_parser() -> argparse.ArgumentParser:
         description="Stream a sample from a monthly Reddit comments parquet"
     )
     parser.add_argument("--month", required=True, help="Month in YYYY-MM format")
+    parser.add_argument(
+        "--input-parquet",
+        type=Path,
+        help="Optional local monthly Parquet for predicate-pushed backfills",
+    )
     parser.add_argument("--start-date", help="First UTC date to include (YYYY-MM-DD)")
     parser.add_argument("--end-date", help="Last UTC date to include (YYYY-MM-DD)")
     parser.add_argument(
@@ -143,7 +187,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="Community to keep; repeat for multiple values",
     )
-    parser.add_argument("--limit", type=int, default=1000)
+    parser.add_argument(
+        "--subreddit-file",
+        type=Path,
+        help="Allowlist file with one subreddit per line; combines with --subreddit",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=1000,
+        help="Maximum emitted rows; use 0 to collect every matching row",
+    )
     parser.add_argument(
         "--output", type=Path, default=Path("data/raw/reddit.jsonl")
     )
@@ -158,13 +212,28 @@ def main() -> None:
         or not args.end_date.startswith(f"{args.month}-")
     ):
         raise ValueError("date range must stay within the selected month")
-    rows = stream_month(args.month)
+    subreddits = set(args.subreddit)
+    if args.subreddit_file:
+        subreddits.update(load_subreddit_allowlist(args.subreddit_file))
+    rows = (
+        stream_local_parquet(
+            args.input_parquet,
+            start_timestamp=start_timestamp,
+            end_timestamp=end_timestamp,
+            subreddits=subreddits,
+        )
+        if args.input_parquet
+        else stream_month(args.month)
+    )
     events = collect_events(
         rows,
-        subreddits=set(args.subreddit),
+        subreddits=subreddits,
         limit=args.limit,
         start_timestamp=start_timestamp,
         end_timestamp=end_timestamp,
+        # The source Parquet row-group min/max timestamps are monotonic for the
+        # supported monthly archives, so no requested-day row can appear later.
+        stop_after_end=args.input_parquet is None,
     )
     count = write_jsonl(events, args.output)
     print(f"wrote {count} Reddit events to {args.output}")

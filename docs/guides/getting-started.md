@@ -2,12 +2,28 @@
 
 ## 1. 사전 조건
 
-- Python 3.10 이상
+- Python 3.10~3.12 권장 (PySpark 3.5 호스트 실행 기준)
 - Java 11 이상
 - Docker Desktop과 Docker Compose
 - Docker에 할당할 수 있는 최소 4 GiB 메모리
 
 Spark를 호스트에서 직접 실행할 수 있지만 Kafka connector와 Windows Hadoop 의존성 차이를 줄이기 위해 통합 실행은 Docker Compose를 기준으로 합니다.
+
+이 작업 환경에는 OpenJDK 17.0.20을 `.tools/java17-root`에 로컬 설치했습니다. Spark 코드는 시스템 `JAVA_HOME`이 없으면 이 경로를 자동 사용합니다. 현재 shell에서도 Java를 사용하려면 다음을 실행합니다.
+
+```bash
+source scripts/activate-local-java.sh
+```
+
+Python 3.14에서는 PySpark 3.5의 bundled cloudpickle이 동작하지 않으므로 Spark 호스트 테스트는 Python 3.11 또는 Docker 환경을 사용합니다.
+
+현재 작업 환경의 전체 호스트 테스트용 가상환경은 `.venv311`입니다.
+
+```bash
+source .venv311/bin/activate
+python --version  # Python 3.11.x
+python -m pytest -q
+```
 
 ## 2. Python 환경
 

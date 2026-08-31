@@ -1,0 +1,22 @@
+# 확정 분석 allowlist: 한 줄에 하나의 원본 subreddit 이름
+AskReddit
+business
+changemyview
+climate
+dataisbeautiful
+Economics
+energy
+environment
+explainlikeimfive
+Futurology
+geopolitics
+InternetIsBeautiful
+news
+NeutralPolitics
+PoliticalDiscussion
+politics
+science
+technology
+todayilearned
+TrueReddit
+worldnews

@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import requests
 
 from collectors.gdelt import article_to_event, fetch_articles
-from collectors.reddit import collect_events, comment_to_event, date_bounds
+from collectors.reddit import (
+    collect_events,
+    comment_to_event,
+    date_bounds,
+    stream_local_parquet,
+)
+from core.subreddits import load_subreddit_allowlist
 
 
 class FakeResponse:
@@ -134,6 +142,17 @@ def test_collect_events_filters_and_stops_at_limit() -> None:
     assert [event["text"] for event in events] == ["keep one"]
 
 
+def test_collect_events_zero_limit_collects_every_matching_row() -> None:
+    rows = [
+        {"id": "1", "body": "one", "created_utc": 1},
+        {"id": "2", "body": "two", "created_utc": 2},
+    ]
+
+    events = list(collect_events(rows, subreddits=set(), limit=0))
+
+    assert [event["text"] for event in events] == ["one", "two"]
+
+
 def test_collect_events_filters_inclusive_utc_date_range() -> None:
     start, end = date_bounds("1970-01-02", "1970-01-02")
     rows = [
@@ -151,6 +170,85 @@ def test_collect_events_filters_inclusive_utc_date_range() -> None:
         )
     )
     assert [event["text"] for event in events] == ["keep"]
+
+
+def test_collect_events_can_stop_when_ordered_input_passes_end() -> None:
+    start, end = date_bounds("1970-01-02", "1970-01-02")
+    rows = [
+        {"id": "1", "body": "keep", "created_utc": 86_400},
+        {"id": "2", "body": "stop", "created_utc": 172_800},
+        {"id": "3", "body": "must not be read", "created_utc": 90_000},
+    ]
+
+    events = list(
+        collect_events(
+            rows,
+            subreddits=set(),
+            limit=0,
+            start_timestamp=start,
+            end_timestamp=end,
+            stop_after_end=True,
+        )
+    )
+
+    assert [event["text"] for event in events] == ["keep"]
+
+
+def test_stream_local_parquet_pushes_down_date_filter(tmp_path) -> None:
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    path = tmp_path / "comments.parquet"
+    pq.write_table(
+        pa.Table.from_pylist(
+            [
+                {"id": "1", "body": "before", "created_utc": 86_399},
+                {"id": "2", "body": "keep", "created_utc": 86_400},
+                {"id": "3", "body": "after", "created_utc": 172_800},
+            ]
+        ),
+        path,
+    )
+
+    rows = list(
+        stream_local_parquet(
+            path, start_timestamp=86_400, end_timestamp=172_800
+        )
+    )
+
+    assert [row["body"] for row in rows] == ["keep"]
+
+
+def test_stream_local_parquet_pushes_down_subreddit_filter(tmp_path) -> None:
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    path = tmp_path / "comments.parquet"
+    pq.write_table(
+        pa.Table.from_pylist(
+            [
+                {"id": "1", "body": "keep", "created_utc": 1, "subreddit": "news"},
+                {"id": "2", "body": "skip", "created_utc": 2, "subreddit": "other"},
+            ]
+        ),
+        path,
+    )
+
+    rows = list(stream_local_parquet(path, subreddits={"news"}))
+
+    assert [row["body"] for row in rows] == ["keep"]
+
+
+def test_analysis_subreddit_allowlist_has_21_unique_names() -> None:
+    names = load_subreddit_allowlist(Path("config/subreddits-analysis.txt"))
+
+    assert len(names) == 21
+    assert {name.casefold() for name in names} >= {
+        "askreddit",
+        "politics",
+        "news",
+        "worldnews",
+    }
 
 
 def test_deleted_comment_is_dropped() -> None:

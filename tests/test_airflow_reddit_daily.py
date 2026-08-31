@@ -41,6 +41,17 @@ def test_prepare_daily_config_rejects_multi_day_range(tmp_path: Path) -> None:
         )
 
 
+def test_prepare_daily_config_accepts_zero_as_unlimited(tmp_path: Path) -> None:
+    params = _params()
+    params["limit"] = 0
+
+    config = prepare_daily_config(
+        project_root=tmp_path, params=params, airflow_run_id="unlimited"
+    )
+
+    assert config["collection"]["limit"] == 0
+
+
 def test_collection_command_calls_reddit_collector_with_dates(tmp_path: Path) -> None:
     config = prepare_daily_config(
         project_root=tmp_path, params=_params(), airflow_run_id="day-before"

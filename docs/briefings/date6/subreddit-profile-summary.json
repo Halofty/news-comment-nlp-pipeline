@@ -1,0 +1,15 @@
+{
+  "input_days": [
+    "2016-01-01",
+    "2016-02-01"
+  ],
+  "period_days": 1521,
+  "distinct_subreddits": 29173,
+  "total_rows": 3368497,
+  "average_daily_mib": 983.8806,
+  "projected_all_jsonl_gib": 1461.4086,
+  "core_candidate_count": 21,
+  "core_average_daily_mib": 129.752,
+  "core_projected_period_gib": 192.7273,
+  "projection_warning": "Projection extrapolates two 2016 days and is not an exact 2012-2016 measurement."
+}

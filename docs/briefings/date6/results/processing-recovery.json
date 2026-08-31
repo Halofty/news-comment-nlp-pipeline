@@ -1,0 +1,18 @@
+{
+  "status": "success",
+  "failure_injected": false,
+  "reddit_input_rows": 15060640,
+  "google_news_input_rows": 2410,
+  "processed_source_rows": {
+    "reddit": 2933375,
+    "web_news": 2410
+  },
+  "processed_rows": 2935785,
+  "stored_rows": 2935785,
+  "distinct_event_ids": 2935785,
+  "missing_rows": 0,
+  "duplicate_rows": 0,
+  "output_parquet_files": 79,
+  "output_bytes": 360388006,
+  "duration_seconds": 28.846
+}

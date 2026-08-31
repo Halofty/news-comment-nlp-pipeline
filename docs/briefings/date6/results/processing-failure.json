@@ -1,0 +1,15 @@
+{
+  "status": "failed",
+  "failure_injected": true,
+  "reddit_input_rows": 15060640,
+  "google_news_input_rows": 2410,
+  "processed_source_rows": {
+    "reddit": 2933375,
+    "web_news": 2410
+  },
+  "processed_rows": 2935785,
+  "error_type": "InjectedProcessingFailure",
+  "error": "intentional failure after processing and before output write",
+  "duration_seconds": 8.847,
+  "output_exists_after_run": false
+}

@@ -24,7 +24,7 @@ EVENT_FIELDS = frozenset(
 )
 EVENT_ID_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 SOURCE_TYPES = {"news", "comment"}
-SOURCE_NAMES = {"gdelt", "reddit"}
+SOURCE_NAMES = {"gdelt", "reddit", "web_news"}
 
 
 def utc_now_iso() -> str:
@@ -66,7 +66,9 @@ def validate_event(event: Any, *, line_number: int | None = None) -> dict[str, A
     if event["source_type"] not in SOURCE_TYPES:
         raise ValueError(f"source_type{location} must be news or comment")
     if event["source_name"] not in SOURCE_NAMES:
-        raise ValueError(f"source_name{location} must be gdelt or reddit")
+        raise ValueError(
+            f"source_name{location} must be one of: {', '.join(sorted(SOURCE_NAMES))}"
+        )
     if not isinstance(event["language"], str) or not event["language"].strip():
         raise ValueError(f"language{location} must be a non-empty string")
     if event["title"] is not None and not isinstance(event["title"], str):

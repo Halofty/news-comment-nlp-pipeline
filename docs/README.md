@@ -11,3 +11,7 @@
 | [`adr/`](adr/) | 주요 기술 결정과 근거 |
 
 실행 결과와 공개 가능한 수치 검증은 저장소 최상위의 [`analysis/reports/`](../analysis/reports/)에서 관리합니다.
+
+웹 뉴스 수집은 [`guides/web-news-collection.md`](guides/web-news-collection.md), 출처 명세는 [`../analysis/datasets/global-voices-news.md`](../analysis/datasets/global-voices-news.md)에서 확인할 수 있습니다.
+
+Reddit 전체 원본 용량과 subreddit 타기팅 계획은 [`briefings/date6/date6.md`](briefings/date6/date6.md)에 정리했습니다.
