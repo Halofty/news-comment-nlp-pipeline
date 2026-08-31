@@ -42,8 +42,14 @@
 | 6 | Langfuse 도입 방식 조사와 결정 | `[x]` | 100% | 관리형 일본 리전·metadata-only 정책과 adapter 경계 ADR |
 | 7 | Langfuse 토큰·비용 추적 연동 | `[-]` | 90% | adapter·합성 3건 360 token·비용 대조 완료, 실제 Cloud 확인 대기 |
 | 8 | Airflow로 Reddit 일별 수집·Spark 자동화 | `[x]` | 100% | 2016-01-01·2016-02-01 각 1,000건 수집, Spark 처리와 행 회계 검증 완료 |
+| 9 | 2012년 수집·부하·장애 복구 | `[x]` | 100% | Google News 366일, Reddit 원본 12개월, Spark·DB 복구 누락·중복 0건 |
+| 10 | MinIO 로컬 object storage | `[-]` | 40% | Compose·bucket 초기화와 설계 작성, 실제 upload·Spark 연동 대기 |
 
-4차시 과제의 **8단계 Airflow 자동화**는 Reddit 하루 날짜 방식으로 완료했습니다. 2016-01-01과 2016-02-01을 날짜만 바꿔 실제 trigger했고, 각각 1,000건 수집부터 Spark 처리와 행 회계 검증까지 성공했습니다. GDELT Collector는 이 환경의 TLS 오류를 피하기 위해 HTTP endpoint를 사용합니다. 7단계의 관리형 Langfuse 실제 trace 확인은 외부 key 대기 상태입니다.
+4차시 과제의 **8단계 Airflow 자동화**는 Reddit 하루 날짜 방식으로 완료했습니다.
+5차시 부하·장애 과제도 2012년 데이터 확대, Spark 저장 전 강제 실패와 PostgreSQL
+연결 실패 복구로 완료했습니다. 뉴스 기준 데이터는 GDELT에서 2012년 Google News
+RSS와 Global Voices 보완 경로로 변경했습니다. 7단계의 관리형 Langfuse 실제 trace
+확인은 외부 key 대기 상태이며, 10단계 MinIO는 서비스 기반만 추가된 상태입니다.
 
 ## 4. 단계별 구현 계획
 
@@ -437,14 +443,17 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 | 2026-08-24 | 6 | 공식 v4 SDK·Cloud·self-hosted 구성과 OpenAI Batch usage 추적 범위를 비교하고 관리형 일본 리전·metadata-only·adapter 경계를 채택 | ADR에 구성요소, 최소 11 vCPU·25.5 GiB RAM, 허용 metadata, fallback과 재검토 조건 기록 | 7단계 Langfuse 추적 adapter 구현 |
 | 2026-08-24 | 7 | vendor 독립 관측 자료형, Langfuse·구조화 로그·no-op sink와 합성 Batch 검증 CLI 구현 | SDK 4.14.4 smoke test, 3건 360 token·$0.000265 대조, 관측 9개·전체 52개 테스트 통과 | 관리형 Cloud trace 확인 후 LLM Batch workflow 연결 |
 | 2026-08-27 | 8 | 하루 날짜 Param으로 Reddit Collector와 기존 Spark batch를 연결하는 4-task DAG 및 실행 가이드 작성 | 관련 테스트 15개와 DAG import 오류 0건; 2016-01-01·2016-02-01 각 1,000건 실제 run 성공 | Airflow 성공 화면 캡처·GitHub 링크 제출 |
+| 2026-08-31 | 9 | Google News 2012년 366일과 Reddit 원본 12개월 수집, 입력 확대와 Spark·PostgreSQL 장애 복구 실행 | Spark 2,935,785건과 DB 200건 모두 누락·중복 0건 | 계획 문서 동기화와 object storage 경계 추가 |
+| 2026-08-31 | 10 | MinIO Compose, raw·processed·checkpoint bucket 초기화와 설계 문서 작성 | Compose·health·bucket 검증 진행 중 | 작은 fixture upload와 Python·Spark 연동 |
 
 ## 7. 다음 작업
 
-다음 작업은 **GDELT API 복구 후 날짜형 Airflow DAG 재실행**입니다.
+다음 작업은 **MinIO bucket 검증과 작은 fixture upload**입니다.
 
 구현 순서:
 
-1. `http://localhost:8082`에서 `reddit_daily_spark_batch`를 엽니다.
-2. `reddit-date-2016-01-01-v2`와 `reddit-date-2016-02-01` 성공 run을 확인합니다.
-3. 두 run의 `verify_row_accounting` 행 회계와 성공 화면을 캡처합니다.
-4. GitHub에 push한 뒤 4차시 채널에 링크를 공유합니다.
+1. Compose에서 MinIO와 bucket 초기화 Job의 상태를 확인합니다.
+2. 공개 fixture 한 개를 `news-raw`에 업로드하고 size·ETag를 확인합니다.
+3. endpoint·bucket을 환경 변수로 받는 Python S3 adapter를 추가합니다.
+4. Spark `s3a://` 의존성을 고정하고 작은 Parquet 읽기를 검증합니다.
+5. Reddit 2~12월 일별 변환 결과의 MinIO 이동은 로컬·object 행 수 검증 후 진행합니다.

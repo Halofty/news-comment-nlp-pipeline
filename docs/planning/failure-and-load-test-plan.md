@@ -4,7 +4,11 @@
 
 수집량 증가, 잘못된 입력과 외부 서비스 장애 상황에서 데이터가 유실·중복되거나 파이프라인 전체가 불필요하게 중단되지 않는지 확인하기 위한 목표 테스트 계획입니다.
 
-Producer 오류 단위 테스트와 실제 Kafka 1,000건 발행·Spark 소비, checkpoint 재시작, malformed JSON DLQ 분기는 검증했습니다. Broker 중단, Spark 강제 종료, PostgreSQL·LLM 장애 실험은 아직 수행하지 않았습니다.
+Producer 오류 단위 테스트와 실제 Kafka 1,000건 발행·Spark 소비, checkpoint 재시작,
+malformed JSON DLQ를 검증했습니다. 추가로 2012년 1월 15,063,050건 입력에서 Spark
+저장 직전 강제 실패와 복구, 잘못된 PostgreSQL 포트 연결 실패와 200건 멱등 복구를
+완료했습니다. Broker 중단, Streaming 실행 중 Driver·Worker 종료, DB 적재 도중
+연결 중단과 LLM 장애는 아직 수행하지 않았습니다.
 
 ## 2. 공통 측정 지표
 
@@ -71,8 +75,9 @@ Producer 오류 단위 테스트와 실제 Kafka 1,000건 발행·Spark 소비, 
 | 2 | 실제 Kafka 발행·소비 | 완료: 합성 1,000건 발행, Spark 입력 확인 |
 | 3 | Spark 100·1,000건 batch | 완료: 처리 통계 보고서 |
 | 4 | Kafka→Spark streaming | 완료: 중복 제거·checkpoint 재시작·DLQ 결과 |
-| 5 | PostgreSQL 장애·재시작 | batch ID와 중복 적재 결과 |
+| 5 | PostgreSQL 연결 실패·재시작 | 완료: 200건 복구와 동일 입력 재실행 후 중복 0건 |
 | 6 | LLM·Langfuse 장애 | 상태 전이와 토큰·비용 기록 |
+| 7 | 대규모 파일 배치 중단 | 완료: 2,935,785건 처리 후 저장 전 실패, 복구 누락·중복 0건 |
 
 ## 6. 결과 보고서 형식
 
@@ -95,11 +100,15 @@ Producer 오류 단위 테스트와 실제 Kafka 1,000건 발행·Spark 소비, 
 
 ## 7. 완료 기준
 
-- [ ] 정상 입력과 오류 입력 건수가 모두 설명 가능해야 합니다.
-- [ ] 장애 전후 데이터 유실 여부를 수치로 확인해야 합니다.
-- [ ] 재실행 시 중복 방지 기준을 검증해야 합니다.
+- [x] 정상 입력과 오류 입력 건수가 모두 설명 가능해야 합니다.
+- [x] 장애 전후 데이터 유실 여부를 수치로 확인해야 합니다.
+- [x] 재실행 시 중복 방지 기준을 검증해야 합니다.
 - [ ] 오류가 발생한 원본의 topic·partition·offset 또는 파일 줄을 추적해야 합니다.
 - [ ] 재현 가능한 명령과 환경을 기록해야 합니다.
+
+파일 배치와 PostgreSQL 연결 실패 실험의 명령·환경은
+[Date 6 결과](../briefings/date6/date6.md)에 기록했습니다. topic·partition·offset
+추적 완료 조건은 Kafka Streaming 장애 실험에서 별도로 충족해야 합니다.
 
 ## 8. 관련 문서
 

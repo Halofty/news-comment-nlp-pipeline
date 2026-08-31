@@ -16,16 +16,16 @@
 
 | 출처 | 사용하는 범위 | 분석 텍스트 | 현재 검증 |
 |---|---|---|---|
-| [GDELT DOC API](https://www.gdeltproject.org/) | URL, 제목, 언어, 도메인, 관측 시각 | MVP에서는 기사 제목 | Collector 구현, 공유 IP rate limit으로 실제 100건 검증 대기 |
-| [Pushshift Reddit Comments](https://huggingface.co/datasets/fddemarco/pushshift-reddit-comments) | 댓글 ID, 본문, 작성 시각, subreddit, score | 작성자를 제외한 댓글 본문 | 2016-01 실제 100건 계약 검증 완료 |
-| [Global Voices](https://globalvoices.org/) | 2012-01-01~2016-02-29 영어 아카이브 제목·게시일·URL | 기사 제목 | Scrapy fixture 및 실제 1페이지·5건 계약 검증 완료 |
+| [Google News](https://news.google.com/) | 2012년 영어 검색 결과의 제목·게시일·언론사·URL | 기사 제목 | 366일 28,994건 일별 저장, 100건 도달 요청 3개 기록 |
+| [Pushshift Reddit Comments](https://huggingface.co/datasets/fddemarco/pushshift-reddit-comments) | 댓글 ID, 본문, 작성 시각, subreddit, score | 작성자를 제외한 댓글 본문 | 2012년 원본 12개월·239,814,057건 다운로드와 크기 검증 완료 |
+| [Global Voices](https://globalvoices.org/) | 2012-01-01~2016-02-29 영어 아카이브 제목·게시일·URL | 기사 제목 | Google News 보완용 공식 아카이브 Spider 검증 완료 |
 
 두 출처를 기사 단위로 직접 조인하지 않습니다. 실제 원문과 실행 산출물은 Git에 포함하지 않고, `analysis/`에는 공개 가능한 명세·집계·검증 결과만 저장합니다.
 
 ## 전체 흐름 — 파이프라인 개요
 
 ```text
-Global Voices · GDELT(기존) · Reddit
+Google News · Global Voices(보완) · Reddit
 → Collector
 → TextEvent v1 계약 검증
 → JSONL staging
@@ -36,6 +36,7 @@ Global Voices · GDELT(기존) · Reddit
    ├─ 격리 대상 → quarantine
    └─ 정상·flag → processed
 → partitioned Parquet + PostgreSQL 멱등 upsert
+→ MinIO S3-compatible object storage             [서비스 기반 추가, 데이터 연동 예정]
 → LLM Batch 감정·토픽·요약                 [예정]
 → Airflow parameterized batch orchestration
 ```
@@ -57,10 +58,12 @@ Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runn
 | Spark Structured Streaming | 구현·통합 검증 완료 | watermark 중복 제거, checkpoint 재시작, 4개 경로와 DLQ |
 | Spark Standalone | 구현·통합 검증 완료 | Master·Worker 분리, Worker Executor 2 cores 실행 |
 | PostgreSQL 적재 | MVP 구현·통합 검증 완료 | 정상 981건·계약 거부 1건, 새 checkpoint 재처리 중복 0건 |
+| 부하·장애 복구 | 로컬 실험 완료 | 1월 2,935,785건 처리 복구 누락·중복 0건, DB 연결 실패 후 200건 멱등 복구 |
+| MinIO object storage | 서비스 기반 구현 | Compose·bucket 자동 생성 추가, 실제 Spark `s3a://` 연동 전 |
 | LLM Batch·Langfuse | 관측 adapter·합성 검증 완료 | 3건 360 token·$0.000265 대조, 실제 Cloud·Batch 연동 전 |
 | Airflow orchestration | 일별 DAG 실행 완료 | Reddit 2,000건과 GDELT 219건을 날짜별 수집→Spark→행 회계 검증 성공 |
 
-전체 자동 테스트는 기존 52개와 Airflow helper 4개로 구성됩니다. PostgreSQL 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
+현재 자동 테스트는 84개가 수집됩니다. PostgreSQL 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
 
 ## 저장소 구조
 
@@ -78,6 +81,7 @@ news-comment-nlp-pipeline/
 ├── sql/migrations/              # PostgreSQL 순차 migration
 ├── infra/spark/                 # Spark 제출 이미지
 ├── infra/airflow/               # Airflow·Java·PySpark 실행 환경
+├── docs/architecture/           # MinIO를 포함한 시스템·저장 설계
 ├── sample/                      # JSON Schema와 공개 합성 이벤트
 ├── analysis/                    # 데이터셋 명세·품질 fixture·검증 보고서
 ├── tests/                       # 단위·Spark 변환·저장 테스트
@@ -93,8 +97,9 @@ news-comment-nlp-pipeline/
 | [문서 분류 안내](docs/README.md) | 아키텍처·가이드·브리핑·계획 문서 탐색 |
 | [로컬 개발과 실행 가이드](docs/guides/getting-started.md) | 환경 준비, 테스트, 서비스 시작과 Job 제출 |
 | [기술 스택과 역할](docs/architecture/technology-stack.md) | 구성 요소의 책임, 선택 이유와 확장 지점 |
-| [Week 4 Kafka·Spark 정리](docs/briefings/week4.md) | 메시지 명세, 1,000건 검증, 전처리·저장과 실행 명령 |
-| [Week 5 Airflow 자동화 브리핑](docs/briefings/week5/week5.md) | 과제 요구사항, DAG 구조, 두 번의 파라미터 실행과 제출 자료 |
+| [Date 4 Kafka·Spark 정리](docs/briefings/date4.md) | 메시지 명세, 1,000건 검증, 전처리·저장과 실행 명령 |
+| [Date 5 Airflow 자동화 브리핑](docs/briefings/date5/date5.md) | 과제 요구사항, DAG 구조, 두 번의 파라미터 실행과 제출 자료 |
+| [Date 6 부하·장애·복구](docs/briefings/date6/date6.md) | 2012년 수집, 입력 확대, Spark·PostgreSQL 장애 복구 결과 |
 | [시스템 구성도](docs/architecture/system-architecture.html) | 전체 목표 아키텍처 |
 | [Ingestion 구현 설명](docs/guides/ingestion-implementation.md) | Collector부터 Kafka 적재 확인까지의 코드 흐름 |
 | [Scrapy 웹 뉴스 수집](docs/guides/web-news-collection.md) | 기간·키워드 실행, 책임 분리, 요청 정책과 검증 방법 |
@@ -109,6 +114,7 @@ news-comment-nlp-pipeline/
 | [Spark Streaming Consumer](docs/guides/spark-streaming-consumer.md) | Kafka 입력, watermark, checkpoint, DLQ와 sink |
 | [Spark Streaming 통합 검증](analysis/reports/spark-streaming-consumer-validation.md) | 실제 Kafka 처리와 checkpoint 재시작 결과 |
 | [PostgreSQL 저장 구조](docs/architecture/storage-schema.md) | 핵심 테이블, migration과 transaction upsert |
+| [MinIO Object Storage 설계](docs/architecture/object-storage.md) | 로컬 S3 호환 bucket, 현재 범위와 Spark 연동 순서 |
 | [PostgreSQL 통합 검증](analysis/reports/postgres-integration-validation.md) | 982건 적재, rollback·재시도와 멱등성 결과 |
 | [데이터와 보안 원칙](docs/security/data-security.md) | 원문·PII·자격 증명·보존과 외부 전송 기준 |
 | [LLM 분석 설계](docs/architecture/llm-analysis-design.md) | Batch 분석과 Langfuse 관측 계획 |
