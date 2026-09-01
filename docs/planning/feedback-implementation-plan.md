@@ -43,13 +43,13 @@
 | 7 | Langfuse 토큰·비용 추적 연동 | `[-]` | 90% | adapter·합성 3건 360 token·비용 대조 완료, 실제 Cloud 확인 대기 |
 | 8 | Airflow로 Reddit 일별 수집·Spark 자동화 | `[x]` | 100% | 2016-01-01·2016-02-01 각 1,000건 수집, Spark 처리와 행 회계 검증 완료 |
 | 9 | 2012년 수집·부하·장애 복구 | `[x]` | 100% | Google News 366일, Reddit 원본 12개월, Spark·DB 복구 누락·중복 0건 |
-| 10 | MinIO 로컬 object storage | `[-]` | 40% | Compose·bucket 초기화와 설계 작성, 실제 upload·Spark 연동 대기 |
+| 10 | MinIO 로컬 object storage | `[-]` | 60% | Compose 기동·health check·3개 bucket 생성을 검증, 실제 upload·Spark 연동 대기 |
 
 4차시 과제의 **8단계 Airflow 자동화**는 Reddit 하루 날짜 방식으로 완료했습니다.
 5차시 부하·장애 과제도 2012년 데이터 확대, Spark 저장 전 강제 실패와 PostgreSQL
 연결 실패 복구로 완료했습니다. 뉴스 기준 데이터는 GDELT에서 2012년 Google News
 RSS와 Global Voices 보완 경로로 변경했습니다. 7단계의 관리형 Langfuse 실제 trace
-확인은 외부 key 대기 상태이며, 10단계 MinIO는 서비스 기반만 추가된 상태입니다.
+확인은 외부 key 대기 상태이며, 10단계 MinIO는 로컬 서비스와 bucket 준비까지 완료된 상태입니다.
 
 ## 4. 단계별 구현 계획
 
@@ -444,7 +444,7 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 | 2026-08-24 | 7 | vendor 독립 관측 자료형, Langfuse·구조화 로그·no-op sink와 합성 Batch 검증 CLI 구현 | SDK 4.14.4 smoke test, 3건 360 token·$0.000265 대조, 관측 9개·전체 52개 테스트 통과 | 관리형 Cloud trace 확인 후 LLM Batch workflow 연결 |
 | 2026-08-27 | 8 | 하루 날짜 Param으로 Reddit Collector와 기존 Spark batch를 연결하는 4-task DAG 및 실행 가이드 작성 | 관련 테스트 15개와 DAG import 오류 0건; 2016-01-01·2016-02-01 각 1,000건 실제 run 성공 | Airflow 성공 화면 캡처·GitHub 링크 제출 |
 | 2026-08-31 | 9 | Google News 2012년 366일과 Reddit 원본 12개월 수집, 입력 확대와 Spark·PostgreSQL 장애 복구 실행 | Spark 2,935,785건과 DB 200건 모두 누락·중복 0건 | 계획 문서 동기화와 object storage 경계 추가 |
-| 2026-08-31 | 10 | MinIO Compose, raw·processed·checkpoint bucket 초기화와 설계 문서 작성 | Compose·health·bucket 검증 진행 중 | 작은 fixture upload와 Python·Spark 연동 |
+| 2026-08-31 | 10 | MinIO Compose, health check, raw·processed·checkpoint bucket 생성과 설계 문서 검증 | 로컬 object storage 기반 완료 | 작은 fixture upload와 Python·Spark 연동 |
 
 ## 7. 다음 작업
 

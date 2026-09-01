@@ -23,7 +23,7 @@ MinIO는 로컬 개발·교육 환경용이며 AWS S3의 가용성, IAM, 암호�
 ## 현재 구현 범위
 
 - Compose의 단일 노드·단일 드라이브 MinIO
-- S3 API `localhost:9000`, Console `localhost:9001`
+- S3 API `localhost:9000`, Console `localhost:9101`
 - `minio-init`을 통한 bucket 3개 멱등 생성
 - Docker volume을 통한 컨테이너 재시작 후 데이터 유지
 - `.env` 기반 로컬 자격 증명
@@ -39,7 +39,9 @@ docker compose ps minio minio-init
 docker compose logs minio-init
 ```
 
-Console은 `http://localhost:9001`에서 확인합니다. 실제 `.env` 비밀번호를 Git에
+Console은 `http://localhost:9101`에서 확인합니다. 컨테이너 내부 Console 포트는
+`9001`이지만 호스트에서 이미 사용 중인 포트와 충돌하지 않도록 `9101`로 연결했습니다.
+실제 `.env` 비밀번호를 Git에
 올리지 않습니다. `.env.example` 값은 로컬 개발용 예시일 뿐 운영 자격 증명으로
 사용하지 않습니다.
 

@@ -59,7 +59,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-news_pipeline_minio_dev}
     ports:
       - "9000:9000"
-      - "9001:9001"
+      - "9101:9001"
     volumes:
       - minio-data:/data
     healthcheck:
