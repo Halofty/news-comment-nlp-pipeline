@@ -1,0 +1,12 @@
+{
+  "input_rows": 2,
+  "request_rows": 2,
+  "skipped_rows": 0,
+  "estimated_input_tokens": 589,
+  "maximum_output_tokens": 600,
+  "estimated_max_cost_usd": "0.0004189",
+  "budget_status": "critical",
+  "request_path": "sample/llm-batch-requests-gpt-5.6-luna.jsonl",
+  "manifest_path": "sample/llm-batch-manifest-gpt-5.6-luna.jsonl",
+  "report_path": "analysis/reports/llm-batch-dry-run.json"
+}

@@ -1,0 +1,47 @@
+groups:
+  politics:
+    label: politics-and-international
+    news_topic: politics
+    subreddits:
+      - politics
+      - worldnews
+      - PoliticalDiscussion
+      - NeutralPolitics
+      - geopolitics
+  economy:
+    label: economy-and-society
+    news_topic: economy
+    subreddits:
+      - Economics
+      - business
+      - news
+      - TrueReddit
+      - changemyview
+  technology:
+    label: technology-and-digital
+    news_topic: technology
+    subreddits:
+      - technology
+      - Futurology
+      - explainlikeimfive
+      - dataisbeautiful
+      - InternetIsBeautiful
+  environment:
+    label: environment-and-science
+    news_topic: environment
+    subreddits:
+      - science
+      - environment
+      - climate
+      - energy
+      - todayilearned
+
+comparison_group:
+  label: general-public-askreddit
+  subreddit: AskReddit
+  sample_size_rule: rounded_daily_mean_of_four_topic_groups
+  news_topics:
+    - politics
+    - economy
+    - technology
+    - environment

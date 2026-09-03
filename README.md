@@ -8,7 +8,7 @@
 - Kafka로 수집과 처리 속도를 분리하고 과거 데이터를 재생
 - Spark로 계약 검사, 품질 판정, event-time 중복 제거와 경로 분기
 - checkpoint와 PostgreSQL batch commit으로 재시작 시 중복 적재 방지
-- 향후 LLM Batch 분석의 상태·오류·토큰·비용을 추적할 수 있는 기반 마련
+- LLM Batch 분석의 상태·오류·토큰·비용을 추적하고 관측 장애를 격리
 
 최종 목표는 공통 키워드·토픽과 시간 window를 기준으로 뉴스 보도와 커뮤니티 반응의 감정·토픽 변화를 비교하는 것입니다.
 
@@ -37,7 +37,8 @@ Google News · Global Voices(보완) · Reddit
    └─ 정상·flag → processed
 → partitioned Parquet + PostgreSQL 멱등 upsert
 → MinIO S3-compatible object storage             [서비스 기반 추가, 데이터 연동 예정]
-→ LLM Batch 감정·토픽·요약                 [예정]
+→ GPT-5.6 Luna Batch 감정·토픽·요약              [합성 2건 실제 제출, 결과 회수 대기]
+→ Langfuse token·비용 관측 + 구조화 로그 fallback
 → Airflow parameterized batch orchestration
 ```
 
@@ -49,7 +50,7 @@ Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runn
 
 | 영역 | 상태 | 검증 근거 |
 |---|---|---|
-| GDELT·Reddit Collector | 구현 완료 | Reddit 실제 100건 통과, GDELT 실제 표본은 rate limit 해제 후 재검증 |
+| 웹 뉴스·Reddit Collector | 구현 완료 | Google News 2012년 28,994건, Reddit 2012년 원본 12개월 검증 |
 | `TextEvent v1`·JSON Schema | 구현 완료 | Python 계약과 JSON Schema 일치 |
 | 데이터셋 명세·메타데이터 | 구현 완료 | GDELT·Reddit 명세, YAML 카탈로그와 profile |
 | 텍스트 품질·안전 기준 | 구현 완료 | Unicode·반복·URL·PII·과대 입력 fixture 19개 |
@@ -60,22 +61,24 @@ Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runn
 | PostgreSQL 적재 | MVP 구현·통합 검증 완료 | 정상 981건·계약 거부 1건, 새 checkpoint 재처리 중복 0건 |
 | 부하·장애 복구 | 로컬 실험 완료 | 1월 2,935,785건 처리 복구 누락·중복 0건, DB 연결 실패 후 200건 멱등 복구 |
 | MinIO object storage | 서비스 기반 구현 | Compose·bucket 자동 생성 추가, 실제 Spark `s3a://` 연동 전 |
-| LLM Batch·Langfuse | 관측 adapter·합성 검증 완료 | 3건 360 token·$0.000265 대조, 실제 Cloud·Batch 연동 전 |
-| Airflow orchestration | 일별 DAG 실행 완료 | Reddit 2,000건과 GDELT 219건을 날짜별 수집→Spark→행 회계 검증 성공 |
+| LLM Batch | 실제 소량 제출·결과 검증 구현 | GPT-5.6 Luna 합성 2건 접수·처리 중, 비용 alert 확인; 결과 회수 대기 |
+| Langfuse | Cloud·fallback 검증 완료 | 일본 리전 인증과 metadata-only trace 성공; primary 장애 시 구조화 로그 9건 보존 |
+| Airflow orchestration | 일별 DAG 실행·LLM DAG 구현 | Reddit 두 날짜 수집→Spark 성공, LLM은 기본 dry-run·예산 차단 지원 |
 
-현재 자동 테스트는 84개가 수집됩니다. PostgreSQL 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
+현재 자동 테스트 90개가 통과합니다. PostgreSQL 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
 
 ## 저장소 구조
 
 ```text
 news-comment-nlp-pipeline/
-├── collectors/                  # 웹 뉴스·GDELT·Reddit 수집과 공통 이벤트 변환
+├── collectors/                  # Google News·웹 뉴스·Reddit 수집과 공통 이벤트 변환
 ├── core/                        # 이벤트 계약과 텍스트 품질 규칙
 ├── producers/                   # Kafka 메시지 발행
 ├── jobs/                        # 토픽 초기화·replay·검증 CLI
 ├── spark_jobs/                  # batch·Structured Streaming Spark Job
 ├── storage/                     # JSONL과 PostgreSQL 저장 adapter
 ├── observability/               # Langfuse·구조화 로그·no-op 관측 adapter
+├── llm_analysis/                # GPT-5.6 Luna Batch 요청·API client·결과 검증
 ├── orchestration/               # Airflow에서 재사용하는 실행·검증 helper
 ├── dags/                        # 파라미터형 Airflow DAG
 ├── sql/migrations/              # PostgreSQL 순차 migration
@@ -100,6 +103,7 @@ news-comment-nlp-pipeline/
 | [Date 4 Kafka·Spark 정리](docs/briefings/date4.md) | 메시지 명세, 1,000건 검증, 전처리·저장과 실행 명령 |
 | [Date 5 Airflow 자동화 브리핑](docs/briefings/date5/date5.md) | 과제 요구사항, DAG 구조, 두 번의 파라미터 실행과 제출 자료 |
 | [Date 6 부하·장애·복구](docs/briefings/date6/date6.md) | 2012년 수집, 입력 확대, Spark·PostgreSQL 장애 복구 결과 |
+| [6차시 보완·전체 흐름 점검](docs/briefings/date7/date7.md) | 부하 비교, fallback·alert, LLM Batch와 남은 작업 |
 | [시스템 구성도](docs/architecture/system-architecture.html) | 전체 목표 아키텍처 |
 | [Ingestion 구현 설명](docs/guides/ingestion-implementation.md) | Collector부터 Kafka 적재 확인까지의 코드 흐름 |
 | [Scrapy 웹 뉴스 수집](docs/guides/web-news-collection.md) | 기간·키워드 실행, 책임 분리, 요청 정책과 검증 방법 |
@@ -118,6 +122,7 @@ news-comment-nlp-pipeline/
 | [PostgreSQL 통합 검증](analysis/reports/postgres-integration-validation.md) | 982건 적재, rollback·재시도와 멱등성 결과 |
 | [데이터와 보안 원칙](docs/security/data-security.md) | 원문·PII·자격 증명·보존과 외부 전송 기준 |
 | [LLM 분석 설계](docs/architecture/llm-analysis-design.md) | Batch 분석과 Langfuse 관측 계획 |
+| [OpenAI API·Langfuse 설정](docs/briefings/date7/openai-langfuse-setup.md) | 사용자가 직접 수행할 프로젝트·key·결제·Airflow 반영과 검증 절차 |
 | [Langfuse 도입 ADR](docs/adr/0001-langfuse-deployment.md) | 관리형·self-hosted 비교, 데이터 경계와 adapter 결정 |
 | [Langfuse 구현·토큰 관리 계획](docs/planning/langfuse-implementation-plan.md) | adapter 구조, token·비용 대조, 예산과 검증 계획 |
 | [Langfuse 샘플 추적 검증](analysis/reports/langfuse-token-validation.md) | 합성 3건의 token·비용·재시도와 metadata-only 결과 |

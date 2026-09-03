@@ -1,0 +1,1056 @@
+{
+  "scope": {
+    "year": 2012,
+    "month": 1,
+    "days": 31
+  },
+  "model": "gpt-5.6-luna",
+  "pricing_usd_per_million_tokens": {
+    "batch_input": "0.10",
+    "batch_output": "0.60"
+  },
+  "assumptions": {
+    "token_estimator": "ceil(UTF-8 bytes / 4)",
+    "maximum_input_safety_multiplier": 1.25,
+    "content_tokens_per_map_chunk": 50000,
+    "max_text_bytes_per_item": 16000,
+    "map_prompt_overhead_tokens": 500,
+    "expected_map_output_tokens": 250,
+    "maximum_map_output_tokens": 500,
+    "expected_daily_output_tokens": 250,
+    "maximum_daily_output_tokens": 500,
+    "expected_monthly_output_tokens": 400,
+    "maximum_monthly_output_tokens": 800
+  },
+  "reddit_rows": {
+    "topic_groups": {
+      "politics": 621231,
+      "economy": 71209,
+      "technology": 121079,
+      "environment": 207981
+    },
+    "topic_groups_total": 1021500,
+    "askreddit_available": 1911875,
+    "askreddit_sample": 255381
+  },
+  "quality_gate": {
+    "rejected_rows": {},
+    "truncated_rows": {
+      "askreddit": 4
+    }
+  },
+  "request_counts": {
+    "map_expected": 1785,
+    "map_conservative_maximum": 2209,
+    "daily_reduce": 155,
+    "monthly_reduce": 5,
+    "total_expected": 1945,
+    "total_conservative_maximum": 2369,
+    "final_results": 160
+  },
+  "expected": {
+    "input_tokens": 86976479,
+    "output_tokens": 487000,
+    "batch_cost_usd": "8.9898479",
+    "standard_api_equivalent_usd": "17.9796958",
+    "stages": {
+      "map": {
+        "input": 86320111,
+        "output": 446250,
+        "batch_cost_usd": "8.8997611"
+      },
+      "daily_reduce": {
+        "input": 612618,
+        "output": 38750,
+        "batch_cost_usd": "0.0845118"
+      },
+      "monthly_reduce": {
+        "input": 43750,
+        "output": 2000,
+        "batch_cost_usd": "0.005575"
+      }
+    }
+  },
+  "conservative_maximum": {
+    "input_tokens": 109264599,
+    "output_tokens": 1186000,
+    "batch_cost_usd": "11.6380599"
+  },
+  "monthly_approximate_content_tokens": {
+    "politics": 46703676,
+    "economy": 6143593,
+    "technology": 8787410,
+    "environment": 11103496,
+    "askreddit_sample": 12689436,
+    "news_by_topic": {
+      "politics": 10756,
+      "economy": 11198,
+      "technology": 12705,
+      "environment": 9775
+    }
+  },
+  "daily": [
+    {
+      "day": "2012-01-01",
+      "topic_group_rows": {
+        "politics": 15310,
+        "economy": 1481,
+        "technology": 2580,
+        "environment": 3863
+      },
+      "askreddit_available_rows": 42919,
+      "askreddit_sample_rows": 5809,
+      "map_requests": {
+        "politics": 23,
+        "economy": 3,
+        "technology": 4,
+        "environment": 4,
+        "askreddit": 6
+      },
+      "maximum_map_requests": {
+        "politics": 28,
+        "economy": 3,
+        "technology": 5,
+        "environment": 5,
+        "askreddit": 7
+      },
+      "news_tokens": {
+        "politics": 173,
+        "economy": 18,
+        "technology": 127,
+        "environment": 220
+      }
+    },
+    {
+      "day": "2012-01-02",
+      "topic_group_rows": {
+        "politics": 18544,
+        "economy": 2276,
+        "technology": 2597,
+        "environment": 6352
+      },
+      "askreddit_available_rows": 60613,
+      "askreddit_sample_rows": 7442,
+      "map_requests": {
+        "politics": 29,
+        "economy": 5,
+        "technology": 5,
+        "environment": 7,
+        "askreddit": 7
+      },
+      "maximum_map_requests": {
+        "politics": 37,
+        "economy": 6,
+        "technology": 6,
+        "environment": 9,
+        "askreddit": 9
+      },
+      "news_tokens": {
+        "politics": 250,
+        "economy": 258,
+        "technology": 130,
+        "environment": 176
+      }
+    },
+    {
+      "day": "2012-01-03",
+      "topic_group_rows": {
+        "politics": 19459,
+        "economy": 2350,
+        "technology": 2919,
+        "environment": 5682
+      },
+      "askreddit_available_rows": 58265,
+      "askreddit_sample_rows": 7603,
+      "map_requests": {
+        "politics": 31,
+        "economy": 5,
+        "technology": 5,
+        "environment": 6,
+        "askreddit": 9
+      },
+      "maximum_map_requests": {
+        "politics": 39,
+        "economy": 6,
+        "technology": 6,
+        "environment": 8,
+        "askreddit": 11
+      },
+      "news_tokens": {
+        "politics": 373,
+        "economy": 372,
+        "technology": 415,
+        "environment": 286
+      }
+    },
+    {
+      "day": "2012-01-04",
+      "topic_group_rows": {
+        "politics": 24711,
+        "economy": 1648,
+        "technology": 4307,
+        "environment": 7440
+      },
+      "askreddit_available_rows": 64817,
+      "askreddit_sample_rows": 9527,
+      "map_requests": {
+        "politics": 34,
+        "economy": 3,
+        "technology": 6,
+        "environment": 9,
+        "askreddit": 10
+      },
+      "maximum_map_requests": {
+        "politics": 42,
+        "economy": 4,
+        "technology": 8,
+        "environment": 11,
+        "askreddit": 12
+      },
+      "news_tokens": {
+        "politics": 338,
+        "economy": 327,
+        "technology": 336,
+        "environment": 219
+      }
+    },
+    {
+      "day": "2012-01-05",
+      "topic_group_rows": {
+        "politics": 21796,
+        "economy": 2255,
+        "technology": 3977,
+        "environment": 7970
+      },
+      "askreddit_available_rows": 70384,
+      "askreddit_sample_rows": 9000,
+      "map_requests": {
+        "politics": 35,
+        "economy": 4,
+        "technology": 7,
+        "environment": 9,
+        "askreddit": 10
+      },
+      "maximum_map_requests": {
+        "politics": 43,
+        "economy": 5,
+        "technology": 9,
+        "environment": 12,
+        "askreddit": 12
+      },
+      "news_tokens": {
+        "politics": 317,
+        "economy": 314,
+        "technology": 608,
+        "environment": 498
+      }
+    },
+    {
+      "day": "2012-01-06",
+      "topic_group_rows": {
+        "politics": 23294,
+        "economy": 3010,
+        "technology": 3604,
+        "environment": 7494
+      },
+      "askreddit_available_rows": 68544,
+      "askreddit_sample_rows": 9351,
+      "map_requests": {
+        "politics": 35,
+        "economy": 6,
+        "technology": 6,
+        "environment": 9,
+        "askreddit": 11
+      },
+      "maximum_map_requests": {
+        "politics": 44,
+        "economy": 8,
+        "technology": 7,
+        "environment": 11,
+        "askreddit": 13
+      },
+      "news_tokens": {
+        "politics": 337,
+        "economy": 342,
+        "technology": 357,
+        "environment": 290
+      }
+    },
+    {
+      "day": "2012-01-07",
+      "topic_group_rows": {
+        "politics": 16099,
+        "economy": 1831,
+        "technology": 2947,
+        "environment": 6958
+      },
+      "askreddit_available_rows": 50791,
+      "askreddit_sample_rows": 6959,
+      "map_requests": {
+        "politics": 24,
+        "economy": 3,
+        "technology": 5,
+        "environment": 8,
+        "askreddit": 8
+      },
+      "maximum_map_requests": {
+        "politics": 30,
+        "economy": 4,
+        "technology": 6,
+        "environment": 10,
+        "askreddit": 9
+      },
+      "news_tokens": {
+        "politics": 173,
+        "economy": 92,
+        "technology": 83,
+        "environment": 102
+      }
+    },
+    {
+      "day": "2012-01-08",
+      "topic_group_rows": {
+        "politics": 18724,
+        "economy": 1242,
+        "technology": 2851,
+        "environment": 5981
+      },
+      "askreddit_available_rows": 49431,
+      "askreddit_sample_rows": 7200,
+      "map_requests": {
+        "politics": 28,
+        "economy": 3,
+        "technology": 4,
+        "environment": 7,
+        "askreddit": 7
+      },
+      "maximum_map_requests": {
+        "politics": 35,
+        "economy": 3,
+        "technology": 5,
+        "environment": 9,
+        "askreddit": 9
+      },
+      "news_tokens": {
+        "politics": 178,
+        "economy": 244,
+        "technology": 167,
+        "environment": 133
+      }
+    },
+    {
+      "day": "2012-01-09",
+      "topic_group_rows": {
+        "politics": 18456,
+        "economy": 2276,
+        "technology": 3379,
+        "environment": 5825
+      },
+      "askreddit_available_rows": 67879,
+      "askreddit_sample_rows": 7484,
+      "map_requests": {
+        "politics": 30,
+        "economy": 5,
+        "technology": 5,
+        "environment": 7,
+        "askreddit": 8
+      },
+      "maximum_map_requests": {
+        "politics": 37,
+        "economy": 6,
+        "technology": 7,
+        "environment": 8,
+        "askreddit": 10
+      },
+      "news_tokens": {
+        "politics": 496,
+        "economy": 422,
+        "technology": 474,
+        "environment": 446
+      }
+    },
+    {
+      "day": "2012-01-10",
+      "topic_group_rows": {
+        "politics": 22194,
+        "economy": 2949,
+        "technology": 4514,
+        "environment": 7469
+      },
+      "askreddit_available_rows": 67525,
+      "askreddit_sample_rows": 9282,
+      "map_requests": {
+        "politics": 36,
+        "economy": 6,
+        "technology": 8,
+        "environment": 9,
+        "askreddit": 10
+      },
+      "maximum_map_requests": {
+        "politics": 44,
+        "economy": 7,
+        "technology": 9,
+        "environment": 11,
+        "askreddit": 12
+      },
+      "news_tokens": {
+        "politics": 451,
+        "economy": 622,
+        "technology": 759,
+        "environment": 475
+      }
+    },
+    {
+      "day": "2012-01-11",
+      "topic_group_rows": {
+        "politics": 28357,
+        "economy": 2305,
+        "technology": 4016,
+        "environment": 8974
+      },
+      "askreddit_available_rows": 59110,
+      "askreddit_sample_rows": 10913,
+      "map_requests": {
+        "politics": 43,
+        "economy": 4,
+        "technology": 6,
+        "environment": 10,
+        "askreddit": 12
+      },
+      "maximum_map_requests": {
+        "politics": 53,
+        "economy": 5,
+        "technology": 8,
+        "environment": 12,
+        "askreddit": 15
+      },
+      "news_tokens": {
+        "politics": 373,
+        "economy": 523,
+        "technology": 627,
+        "environment": 340
+      }
+    },
+    {
+      "day": "2012-01-12",
+      "topic_group_rows": {
+        "politics": 24993,
+        "economy": 2338,
+        "technology": 4467,
+        "environment": 7843
+      },
+      "askreddit_available_rows": 53761,
+      "askreddit_sample_rows": 9910,
+      "map_requests": {
+        "politics": 37,
+        "economy": 4,
+        "technology": 7,
+        "environment": 9,
+        "askreddit": 10
+      },
+      "maximum_map_requests": {
+        "politics": 46,
+        "economy": 5,
+        "technology": 9,
+        "environment": 11,
+        "askreddit": 12
+      },
+      "news_tokens": {
+        "politics": 575,
+        "economy": 330,
+        "technology": 626,
+        "environment": 385
+      }
+    },
+    {
+      "day": "2012-01-13",
+      "topic_group_rows": {
+        "politics": 19411,
+        "economy": 2600,
+        "technology": 3796,
+        "environment": 8221
+      },
+      "askreddit_available_rows": 72482,
+      "askreddit_sample_rows": 8507,
+      "map_requests": {
+        "politics": 30,
+        "economy": 4,
+        "technology": 7,
+        "environment": 9,
+        "askreddit": 10
+      },
+      "maximum_map_requests": {
+        "politics": 38,
+        "economy": 5,
+        "technology": 8,
+        "environment": 11,
+        "askreddit": 12
+      },
+      "news_tokens": {
+        "politics": 438,
+        "economy": 458,
+        "technology": 587,
+        "environment": 389
+      }
+    },
+    {
+      "day": "2012-01-14",
+      "topic_group_rows": {
+        "politics": 14317,
+        "economy": 1930,
+        "technology": 3943,
+        "environment": 6586
+      },
+      "askreddit_available_rows": 58490,
+      "askreddit_sample_rows": 6694,
+      "map_requests": {
+        "politics": 21,
+        "economy": 3,
+        "technology": 6,
+        "environment": 7,
+        "askreddit": 7
+      },
+      "maximum_map_requests": {
+        "politics": 27,
+        "economy": 4,
+        "technology": 8,
+        "environment": 9,
+        "askreddit": 9
+      },
+      "news_tokens": {
+        "politics": 189,
+        "economy": 252,
+        "technology": 156,
+        "environment": 34
+      }
+    },
+    {
+      "day": "2012-01-15",
+      "topic_group_rows": {
+        "politics": 14005,
+        "economy": 1898,
+        "technology": 3388,
+        "environment": 5872
+      },
+      "askreddit_available_rows": 58905,
+      "askreddit_sample_rows": 6291,
+      "map_requests": {
+        "politics": 23,
+        "economy": 4,
+        "technology": 5,
+        "environment": 7,
+        "askreddit": 7
+      },
+      "maximum_map_requests": {
+        "politics": 28,
+        "economy": 5,
+        "technology": 6,
+        "environment": 9,
+        "askreddit": 8
+      },
+      "news_tokens": {
+        "politics": 191,
+        "economy": 140,
+        "technology": 204,
+        "environment": 142
+      }
+    },
+    {
+      "day": "2012-01-16",
+      "topic_group_rows": {
+        "politics": 21178,
+        "economy": 2064,
+        "technology": 5673,
+        "environment": 5951
+      },
+      "askreddit_available_rows": 58985,
+      "askreddit_sample_rows": 8717,
+      "map_requests": {
+        "politics": 35,
+        "economy": 4,
+        "technology": 8,
+        "environment": 7,
+        "askreddit": 9
+      },
+      "maximum_map_requests": {
+        "politics": 44,
+        "economy": 5,
+        "technology": 10,
+        "environment": 9,
+        "askreddit": 11
+      },
+      "news_tokens": {
+        "politics": 289,
+        "economy": 309,
+        "technology": 382,
+        "environment": 186
+      }
+    },
+    {
+      "day": "2012-01-17",
+      "topic_group_rows": {
+        "politics": 21103,
+        "economy": 2737,
+        "technology": 3700,
+        "environment": 7103
+      },
+      "askreddit_available_rows": 69689,
+      "askreddit_sample_rows": 8661,
+      "map_requests": {
+        "politics": 31,
+        "economy": 6,
+        "technology": 6,
+        "environment": 9,
+        "askreddit": 9
+      },
+      "maximum_map_requests": {
+        "politics": 39,
+        "economy": 7,
+        "technology": 7,
+        "environment": 11,
+        "askreddit": 11
+      },
+      "news_tokens": {
+        "politics": 407,
+        "economy": 453,
+        "technology": 641,
+        "environment": 512
+      }
+    },
+    {
+      "day": "2012-01-18",
+      "topic_group_rows": {
+        "politics": 7289,
+        "economy": 1324,
+        "technology": 2242,
+        "environment": 2252
+      },
+      "askreddit_available_rows": 25866,
+      "askreddit_sample_rows": 3277,
+      "map_requests": {
+        "politics": 11,
+        "economy": 3,
+        "technology": 3,
+        "environment": 3,
+        "askreddit": 3
+      },
+      "maximum_map_requests": {
+        "politics": 13,
+        "economy": 3,
+        "technology": 4,
+        "environment": 4,
+        "askreddit": 4
+      },
+      "news_tokens": {
+        "politics": 267,
+        "economy": 581,
+        "technology": 793,
+        "environment": 292
+      }
+    },
+    {
+      "day": "2012-01-19",
+      "topic_group_rows": {
+        "politics": 22370,
+        "economy": 3103,
+        "technology": 7053,
+        "environment": 6000
+      },
+      "askreddit_available_rows": 60948,
+      "askreddit_sample_rows": 9632,
+      "map_requests": {
+        "politics": 32,
+        "economy": 6,
+        "technology": 9,
+        "environment": 7,
+        "askreddit": 9
+      },
+      "maximum_map_requests": {
+        "politics": 40,
+        "economy": 8,
+        "technology": 11,
+        "environment": 9,
+        "askreddit": 11
+      },
+      "news_tokens": {
+        "politics": 464,
+        "economy": 427,
+        "technology": 663,
+        "environment": 458
+      }
+    },
+    {
+      "day": "2012-01-20",
+      "topic_group_rows": {
+        "politics": 25666,
+        "economy": 2439,
+        "technology": 6990,
+        "environment": 7233
+      },
+      "askreddit_available_rows": 52631,
+      "askreddit_sample_rows": 10582,
+      "map_requests": {
+        "politics": 38,
+        "economy": 5,
+        "technology": 10,
+        "environment": 8,
+        "askreddit": 12
+      },
+      "maximum_map_requests": {
+        "politics": 47,
+        "economy": 6,
+        "technology": 12,
+        "environment": 10,
+        "askreddit": 14
+      },
+      "news_tokens": {
+        "politics": 323,
+        "economy": 440,
+        "technology": 562,
+        "environment": 254
+      }
+    },
+    {
+      "day": "2012-01-21",
+      "topic_group_rows": {
+        "politics": 20921,
+        "economy": 1694,
+        "technology": 3616,
+        "environment": 5773
+      },
+      "askreddit_available_rows": 46493,
+      "askreddit_sample_rows": 8001,
+      "map_requests": {
+        "politics": 33,
+        "economy": 3,
+        "technology": 6,
+        "environment": 6,
+        "askreddit": 9
+      },
+      "maximum_map_requests": {
+        "politics": 41,
+        "economy": 4,
+        "technology": 8,
+        "environment": 7,
+        "askreddit": 11
+      },
+      "news_tokens": {
+        "politics": 187,
+        "economy": 193,
+        "technology": 153,
+        "environment": 187
+      }
+    },
+    {
+      "day": "2012-01-22",
+      "topic_group_rows": {
+        "politics": 18845,
+        "economy": 2295,
+        "technology": 4610,
+        "environment": 6729
+      },
+      "askreddit_available_rows": 56991,
+      "askreddit_sample_rows": 8120,
+      "map_requests": {
+        "politics": 30,
+        "economy": 4,
+        "technology": 7,
+        "environment": 8,
+        "askreddit": 8
+      },
+      "maximum_map_requests": {
+        "politics": 37,
+        "economy": 5,
+        "technology": 8,
+        "environment": 10,
+        "askreddit": 10
+      },
+      "news_tokens": {
+        "politics": 114,
+        "economy": 174,
+        "technology": 161,
+        "environment": 181
+      }
+    },
+    {
+      "day": "2012-01-23",
+      "topic_group_rows": {
+        "politics": 22413,
+        "economy": 2408,
+        "technology": 5807,
+        "environment": 8589
+      },
+      "askreddit_available_rows": 81103,
+      "askreddit_sample_rows": 9804,
+      "map_requests": {
+        "politics": 35,
+        "economy": 5,
+        "technology": 9,
+        "environment": 9,
+        "askreddit": 11
+      },
+      "maximum_map_requests": {
+        "politics": 44,
+        "economy": 6,
+        "technology": 11,
+        "environment": 12,
+        "askreddit": 13
+      },
+      "news_tokens": {
+        "politics": 498,
+        "economy": 492,
+        "technology": 658,
+        "environment": 321
+      }
+    },
+    {
+      "day": "2012-01-24",
+      "topic_group_rows": {
+        "politics": 24451,
+        "economy": 2742,
+        "technology": 4983,
+        "environment": 6837
+      },
+      "askreddit_available_rows": 84168,
+      "askreddit_sample_rows": 9753,
+      "map_requests": {
+        "politics": 38,
+        "economy": 5,
+        "technology": 8,
+        "environment": 8,
+        "askreddit": 10
+      },
+      "maximum_map_requests": {
+        "politics": 47,
+        "economy": 6,
+        "technology": 10,
+        "environment": 10,
+        "askreddit": 12
+      },
+      "news_tokens": {
+        "politics": 701,
+        "economy": 569,
+        "technology": 552,
+        "environment": 605
+      }
+    },
+    {
+      "day": "2012-01-25",
+      "topic_group_rows": {
+        "politics": 26582,
+        "economy": 2807,
+        "technology": 3795,
+        "environment": 7372
+      },
+      "askreddit_available_rows": 72433,
+      "askreddit_sample_rows": 10139,
+      "map_requests": {
+        "politics": 38,
+        "economy": 5,
+        "technology": 6,
+        "environment": 8,
+        "askreddit": 10
+      },
+      "maximum_map_requests": {
+        "politics": 47,
+        "economy": 6,
+        "technology": 7,
+        "environment": 10,
+        "askreddit": 12
+      },
+      "news_tokens": {
+        "politics": 460,
+        "economy": 678,
+        "technology": 463,
+        "environment": 430
+      }
+    },
+    {
+      "day": "2012-01-26",
+      "topic_group_rows": {
+        "politics": 24607,
+        "economy": 2717,
+        "technology": 3707,
+        "environment": 6662
+      },
+      "askreddit_available_rows": 61819,
+      "askreddit_sample_rows": 9423,
+      "map_requests": {
+        "politics": 37,
+        "economy": 6,
+        "technology": 6,
+        "environment": 7,
+        "askreddit": 9
+      },
+      "maximum_map_requests": {
+        "politics": 46,
+        "economy": 7,
+        "technology": 7,
+        "environment": 9,
+        "askreddit": 11
+      },
+      "news_tokens": {
+        "politics": 639,
+        "economy": 487,
+        "technology": 536,
+        "environment": 549
+      }
+    },
+    {
+      "day": "2012-01-27",
+      "topic_group_rows": {
+        "politics": 21832,
+        "economy": 3318,
+        "technology": 3356,
+        "environment": 7345
+      },
+      "askreddit_available_rows": 70659,
+      "askreddit_sample_rows": 8963,
+      "map_requests": {
+        "politics": 32,
+        "economy": 6,
+        "technology": 6,
+        "environment": 8,
+        "askreddit": 9
+      },
+      "maximum_map_requests": {
+        "politics": 40,
+        "economy": 8,
+        "technology": 8,
+        "environment": 10,
+        "askreddit": 11
+      },
+      "news_tokens": {
+        "politics": 610,
+        "economy": 465,
+        "technology": 205,
+        "environment": 388
+      }
+    },
+    {
+      "day": "2012-01-28",
+      "topic_group_rows": {
+        "politics": 14429,
+        "economy": 2069,
+        "technology": 3274,
+        "environment": 3984
+      },
+      "askreddit_available_rows": 46005,
+      "askreddit_sample_rows": 5939,
+      "map_requests": {
+        "politics": 22,
+        "economy": 4,
+        "technology": 6,
+        "environment": 4,
+        "askreddit": 6
+      },
+      "maximum_map_requests": {
+        "politics": 28,
+        "economy": 5,
+        "technology": 7,
+        "environment": 5,
+        "askreddit": 7
+      },
+      "news_tokens": {
+        "politics": 67,
+        "economy": 107,
+        "technology": 112,
+        "environment": 64
+      }
+    },
+    {
+      "day": "2012-01-29",
+      "topic_group_rows": {
+        "politics": 14878,
+        "economy": 1798,
+        "technology": 2179,
+        "environment": 4935
+      },
+      "askreddit_available_rows": 48113,
+      "askreddit_sample_rows": 5948,
+      "map_requests": {
+        "politics": 22,
+        "economy": 4,
+        "technology": 4,
+        "environment": 5,
+        "askreddit": 6
+      },
+      "maximum_map_requests": {
+        "politics": 27,
+        "economy": 5,
+        "technology": 5,
+        "environment": 6,
+        "askreddit": 7
+      },
+      "news_tokens": {
+        "politics": 58,
+        "economy": 125,
+        "technology": 129,
+        "environment": 169
+      }
+    },
+    {
+      "day": "2012-01-30",
+      "topic_group_rows": {
+        "politics": 18246,
+        "economy": 2473,
+        "technology": 3747,
+        "environment": 8244
+      },
+      "askreddit_available_rows": 76336,
+      "askreddit_sample_rows": 8178,
+      "map_requests": {
+        "politics": 30,
+        "economy": 5,
+        "technology": 6,
+        "environment": 10,
+        "askreddit": 9
+      },
+      "maximum_map_requests": {
+        "politics": 37,
+        "economy": 6,
+        "technology": 8,
+        "environment": 12,
+        "askreddit": 11
+      },
+      "news_tokens": {
+        "politics": 313,
+        "economy": 493,
+        "technology": 462,
+        "environment": 514
+      }
+    },
+    {
+      "day": "2012-01-31",
+      "topic_group_rows": {
+        "politics": 16751,
+        "economy": 2832,
+        "technology": 3062,
+        "environment": 10442
+      },
+      "askreddit_available_rows": 95720,
+      "askreddit_sample_rows": 8272,
+      "map_requests": {
+        "politics": 27,
+        "economy": 5,
+        "technology": 5,
+        "environment": 12,
+        "askreddit": 9
+      },
+      "maximum_map_requests": {
+        "politics": 33,
+        "economy": 7,
+        "technology": 6,
+        "environment": 15,
+        "askreddit": 11
+      },
+      "news_tokens": {
+        "politics": 507,
+        "economy": 491,
+        "technology": 577,
+        "environment": 530
+      }
+    }
+  ],
+  "response_root": "data/llm_response/"
+}

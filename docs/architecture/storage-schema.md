@@ -4,7 +4,9 @@
 
 Spark가 처리한 원본·정제 이벤트와 LLM 분석 결과, 파이프라인 실행 상태를 PostgreSQL에 저장하기 위한 목표 Schema입니다.
 
-핵심 수집·정제 저장 영역은 구현됐습니다. 현재 migration은 `sql/migrations/`, Spark 적재 코드는 `storage/postgres.py`에 있으며 LLM·집계 테이블은 후속 단계에서 추가합니다.
+핵심 수집·정제 저장 영역과 LLM Batch·문서 분석 테이블 migration이 구현됐습니다.
+현재 migration은 `sql/migrations/`, Spark 적재 코드는 `storage/postgres.py`에 있습니다.
+LLM 결과 JSONL 검증은 구현됐지만 PostgreSQL 적재 adapter 연결은 남아 있습니다.
 
 ## 2. 저장 원칙
 
@@ -23,14 +25,13 @@ PostgreSQL
 ├── text_documents_clean         # 정제·비식별화 문서 (구현)
 ├── contract_rejected_events     # 계약 위반 원문과 Kafka 위치 (구현)
 ├── text_data_quality            # 결측·중복·지연·품질 통계
-├── document_sentiments          # 문서별 감정 결과
-├── document_topics              # 문서와 토픽 연결
+├── document_analyses            # 문서별 감정·토픽·키워드·요약 (migration 구현)
 ├── sentiment_window_metrics     # 시간대별 감정 집계
 ├── topic_window_metrics         # 시간대별 토픽 집계
 ├── topic_summaries              # 주요 토픽 이름과 요약
 ├── text_alert_events            # 급증·이상 이벤트
-├── llm_batch_jobs               # LLM Batch 작업 상태
-├── llm_batch_requests           # 요청별 결과와 재처리 상태
+├── llm_batch_jobs               # LLM Batch 작업 상태 (migration 구현)
+├── llm_batch_requests           # 요청별 결과와 재처리 상태 (migration 구현)
 ├── stream_batch_commits         # Spark micro-batch 중복 방지 (구현)
 └── pipeline_run_history         # 작업 실행 이력
 ```
@@ -44,7 +45,7 @@ PostgreSQL
 | 원본 | `raw_text_events` | `TextEvent v1`, Kafka 위치, 수신 시각 |
 | 정제 | `text_documents_clean` | 정규화 텍스트, 언어, 품질 상태 |
 | 품질 | `text_data_quality` | 실행별 결측·중복·지연·길이 통계 |
-| 분석 | `document_sentiments`, `document_topics` | LLM 검증 완료 결과 |
+| 분석 | `document_analyses` | LLM 검증 완료 감정·토픽·키워드·요약 |
 | 집계 | `sentiment_window_metrics`, `topic_window_metrics` | 출처·시간 window별 지표 |
 | 운영 | `stream_batch_commits`, `pipeline_run_history` | 재시작·멱등성·실행 이력 |
 | LLM 작업 | `llm_batch_jobs`, `llm_batch_requests` | Batch ID, custom ID, 상태와 재시도 |
@@ -73,6 +74,8 @@ Spark foreachBatch
 - [x] 1,000건 MVP는 staging 없이 transaction upsert 사용
 - [ ] 보존 기간과 개인정보 삭제 정책 결정
 - [x] Langfuse와 PostgreSQL의 LLM 관측 데이터 책임 구분
+- [x] LLM Batch·요청·문서 분석 migration 작성
+- [ ] 검증된 LLM 결과의 PostgreSQL upsert adapter 연결
 - [ ] migration과 rollback 절차 작성
 
 ## 7. 로컬 실행

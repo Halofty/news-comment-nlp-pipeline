@@ -4,7 +4,12 @@
 
 정제된 뉴스·댓글을 LLM Batch API로 분석해 감정, 토픽 후보, 키워드와 요약을 생성하는 목표 설계입니다.
 
-현재 LLM 제출·결과 적재 코드는 아직 구현되지 않았습니다. 토큰·비용 관측은 [ADR-0001](../adr/0001-langfuse-deployment.md)에 따라 관리형 Langfuse와 격리된 adapter로 구현합니다.
+GPT-5.6 Luna용 Responses Batch JSONL 생성, API 업로드·제출·상태 조회·결과
+다운로드 CLI와 JSON Schema 결과 검증을 구현했습니다. 2026-09-03에 합성 2건을 실제
+OpenAI Batch로 제출했으며 결과 회수는 처리 완료를 기다리고 있습니다. 관리형 Langfuse
+Cloud Japan 인증과 metadata-only sample trace 전송도 확인했습니다. 토큰·비용 관측은
+[ADR-0001](../adr/0001-langfuse-deployment.md)에 따라 관리형 Langfuse와 격리된
+adapter로 구현합니다.
 
 ## 2. 처리 흐름
 
@@ -32,7 +37,7 @@ PostgreSQL의 분석 대기 문서 조회
 - 대표 키워드
 - 짧은 요약
 
-응답은 자유 형식 텍스트가 아니라 검증 가능한 JSON Schema로 제한할 예정입니다.
+응답은 자유 형식 텍스트가 아니라 `news_comment_analysis` JSON Schema로 제한합니다.
 
 ## 4. 토픽 통합과 집계
 
@@ -85,15 +90,20 @@ Langfuse 기록 실패가 핵심 분석 결과 저장을 중단시키지 않도�
 
 ## 8. 구현 체크리스트
 
-- [ ] 사용할 모델과 Batch 엔드포인트 지원 여부 확인
-- [ ] 요청·응답 JSON Schema 작성
-- [ ] prompt version 관리 방식 결정
-- [ ] Batch JSONL 생성기 구현
-- [ ] 제출·상태 확인·결과 다운로드 구현
-- [ ] 결과 검증과 PostgreSQL 적재 구현
+- [x] `gpt-5.6-luna`와 `/v1/responses` Batch 지원 확인
+- [x] 요청·응답 JSON Schema 작성
+- [x] prompt version 관리 방식 결정
+- [x] Batch JSONL 생성기 구현
+- [x] 제출·상태 확인·결과 다운로드 구현
+- [x] 결과 JSON Schema 검증 구현
+- [ ] 검증 결과 PostgreSQL 적재 adapter 구현
 - [ ] 누락·오류·만료 재처리 구현
 - [x] Langfuse 도입 방식과 데이터 경계 결정
-- [ ] 소량 합성 데이터로 토큰·비용 추적 검증
+- [x] 소량 합성 데이터로 토큰·비용·fallback 추적 검증
+
+구현 파일은 `llm_analysis/`, 실행 CLI는 `jobs/openai_batch.py`, Airflow DAG는
+`dags/llm_batch_pipeline.py`입니다. 공식 사양은 [GPT-5.6 Luna 모델](https://developers.openai.com/api/docs/models/gpt-5.6-luna)과
+[Batch API](https://developers.openai.com/api/reference/resources/batches)를 기준으로 했습니다.
 
 ## 9. 관련 문서
 

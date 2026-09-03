@@ -225,6 +225,7 @@ def test_verification_cli_writes_metadata_only_trace(tmp_path) -> None:
         "total_tokens": 360,
         "total_cost_usd": "0.000265",
         "sink": "structured-log",
+        "fallback_test": False,
         "output": str(output),
     }
     assert len(records) == 9
@@ -240,4 +241,3 @@ def test_langfuse_sink_requires_keys_without_creating_client(monkeypatch) -> Non
 
     with pytest.raises(ValueError, match="LANGFUSE_PUBLIC_KEY"):
         LangfuseSink()
-

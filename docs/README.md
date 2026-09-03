@@ -16,4 +16,12 @@
 2012년 수집·부하·복구 결과는 [`briefings/date6/date6.md`](briefings/date6/date6.md)에서
 확인할 수 있습니다.
 
+6차시 전체 흐름 점검과 GPT-5.6 Luna·Langfuse 보완 결과는
+[`briefings/date7/date7.md`](briefings/date7/date7.md)에서 확인할 수 있습니다.
+
+OpenAI API 프로젝트·결제·key와 Langfuse Cloud Japan 프로젝트를 사용자가 직접 설정하는
+절차는
+[`briefings/date7/openai-langfuse-setup.md`](briefings/date7/openai-langfuse-setup.md)에
+있습니다.
+
 MinIO 도입 범위와 bucket 구조는 [`architecture/object-storage.md`](architecture/object-storage.md)에 정리했습니다.

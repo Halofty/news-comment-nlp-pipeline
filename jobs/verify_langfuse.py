@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -36,6 +37,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sink", choices=("structured-log", "langfuse", "noop"), default="structured-log"
     )
+    parser.add_argument(
+        "--simulate-primary-failure",
+        action="store_true",
+        help="Use a failing primary sink to verify structured-log fallback",
+    )
     parser.add_argument("--pricing-version", default="sample-batch-v1")
     parser.add_argument("--pricing-effective-date", default="2026-08-24")
     parser.add_argument("--input-price-per-million", default="0.50")
@@ -44,13 +50,31 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _build_sink(name: str, output: Path):
+class _FailingVerificationSink:
+    def __getattr__(self, name: str):
+        def fail(*_args, **_kwargs):
+            raise RuntimeError("simulated observability outage")
+
+        return fail
+
+
+def _build_sink(name: str, output: Path, *, simulate_primary_failure: bool = False):
     fallback = StructuredLogSink(output)
+    if simulate_primary_failure:
+        return FailSafeObservabilitySink(_FailingVerificationSink(), fallback)
     if name == "structured-log":
         return fallback
     if name == "noop":
         return NoOpSink()
-    return FailSafeObservabilitySink(LangfuseSink(), fallback)
+    try:
+        primary = LangfuseSink()
+    except Exception as error:
+        logging.getLogger(__name__).warning(
+            "langfuse_initialization_failed error_type=%s fallback=structured-log",
+            type(error).__name__,
+        )
+        return fallback
+    return FailSafeObservabilitySink(primary, fallback)
 
 
 def run(args: argparse.Namespace) -> dict[str, object]:
@@ -77,7 +101,11 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     if args.sink != "noop":
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text("", encoding="utf-8")
-    sink = _build_sink(args.sink, args.output)
+    sink = _build_sink(
+        args.sink,
+        args.output,
+        simulate_primary_failure=args.simulate_primary_failure,
+    )
     sink.record_batch(sample.batch)
 
     stage_names = (
@@ -124,6 +152,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         ),
         "total_cost_usd": str(total_cost(sample.generations)),
         "sink": args.sink,
+        "fallback_test": args.simulate_primary_failure,
         "output": str(args.output) if args.sink != "noop" else None,
     }
 
@@ -137,4 +166,3 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -1,2 +1,4 @@
 pyspark==3.5.7
 datasets>=3.0,<5.0
+jsonschema>=4.19,<5.0
+requests>=2.32,<3.0

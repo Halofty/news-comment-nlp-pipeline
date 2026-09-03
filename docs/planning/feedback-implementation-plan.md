@@ -40,10 +40,11 @@
 | 4 | Spark 100건 처리 MVP | `[x]` | 100% | 명시적 Schema·공통 변환·CLI, 합성 100건 행 회계와 profile |
 | 5 | Spark 1,000건 이상 확장 검증 | `[x]` | 100% | 동일 코드 1,000건 처리, partition·품질·시간·운영 로그 점검 보고서 |
 | 6 | Langfuse 도입 방식 조사와 결정 | `[x]` | 100% | 관리형 일본 리전·metadata-only 정책과 adapter 경계 ADR |
-| 7 | Langfuse 토큰·비용 추적 연동 | `[-]` | 90% | adapter·합성 3건 360 token·비용 대조 완료, 실제 Cloud 확인 대기 |
+| 7 | Langfuse 토큰·비용 추적 연동 | `[-]` | 95% | adapter·360 token 대조·장애 fallback 완료, 실제 Cloud 확인만 대기 |
 | 8 | Airflow로 Reddit 일별 수집·Spark 자동화 | `[x]` | 100% | 2016-01-01·2016-02-01 각 1,000건 수집, Spark 처리와 행 회계 검증 완료 |
 | 9 | 2012년 수집·부하·장애 복구 | `[x]` | 100% | Google News 366일, Reddit 원본 12개월, Spark·DB 복구 누락·중복 0건 |
 | 10 | MinIO 로컬 object storage | `[-]` | 60% | Compose 기동·health check·3개 bucket 생성을 검증, 실제 upload·Spark 연동 대기 |
+| 11 | 6차시 보완·LLM Batch | `[-]` | 90% | GPT-5.6 Luna 요청·API CLI·Schema 검증·Airflow dry-run·예산 alert 완료, 실제 API key 대기 |
 
 4차시 과제의 **8단계 Airflow 자동화**는 Reddit 하루 날짜 방식으로 완료했습니다.
 5차시 부하·장애 과제도 2012년 데이터 확대, Spark 저장 전 강제 실패와 PostgreSQL
@@ -445,10 +446,12 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 | 2026-08-27 | 8 | 하루 날짜 Param으로 Reddit Collector와 기존 Spark batch를 연결하는 4-task DAG 및 실행 가이드 작성 | 관련 테스트 15개와 DAG import 오류 0건; 2016-01-01·2016-02-01 각 1,000건 실제 run 성공 | Airflow 성공 화면 캡처·GitHub 링크 제출 |
 | 2026-08-31 | 9 | Google News 2012년 366일과 Reddit 원본 12개월 수집, 입력 확대와 Spark·PostgreSQL 장애 복구 실행 | Spark 2,935,785건과 DB 200건 모두 누락·중복 0건 | 계획 문서 동기화와 object storage 경계 추가 |
 | 2026-08-31 | 10 | MinIO Compose, health check, raw·processed·checkpoint bucket 생성과 설계 문서 검증 | 로컬 object storage 기반 완료 | 작은 fixture upload와 Python·Spark 연동 |
+| 2026-09-02 | 11 | GPT-5.6 Luna Batch JSONL·API CLI·Schema 검증·Airflow DAG·LLM migration 구현 | 90 tests, DAG import 0, dry-run 성공, 예산 차단·복구와 Langfuse fallback 확인 | 실제 OpenAI·Langfuse key 검증과 결과 upsert |
 
 ## 7. 다음 작업
 
-다음 작업은 **MinIO bucket 검증과 작은 fixture upload**입니다.
+다음 작업은 **실제 OpenAI·Langfuse key를 사용한 합성 2건 검증**입니다. Key가 없는
+현재 환경에서는 API를 호출하지 않으며, 완료 후 MinIO fixture 작업으로 돌아갑니다.
 
 구현 순서:
 
