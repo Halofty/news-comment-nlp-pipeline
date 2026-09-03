@@ -34,7 +34,7 @@ Japan의 metadata-only sample trace와 OpenAI 합성 Batch 검증을 거쳐, 경
 | 3 | fallback 또는 alert의 실제 동작 결과 | 완료 | Langfuse primary 장애를 안전하게 재현해 fallback event 9개를 저장하고, LLM 예산 `critical`·`blocked`를 실행으로 확인 |
 | 4 | 최신 구성도와 데이터 모델 | 완료 | MinIO·LLM·Langfuse·Airflow가 반영된 HTML/PNG 구성도, TextEvent v1, PostgreSQL·LLM migration 연결 |
 | 5 | Kafka·Spark·저장·Airflow 로그, 단계별 건수와 최종 확인법 | 완료 | 공개 검증 보고서와 단계별 처리 건수, 행 회계·고유 ID·usage 대조 방법 제시 |
-| 6 | 아직 실행되지 않는 단계와 남은 작업 | 완료 | 9장에 Google News 검색 세분화, Reddit 추가 가공과 MinIO Streaming checkpoint 전환을 장기 확장으로 명시 |
+| 6 | 아직 실행되지 않는 단계와 남은 작업 | 완료 | 9장에 Google News 검색 세분화, Reddit 추가 가공, Kafka·worker 장애와 AWS S3 전환을 장기 확장으로 명시 |
 | 7 | 현재 실행 방법과 확인 결과를 반영한 README | 완료 | 메인 README에 최신 흐름, 구현 상태, 실행·검증 문서 링크 반영 |
 
 따라서 **6차시 과제의 필수 문서 항목 7개와 이번에 선택한 OpenAI·Langfuse 실행 검증은
@@ -230,6 +230,7 @@ PostgreSQL은 재개·멱등성의 기준이고 Langfuse는 token·비용·지�
 | LLM PostgreSQL | 실제 32건 적재·동일 입력 재실행 후 세 테이블 각 32행 유지 | [통합 검증](../../../analysis/reports/llm-postgres-airflow-integration-validation.md) |
 | Airflow 통합 DAG | Reddit 100→Spark 100→LLM 요청 10건 dry-run, 최종 성공 | [통합 검증](../../../analysis/reports/llm-postgres-airflow-integration-validation.md) |
 | 경제·사회 1월 결과 | 일별·월간 총비용 $0.5482444, 주요 감성·주제 정리 | [최종 결과](economy-social-results-01-31.md) |
+| MinIO checkpoint | 재시작별 99·0·50건, 최종 149건·고유 ID 149건 | [복구 검증](../../../analysis/reports/minio-checkpoint-recovery-validation.md) |
 
 최종 행은 각 Spark report에서 `input = contract_rejected + duplicate + unique`를 확인하고,
 PostgreSQL에서는 `count(*)`, `count(distinct event_id)` 및
@@ -331,16 +332,36 @@ Spark 고유 100건과 LLM 요청 10건이 각각 `news-raw`, `news-processed`, 
 복사한 뒤 새 실행 결과까지 포함한 현재 정식 파일은 869개다. 실패는 0건이었고 같은
 데이터를 다시 실행했을 때 869개 모두 `unchanged`, 실제 전송량은 0 bytes였다.
 실행 report와 log는 `news-reports`로 분리했다. MinIO 전체에는 fixture와 이전 key를
-포함해 952개 객체·약 37.83 GiB가 저장되어 있다.
+포함한 기존 집계는 952개 객체였으며, checkpoint 재시작 실험까지 포함한 최신 집계는
+1,045개 객체·40,621,229,862 bytes(약 37.83 GiB)다.
 
 근거: [MinIO 전체 데이터 이전 검증](../../../analysis/reports/minio-data-migration-validation.md)
 
+### 8.1 MinIO checkpoint와 컨테이너 재시작
+
+별도 Kafka topic에 중복 1건을 포함한 100건을 넣어 최초 실행에서 99건을 처리했다.
+같은 MinIO checkpoint로 새 Spark 프로세스를 실행하자 처리량은 0건이었고, 추가 50건을
+발행한 세 번째 실행에서는 그 50건만 처리했다. 세 실행의 query ID는 같았으며 최종
+route 합계와 고유 `event_id`가 모두 149건으로 누락·중복은 0건이었다.
+
+MinIO 컨테이너도 재시작했다. 재시작 전후 checkpoint 43개 객체, output 44개 객체와
+검증 report의 ETag·SHA-256이 그대로 유지됐다. 이는 Spark process 복구뿐 아니라
+named volume을 사용한 MinIO service 재시작의 보존까지 확인한 결과다.
+
+근거: [MinIO checkpoint 복구 검증](../../../analysis/reports/minio-checkpoint-recovery-validation.md)
+
 ## 9. 과제 범위 밖 기술 확장
 
-MinIO의 Python·Spark·Airflow 통합과 현재 raw부터 LLM 응답까지의 전체 복사는 완료했다.
-장기 확장 범위는 Google News 100건 상한 검색 세분화, Reddit 2012년 2~12월 일별
-Parquet 추가 변환과 Structured Streaming checkpoint 전환이다. 제출 현황 표에서는
-이 항목들을 제외했다.
+MinIO의 Python·Spark·Airflow 통합, raw부터 LLM 응답까지의 전체 복사와 Structured
+Streaming checkpoint 재시작 검증은 완료했다. 장기 확장 범위는 Google News 100건
+상한 검색 세분화, Reddit 2012년 2~12월 일별 Parquet 추가 변환, Kafka broker·Spark
+worker 장애 복구와 대규모 처리량 측정이다.
+
+운영 object storage가 필요해지면 MinIO에서 검증한 bucket/key와 S3A 경계를 유지하며
+AWS S3로 바꿀 수 있다. 이때 로컬 endpoint·static key·path-style 설정을 AWS region,
+TLS, IAM role/default credential provider와 bucket policy로 교체하고, 복사 전후 객체
+수·byte·checksum·Parquet 행 수와 새 checkpoint 재시작을 검증한다. 현재 AWS 자원
+생성이나 업로드를 수행한 것은 아니며 후속 확장안으로만 정의했다.
 
 ## 10. 자동 검증
 

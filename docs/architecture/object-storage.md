@@ -36,6 +36,7 @@ MinIO는 로컬 개발·교육 환경용이며 AWS S3의 가용성, IAM, 암호�
 - 기존 raw·processed·LLM·report 정식 파일의 bucket별 전체 복사
 - 새 JSONL·수집 report·LLM 요청·응답의 실행 중 자동 게시
 - Airflow Spark 출력의 run별 `news-processed` 동기화
+- Structured Streaming의 `s3a://` 출력·checkpoint와 프로세스 재시작 복구
 
 MinIO를 영속 저장소로 사용하고 로컬 파일시스템은 atomic write와 Spark 실행을 위한
 staging/cache로 사용한다. 완성 파일만 checksum 검증 후 복사하며 로컬에 입력이 없으면
@@ -64,23 +65,47 @@ Console은 `http://localhost:9101`에서 확인합니다. 컨테이너 내부 Co
 - Airflow Spark 결과 100행, MinIO 2개 객체·128,906 bytes 동기화
 - 기존 정식 파일 최초 862개·40,617,977,648 bytes 복사, 실패 0건
 - 현재 정식 파일 재실행 869개 `unchanged`, 전송 0 bytes
-- 현재 fixture·legacy key 포함 952개 객체·40,620,440,757 bytes(약 37.83 GiB)
+- 현재 fixture·legacy·checkpoint 실험 포함 1,045개 객체·40,621,229,862 bytes
+  (약 37.83 GiB)
 - 새 DAG에서 raw 100건·processed 100건·LLM 요청 10건 자동 게시
+- 같은 MinIO checkpoint로 실행별 99·0·50건 처리, 최종 149건·고유 ID 149건
+- MinIO 컨테이너 재시작 전후 checkpoint 43개와 출력 44개 객체 보존
 
 상세 수치와 명령은 [MinIO 통합 검증](../../analysis/reports/minio-integration-validation.md)에
 정리했다. 전체 복사와 자동 게시 결과는
 [MinIO 전체 데이터 이전 검증](../../analysis/reports/minio-data-migration-validation.md)에
-별도로 정리했다.
+별도로 정리했다. Streaming 재시작 결과는
+[MinIO checkpoint 복구 검증](../../analysis/reports/minio-checkpoint-recovery-validation.md)에
+있다.
 
 ## 다음 확장 단계
 
-1. Structured Streaming checkpoint를 `news-checkpoints`로 전환해 중단·재시작합니다.
-2. 대용량 Parquet dataset 복구는 Spark S3A를 기본 입력으로 연결합니다.
+1. 대용량 Parquet dataset 복구는 Spark S3A를 기본 입력으로 연결합니다.
+2. Kafka broker·Spark worker·MinIO 네트워크 장애 중단 복구를 추가 검증합니다.
 3. 로컬 파일 삭제가 필요하면 object 크기·checksum·행 수 검증과 별도 승인을 먼저
    수행합니다.
+4. 외부 운영이 필요해지면 동일한 bucket/key 경계를 AWS S3로 이전합니다.
 
-Spark checkpoint는 일반 출력보다 일관성과 재시작 검증이 중요합니다. 원본과
-처리 데이터 연동이 안정된 뒤 마지막으로 `news-checkpoints`를 적용합니다.
+## AWS S3 전환 가능성
+
+MinIO는 S3 API와 Spark S3A를 사용하므로 bucket, object key, Parquet 구조와 대부분의
+읽기·쓰기 코드는 AWS S3에서도 재사용할 수 있다. 전환은 단순한 이름 변경이 아니라
+다음 운영 설정을 교체하는 작업이다.
+
+- 로컬 endpoint와 root key를 제거하고 AWS region·IAM role 또는 기본 credential
+  provider chain을 사용한다.
+- S3A의 path-style access를 끄고 TLS endpoint, bucket policy와 최소 권한 IAM을
+  설정한다.
+- `news-raw`, `news-processed`, `news-llm`, `news-reports`, `news-checkpoints` 책임을
+  S3 bucket 또는 prefix로 동일하게 유지한다.
+- `mc mirror`, `aws s3 sync` 또는 별도 migration Job으로 복사한 뒤 객체 수·byte·
+  checksum·Parquet 행 수를 대조한다.
+- Streaming은 기존 checkpoint를 임의 변환하지 않고 새 S3 경로에서 제한된 topic으로
+  재시작 검증 후 전환한다.
+
+현재 코드는 MinIO 전용 환경 변수와 static key를 사용하므로 AWS 전환 시 storage
+설정을 provider 중립 형태로 일반화해야 한다. 따라서 S3 전환은 가능한 후속 확장이며,
+현재 AWS 운영 배포가 완료됐다는 의미는 아니다.
 
 ## 운영 시 주의사항
 

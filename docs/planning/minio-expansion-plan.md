@@ -18,6 +18,8 @@ storage 경계로 옮긴다. 이번 확장의 완료 기준은 서비스 기동�
 | 6 | 전체 데이터 이전 | 정식 `data/` 산출물을 bucket별로 복사하고 실패 0건·재실행 전송 0 확인 |
 | 7 | 자동 게시 | 새 raw·processed·LLM 산출물이 실행 중 해당 bucket으로 게시됨을 DAG로 검증 |
 | 8 | 문서 동기화 | README·구성 문서·로드맵에 실제 실행 결과와 확인 명령 반영 |
+| 9 | Streaming checkpoint | S3A checkpoint로 3회 실행해 처리량 99·0·50과 최종 고유 149건 대조 |
+| 10 | 저장소 재시작 | MinIO 컨테이너 재시작 전후 report·checkpoint·output 객체 보존 확인 |
 
 ## 3. Object key 규칙
 
@@ -62,7 +64,7 @@ news-checkpoints/
 - 로컬 HTTP endpoint는 개발 네트워크에서만 사용한다.
 - MinIO 적재가 끝나도 기존 로컬 원본은 자동 삭제하지 않는다.
 - 로컬 삭제는 object checksum·행 수·복구 시험을 마친 뒤 별도 승인으로 수행한다.
-- `news-checkpoints` 전환은 원본·처리 데이터 경로가 안정된 뒤 별도로 검증한다.
+- checkpoint 경로는 topic과 stateful 처리 버전마다 분리하고 임의로 재사용하지 않는다.
 
 ## 6. 진행 현황
 
@@ -76,7 +78,19 @@ news-checkpoints/
 | 6 | 완료 | 최초 862개·40,617,977,648 bytes 복사, 현재 정식 파일 869개 동기화 |
 | 7 | 완료 | Reddit 100건→Spark 100건→LLM 요청 10건 DAG에서 bucket별 자동 저장 |
 | 8 | 완료 | README·Date 7·로드맵과 전체 이전 검증 보고서 갱신 |
+| 9 | 완료 | 같은 query ID로 99·0·50건 처리, 최종 149건·고유 ID 149건 |
+| 10 | 완료 | MinIO 재시작 전후 checkpoint 43개·output 44개 객체 보존 |
 
 마지막 멱등 재실행에서는 정식 파일 869개가 모두 `unchanged`, 실제 전송량 0 bytes로
-확인됐다. 현재 5개 bucket에는 fixture와 legacy key를 포함해 952개 객체, 약 37.83
-GiB가 저장되어 있다. 로컬 파일은 작업 staging/cache로 유지하며 자동 삭제하지 않는다.
+확인됐다. checkpoint 실험 후 5개 bucket에는 fixture와 legacy key를 포함해 1,045개
+객체, 40,621,229,862 bytes(약 37.83 GiB)가 저장되어 있다. 로컬 파일은 작업
+staging/cache로 유지하며 자동 삭제하지 않는다.
+
+## 7. AWS S3 후속 전환
+
+MinIO에서 검증한 S3 API, bucket/key 구조와 Spark S3A 경계는 AWS S3 전환 기반으로
+재사용한다. 후속 전환에서는 endpoint·path-style·static credential을 AWS region,
+TLS, IAM role/default credential provider와 bucket policy로 바꾼다. 객체 복사 후에는
+bucket별 object 수·byte·checksum, Parquet 행 수와 제한된 Kafka topic의 새 checkpoint
+재시작 결과를 대조한다. 현재 단계는 전환 가능성을 설계한 것이며 AWS 자원 생성이나
+데이터 업로드는 수행하지 않았다.

@@ -58,3 +58,11 @@ Standalone 실행의 상세 구조와 재현 명령은 [`docs/guides/spark-stand
 - `spark-streaming-consumer-dlq-log.jsonl`: 잘못된 JSON 1건 DLQ 검증
 
 운영 출력과 checkpoint는 `.gitignore` 대상인 `data/stream-output/`과 `data/stream-checkpoints/`에 있습니다.
+
+## MinIO 공유 checkpoint 확장
+
+로컬 checkpoint 검증 이후 output과 checkpoint를 각각 `news-processed`와
+`news-checkpoints`의 S3A 경로로 전환했다. Spark 프로세스를 세 번 실행했을 때 같은
+query ID가 복원됐고 처리 건수는 99·0·50건이었다. 최종 저장 149건과 고유 event ID
+149개가 일치했으며 MinIO 컨테이너 재시작 후에도 객체가 유지됐다. 세부 수치는
+[MinIO checkpoint 복구 검증](minio-checkpoint-recovery-validation.md)을 참고한다.

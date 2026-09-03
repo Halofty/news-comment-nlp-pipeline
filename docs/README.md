@@ -31,3 +31,5 @@ MinIO 도입 범위와 bucket 구조는 [`architecture/object-storage.md`](archi
 [`../analysis/reports/minio-data-migration-validation.md`](../analysis/reports/minio-data-migration-validation.md)에서 확인할 수 있습니다.
 실제 checksum·멱등 업로드, Spark S3A와 Airflow 동기화 결과는
 [`analysis/reports/minio-integration-validation.md`](../analysis/reports/minio-integration-validation.md)에서 확인할 수 있습니다.
+Spark와 MinIO 컨테이너 재시작의 checkpoint·출력 무결성 결과는
+[`analysis/reports/minio-checkpoint-recovery-validation.md`](../analysis/reports/minio-checkpoint-recovery-validation.md)에 정리했습니다.

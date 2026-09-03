@@ -42,6 +42,10 @@ data/stream-output/
 
 checkpoint에는 Kafka offset, watermark와 중복 제거 state가 포함됩니다. 입력 토픽, checkpoint 위치 또는 stateful 연산을 변경할 때 기존 checkpoint를 임의로 재사용하지 않습니다.
 
+output과 checkpoint는 로컬 경로뿐 아니라 `s3a://` URI도 받을 수 있다. S3A 출력은
+Parquet만 지원하며 MinIO endpoint와 자격 증명은 환경 변수에서 Spark 설정으로
+전달한다.
+
 ## Docker Compose 실행
 
 Kafka는 호스트용 `localhost:9092`와 Compose 내부용 `kafka:29092` listener를 각각 제공합니다. Spark는 `spark-master`, `spark-worker`, 일회성 제출·Driver용 `spark-runner`로 구성됩니다. 자세한 역할과 운영 명령은 [Spark Standalone 실행 구조](spark-standalone.md)를 참고합니다.
@@ -71,6 +75,13 @@ docker compose --profile tools run --rm spark-runner \
   --no-resolve-kafka-package
 ```
 
+MinIO에 출력과 checkpoint를 직접 저장하려면 두 경로를 다음처럼 바꾼다.
+
+```bash
+--output s3a://news-processed/streaming/text-events-v1 \
+--checkpoint s3a://news-checkpoints/spark/text-events-v1
+```
+
 `--available-now`는 현재 Kafka backlog를 모두 처리한 후 종료하므로 검증과 backfill에 사용합니다. 지속 실행에서는 이 옵션을 빼고 `--trigger-interval "10 seconds"`를 사용합니다.
 
 ## 주요 설정
@@ -96,6 +107,12 @@ python -m pytest -q tests/test_spark_streaming_consumer.py
 
 Docker Compose 실제 통합 검증에서는 Kafka 합성 1,000건 중 중복 19건을 제거하고 `processed` 941건, `quarantine` 30건, `quality_rejected` 10건을 기록했습니다. 같은 checkpoint 재시작 시 재처리는 0건이었고, malformed JSON 1건은 `contract_rejected`와 `raw-text-dlq`에 함께 기록됐습니다. 자세한 근거는 [통합 검증 보고서](../../analysis/reports/spark-streaming-consumer-validation.md)에 있습니다.
 
+MinIO S3A checkpoint 검증에서는 실행별 99·0·50건만 처리됐고 최종 149행과 고유
+`event_id` 149개가 일치했다. MinIO 컨테이너 재시작 후에도 checkpoint 43개와 출력
+44개 객체가 유지됐다. 자세한 근거는
+[MinIO checkpoint 복구 검증](../../analysis/reports/minio-checkpoint-recovery-validation.md)에
+있다.
+
 ## 운영 한계
 
 - watermark보다 늦은 이벤트는 stateful 중복 제거에서 제외될 수 있으므로 실제 지연 분포로 지연 허용값을 결정해야 합니다.
@@ -103,4 +120,5 @@ Docker Compose 실제 통합 검증에서는 Kafka 합성 1,000건 중 중복 19
 - 파일 sink와 Kafka DLQ는 하나의 원자적 commit이 아닙니다. PostgreSQL은 `event_id`와 `batch_id` 기반 멱등 upsert로 재시도를 방어합니다.
 - PostgreSQL sink는 `(consumer_name, batch_id)` commit을 먼저 확인하고 한 트랜잭션에서 event upsert와 commit 기록을 완료합니다. 파일 sink·Kafka DLQ와 PostgreSQL 사이에는 하나의 분산 transaction이 없습니다.
 - 현재 PostgreSQL 적재는 `toLocalIterator()`와 chunk insert 방식입니다. 대규모 확장에서는 JDBC staging 또는 bulk load로 전환합니다.
-- 운영 checkpoint는 로컬 임시 디스크가 아닌 장애 후에도 유지되는 공유 저장소에 둡니다.
+- 운영 checkpoint는 이번에 검증한 MinIO나 AWS S3처럼 장애 후에도 유지되는 공유
+  저장소에 둡니다.

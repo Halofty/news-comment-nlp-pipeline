@@ -61,11 +61,11 @@ Spark 실행을 위한 staging/cache이며, 완성된 파일을 SHA-256 검증 �
 | 텍스트 품질·안전 기준 | 구현 완료 | Unicode·반복·URL·PII·과대 입력 fixture 19개 |
 | Kafka ingestion | 구현·통합 검증 완료 | 실제 Broker에 합성 1,000건 발행·소비 |
 | Spark batch | 구현·검증 완료 | 동일 코드로 100건·1,000건 처리와 행 회계 확인 |
-| Spark Structured Streaming | 구현·통합 검증 완료 | watermark 중복 제거, checkpoint 재시작, 4개 경로와 DLQ |
+| Spark Structured Streaming | 구현·MinIO 복구 검증 완료 | S3A checkpoint 실행별 99·0·50건, 최종 고유 149건, 4개 경로와 DLQ |
 | Spark Standalone | 구현·통합 검증 완료 | Master·Worker 분리, Worker Executor 2 cores 실행 |
 | PostgreSQL 적재 | MVP 구현·통합 검증 완료 | 정상 981건·계약 거부 1건, 새 checkpoint 재처리 중복 0건 |
 | 부하·장애 복구 | 로컬 실험 완료 | 1월 2,935,785건 처리 복구 누락·중복 0건, DB 연결 실패 후 200건 멱등 복구 |
-| MinIO object storage | 전체 데이터 이전·자동 저장 검증 완료 | 현재 정식 파일 869개·40.62GB 일치, 재실행 전송 0B, raw→processed→LLM DAG 저장 성공 |
+| MinIO object storage | 전체 이전·재시작 검증 완료 | 정식 파일 869개·40.62GB, 재실행 0B, checkpoint 43개·출력 44개 객체 재시작 보존 |
 | LLM Batch | 일별·월간 분석과 결과 검증 완료 | 71,842개 원문으로 일별 31건과 월간 1건 분석, 실패·누락·중복 0건, 총비용 `$0.5482444` |
 | LLM 결과 품질 | quality gate 구현·실행 완료 | 일별 31행 보존·비정상 label 10개 제외, 월간 label 13개 모두 통과, hash 기록 |
 | Langfuse | Cloud·fallback·실제 usage 검증 완료 | 일별 31건과 월간 1건 token·cost 대조 일치; primary 장애 시 구조화 로그 9건 보존 |
@@ -129,6 +129,7 @@ news-comment-nlp-pipeline/
 | [MinIO Object Storage 설계](docs/architecture/object-storage.md) | bucket 책임, staging/cache 정책과 Spark·Airflow 연동 |
 | [MinIO 통합 검증](analysis/reports/minio-integration-validation.md) | checksum·멱등 업로드, Spark S3A와 Airflow 동기화 결과 |
 | [MinIO 전체 데이터 이전 검증](analysis/reports/minio-data-migration-validation.md) | raw부터 LLM 응답까지 전체 복사, bucket 현황과 새 DAG 자동 게시 결과 |
+| [MinIO checkpoint 복구 검증](analysis/reports/minio-checkpoint-recovery-validation.md) | Spark 3회 재시작의 99·0·50건 처리와 MinIO 컨테이너 재시작 보존 결과 |
 | [PostgreSQL 통합 검증](analysis/reports/postgres-integration-validation.md) | 982건 적재, rollback·재시도와 멱등성 결과 |
 | [LLM PostgreSQL·Airflow 통합 검증](analysis/reports/llm-postgres-airflow-integration-validation.md) | 실제 LLM 32건 멱등 적재와 수집→Spark→LLM 단일 DAG 실행 결과 |
 | [데이터와 보안 원칙](docs/security/data-security.md) | 원문·PII·자격 증명·보존과 외부 전송 기준 |

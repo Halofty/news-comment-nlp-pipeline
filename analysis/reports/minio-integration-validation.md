@@ -104,7 +104,9 @@ Airflow 컨테이너는 Linux Docker host gateway를 통해 `localhost:9000`의 
 processed, LLM 산출물 자동 게시를 검증했다. 상세 결과는
 [MinIO 전체 데이터 이전 검증](minio-data-migration-validation.md)에 정리했다.
 
-남은 독립 범위는 Structured Streaming checkpoint의 MinIO 전환 시험이다.
+Structured Streaming checkpoint의 MinIO 전환 시험도 이후 완료했다. 실행별
+99·0·50건과 최종 고유 149건, MinIO 재시작 후 객체 보존 결과는
+[MinIO checkpoint 복구 검증](minio-checkpoint-recovery-validation.md)에 기록했다.
 
 기존 로컬 원본은 자동으로 삭제하지 않는다. 로컬 삭제는 object checksum·행 수와
 복구 실행을 확인한 뒤 별도 작업으로 진행한다.

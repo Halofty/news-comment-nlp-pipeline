@@ -452,9 +452,11 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 | 2026-09-03 | 12 | 경제·사회 1월 Batch 결과 저장과 Airflow 통합 보완 | LLM 세 테이블 각 32행, 동일 입력 재실행 후 불변; DAG import 오류 0, 통합 dry-run 성공 | MinIO 실제 데이터 연결 |
 | 2026-09-03 | 13 | MinIO Python·Spark·Airflow 통합 | fixture SHA-256 왕복, Spark S3A 2→2행, Airflow 2개 객체·128,906 bytes 저장 | 전체 데이터 이전 |
 | 2026-09-03 | 14 | MinIO 전체 데이터 이전·자동 게시 | 현재 정식 파일 869개·40.62GB, 실패 0; 멱등 재실행 전송 0B; raw 100건→Spark 100건→LLM 요청 10건 자동 게시 | Streaming checkpoint 검증 |
+| 2026-09-03 | 15 | MinIO Streaming checkpoint·저장소 재시작 | 실행별 99·0·50건, 최종 149건·고유 ID 149건; MinIO 재시작 전후 checkpoint 43개·output 44개 객체 보존 | Kafka·worker 장애와 AWS S3 전환 검토 |
 
 ## 7. 과제 이후 기술 확장 범위
 
 OpenAI·Langfuse 실제 실행, 월간 분석, LLM PostgreSQL 적재, Airflow와 MinIO 통합
-검증과 기존 raw·processed·LLM·report 전체 데이터 이전까지 완료했습니다. 남은 장기
-확장 범위는 Structured Streaming checkpoint의 MinIO 전환과 재시작 검증입니다.
+검증, 기존 raw·processed·LLM·report 전체 데이터 이전과 Structured Streaming의
+MinIO checkpoint 재시작 검증까지 완료했습니다. 남은 장기 확장 범위는 Kafka broker·
+Spark worker 장애 복구, 대규모 처리량 측정과 운영 필요 시 AWS S3·IAM 전환입니다.
