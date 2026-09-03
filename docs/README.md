@@ -22,8 +22,7 @@
 [`briefings/date7/economy-social-results-01-31.md`](briefings/date7/economy-social-results-01-31.md)에
 정리했습니다.
 
-OpenAI API 프로젝트·결제·key와 Langfuse Cloud Japan 프로젝트를 사용자가 직접 설정하는
-절차는
+OpenAI API 프로젝트·환경변수와 Langfuse Cloud Japan의 실제 구성·검증 기록은
 [`briefings/date7/openai-langfuse-setup.md`](briefings/date7/openai-langfuse-setup.md)에
 있습니다.
 

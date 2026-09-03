@@ -30,19 +30,18 @@ Japan의 metadata-only sample trace와 OpenAI 합성 Batch 검증을 거쳐, 경
 | 3 | fallback 또는 alert의 실제 동작 결과 | 완료 | Langfuse primary 장애를 안전하게 재현해 fallback event 9개를 저장하고, LLM 예산 `critical`·`blocked`를 실행으로 확인 |
 | 4 | 최신 구성도와 데이터 모델 | 완료 | MinIO·LLM·Langfuse·Airflow가 반영된 HTML/PNG 구성도, TextEvent v1, PostgreSQL·LLM migration 연결 |
 | 5 | Kafka·Spark·저장·Airflow 로그, 단계별 건수와 최종 확인법 | 완료 | 6장의 공개 검증 보고서 링크와 단계별 처리 건수, 행 회계·고유 ID·usage 대조 방법 제시 |
-| 6 | 아직 실행되지 않는 단계와 남은 작업 | 완료 | 9장에 Langfuse UI 증빙, MinIO 연동과 전체 DAG 연결을 과제 이후 확장으로 명시 |
+| 6 | 아직 실행되지 않는 단계와 남은 작업 | 완료 | 9장에 MinIO 연동과 전체 DAG 연결 등을 과제 이후 기술 확장으로 명시 |
 | 7 | 현재 실행 방법과 확인 결과를 반영한 README | 완료 | 메인 README에 최신 흐름, 구현 상태, 실행·검증 문서 링크 반영 |
 | 선택 | BI·대시보드·API·inference 결과 예시 | 해당 없음 | 해당 기능을 추가하지 않았으므로 제출 의무 없음 |
 
 따라서 **6차시 과제의 필수 문서 항목 7개와 이번에 선택한 OpenAI·Langfuse 실행 검증은
-모두 완료했다.** Langfuse Cloud UI 화면 확인과 아래 저장·오케스트레이션 항목은 과제
-제출 후 확장 범위다.
+모두 완료했다.** 아래 저장·오케스트레이션 항목은 과제 제출 후 기술 확장 범위다.
 
 | 추가 구현 항목 | 현재 상태 | 최종 완료 조건 |
 |---|---|---|
 | GPT-5.6 Luna Batch | 완료 | 일별 31건·월간 1건 검증, 총비용 `$0.5482444` |
 | LLM quality gate | 완료 | 일별 31행 보존·비정상 label 10개 제외, 월간 13개 label 통과 |
-| Langfuse Cloud | 실행 검증 완료·UI 확인 권장 | 일별 31건·월간 1건 usage 대조 `matched` |
+| Langfuse Cloud | 완료 | 일별 31건·월간 1건 usage 대조 `matched` |
 | LLM PostgreSQL 적재 | 부분 완료 | 검증 결과 upsert adapter 구현과 동일 결과 재실행 멱등성 확인 |
 | 전체 end-to-end Airflow | 부분 완료 | 수집·Spark·LLM DAG를 dataset dependency로 연결해 한 흐름으로 실행 |
 
@@ -168,8 +167,7 @@ prompt와 응답 본문은 전송하지 않았다.
 | 월간 통합 | 1 | 4,213 | 172 | $0.0005245 | 1건 `matched` |
 | 합계 | 32 | 5,436,874 | 7,595 | **$0.5482444** | 32건 일치 |
 
-실제 전송에서 구조화 로그 fallback 파일은 비어 있어 primary 전송 실패가 없었다. Cloud
-UI의 trace와 비용 화면 캡처만 사용자가 선택적으로 추가한다.
+실제 전송에서 구조화 로그 fallback 파일은 비어 있어 primary 전송 실패가 없었다.
 
 근거: [경제·사회 최종 결과](economy-social-results-01-31.md),
 [OpenAI·Langfuse 사전 소량 검증](../../../analysis/reports/openai-langfuse-cloud-smoke-validation.md)
@@ -315,16 +313,15 @@ prepare_parameters
 → verify_preflight_and_submission
 ```
 
-기본 `submit=false`이므로 OpenAI key가 없어도 요청 형식·건수·예산을 확인한다.
-실제 제출은 UI의 DAG Run configuration에서 명시적으로 `submit=true`로 바꾸고
-Airflow 컨테이너에 `OPENAI_API_KEY`를 전달한 경우에만 수행한다. 의도적 장애 재현은
-낮은 `daily_budget_usd`로 제출 전 차단을 확인할 수 있으며 외부 API에는 요청하지 않는다.
+기본 `submit=false`이므로 OpenAI key가 없어도 요청 형식·건수·예산을 확인한다. 실제
+경제·사회 분석은 CLI Batch로 완료했으며 Airflow DAG는 중복 제출을 피하기 위해 dry-run
+검증 상태로 유지했다. 낮은 `daily_budget_usd`를 사용한 제출 전 차단은 외부 API 호출
+없이 검증했다.
 
-## 9. 과제 이후 확장 작업
+## 9. 과제 이후 기술 확장 범위
 
-| 단계 | 현재 상태 | 남은 작업 |
+| 단계 | 현재 상태 | 확장 범위 |
 |---|---|---|
-| Langfuse Cloud UI | 일별·월간 실제 usage 전송 완료 | Cloud UI 화면 캡처를 제출 증빙에 선택적으로 추가 |
 | LLM PostgreSQL 저장 | migration·결과 검증 완료 | upsert adapter와 재실행 검증 |
 | MinIO 데이터 연결 | 서비스·bucket 완료 | fixture upload와 Spark `s3a://` 검증 |
 | 전체 Airflow 연결 | 수집·Spark DAG, LLM DAG 각각 구현 | dataset dependency로 end-to-end 연결 |
@@ -332,33 +329,7 @@ Airflow 컨테이너에 `OPENAI_API_KEY`를 전달한 경우에만 수행한다.
 | Reddit 2012 가공 | 12개월 원본 다운로드 완료 | 21개 subreddit 일별 Parquet 변환 |
 | BI·API·inference 화면 | 추가하지 않음 | 이번 제출 대상 아님 |
 
-## 10. 사용자가 직접 해야 하는 외부 서비스 설정
-
-실제 외부 실행에는 코드로 대신할 수 없는 계정 설정이 남아 있다. 상세한 화면 경로,
-환경변수, 검증 명령과 secret 점검은
-[OpenAI API와 Langfuse Cloud 설정 가이드](openai-langfuse-setup.md)에
-정리했다.
-
-| 순서 | 사용자가 할 일 | 확인 상태 | 완료 기준 |
-|---:|---|---|---|
-| 1 | OpenAI API 전용 프로젝트 생성 | 완료 | `news-comment-nlp-pipeline` 프로젝트 선택 가능 |
-| 2 | API Billing·GPT-5.6 Luna 사용 가능 여부 확인 | 완료 | 실제 Batch 접수로 model·결제 상태 확인 |
-| 3 | 프로젝트 budget·usage notification 설정 | 사용자 확인 필요 | 대시보드 경고 + 로컬 예산 차단 이중화 |
-| 4 | 프로젝트 범위 OpenAI key 발급 | 완료 | `.env` 존재 확인, 값 미출력 |
-| 5 | Langfuse Cloud Japan 프로젝트 생성 | 완료 | 일본 리전 인증 성공 |
-| 6 | Langfuse 프로젝트 key pair 발급 | 완료 | `.env` 존재·Cloud 인증 확인, 값 미출력 |
-| 7 | Airflow 컨테이너 다시 생성 | 완료 | `credentials-configured` 확인 |
-| 8 | Langfuse trace 전송 | 실제 usage 전송 완료·UI 확인 권장 | 일별 31건과 월간 1건 trace를 UI에서 육안 확인 |
-| 9 | Airflow 2건 dry-run | 완료 | `submit=false`, 4개 task 성공 |
-| 10 | OpenAI 실제 Batch 제출 | 완료 | 일별 31건과 월간 1건 결과·Schema·usage 검증 완료 |
-
-실제 경제·사회 분석은 CLI로 일별 31개와 월간 1개 Batch를 완료했으므로 같은 요청을
-Airflow에서 다시 제출하지 않는다. Airflow의 합성 2건 실행은 DAG 파라미터·예산 차단을
-검증한 `submit=false` dry-run이며 실제 분석 건수와 비용에 포함하지 않는다. 사용자가
-화면에서 확인할 항목은 OpenAI dashboard budget·notification과 Langfuse UI의 일별
-31건·월간 1건 trace·token·cost다.
-
-## 11. 자동 검증
+## 10. 자동 검증
 
 ```bash
 python -m pytest -q

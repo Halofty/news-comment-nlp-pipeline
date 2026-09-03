@@ -91,18 +91,23 @@ Langfuse 기록 실패가 핵심 분석 결과 저장을 중단시키지 않도�
 - 동일 `event_id`와 prompt version의 중복 분석을 방지합니다.
 - 재시도 비용을 최초 요청과 구분해 관측합니다.
 
-## 8. 구현 체크리스트
+## 8. 구현 상태
 
-- [x] `gpt-5.6-luna`와 `/v1/responses` Batch 지원 확인
-- [x] 요청·응답 JSON Schema 작성
-- [x] prompt version 관리 방식 결정
-- [x] Batch JSONL 생성기 구현
-- [x] 제출·상태 확인·결과 다운로드 구현
-- [x] 결과 JSON Schema 검증 구현
-- [ ] 검증 결과 PostgreSQL 적재 adapter 구현
-- [ ] 누락·오류·만료 재처리 구현
-- [x] Langfuse 도입 방식과 데이터 경계 결정
-- [x] 소량 합성 데이터로 토큰·비용·fallback 추적 검증
+구현 완료:
+
+- `gpt-5.6-luna`와 `/v1/responses` Batch 지원 확인
+- 요청·응답 JSON Schema 작성
+- prompt version 관리 방식 결정
+- Batch JSONL 생성기 구현
+- 제출·상태 확인·결과 다운로드 구현
+- 결과 JSON Schema 검증 구현
+- Langfuse 도입 방식과 데이터 경계 결정
+- 소량 합성 데이터로 토큰·비용·fallback 추적 검증
+
+과제 이후 확장 범위:
+
+- 검증 결과 PostgreSQL 적재 adapter
+- 누락·오류·만료 재처리
 
 구현 파일은 `llm_analysis/`, 실행 CLI는 `jobs/openai_batch.py`, Airflow DAG는
 `dags/llm_batch_pipeline.py`입니다. 공식 사양은 [GPT-5.6 Luna 모델](https://developers.openai.com/api/docs/models/gpt-5.6-luna)과

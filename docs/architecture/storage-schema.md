@@ -65,18 +65,23 @@ Spark foreachBatch
 
 현재 Driver streaming insert는 1,000건 MVP에 맞춘 방식입니다. 대규모 확장 시 Spark JDBC staging 또는 object storage 기반 bulk load로 교체합니다.
 
-## 6. 구현 전 결정 사항
+## 6. 설계 및 구현 상태
 
-- [x] 핵심 수집·정제 테이블 컬럼과 데이터 타입 확정
-- [x] 원본 JSON text와 검색용 정규 컬럼 범위 결정
-- [x] 핵심 기본키·외래키·unique constraint 결정
-- [x] 시간·출처 조회 index 결정
-- [x] 1,000건 MVP는 staging 없이 transaction upsert 사용
-- [ ] 보존 기간과 개인정보 삭제 정책 결정
-- [x] Langfuse와 PostgreSQL의 LLM 관측 데이터 책임 구분
-- [x] LLM Batch·요청·문서 분석 migration 작성
-- [ ] 검증된 LLM 결과의 PostgreSQL upsert adapter 연결
-- [ ] migration과 rollback 절차 작성
+확정 또는 구현 완료:
+
+- 핵심 수집·정제 테이블 컬럼과 데이터 타입
+- 원본 JSON text와 검색용 정규 컬럼 범위
+- 핵심 기본키·외래키·unique constraint
+- 시간·출처 조회 index
+- 1,000건 MVP의 transaction upsert 방식
+- Langfuse와 PostgreSQL의 LLM 관측 데이터 책임 구분
+- LLM Batch·요청·문서 분석 migration
+
+과제 이후 확장 범위:
+
+- 보존 기간과 개인정보 삭제 정책
+- 검증된 LLM 결과의 PostgreSQL upsert adapter
+- migration과 rollback 절차
 
 ## 7. 로컬 실행
 

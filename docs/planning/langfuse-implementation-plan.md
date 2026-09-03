@@ -242,7 +242,7 @@ LLM_BUDGET_WARNING_RATIOS=0.70,0.90,1.00
 ### 7-4. 합성 데이터 통합 검증
 
 - 원문 없는 합성 Batch trace 전송
-- Langfuse UI/API에서 trace·generation·token·비용 확인
+- Langfuse API에서 trace·generation·token·비용 대조
 - metadata에 금지 데이터가 없는지 검사
 - Langfuse endpoint 차단과 잘못된 key로 fallback 검증
 

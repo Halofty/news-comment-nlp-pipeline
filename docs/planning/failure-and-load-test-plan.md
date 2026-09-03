@@ -98,17 +98,22 @@ malformed JSON DLQ를 검증했습니다. 추가로 2012년 1월 15,063,050건 �
 
 실제 원문과 대용량 실행 결과는 `data/`에 저장하고, 공개 가능한 집계 보고서만 저장소에 포함합니다.
 
-## 7. 완료 기준
+## 7. 검증 상태
 
-- [x] 정상 입력과 오류 입력 건수가 모두 설명 가능해야 합니다.
-- [x] 장애 전후 데이터 유실 여부를 수치로 확인해야 합니다.
-- [x] 재실행 시 중복 방지 기준을 검증해야 합니다.
-- [ ] 오류가 발생한 원본의 topic·partition·offset 또는 파일 줄을 추적해야 합니다.
-- [ ] 재현 가능한 명령과 환경을 기록해야 합니다.
+완료한 검증:
+
+- 정상 입력과 오류 입력 건수 설명
+- 장애 전후 데이터 유실 여부 수치 확인
+- 재실행 시 중복 방지 기준 검증
+- 파일 배치와 PostgreSQL 연결 실패 실험의 명령·환경 기록
+
+Kafka Streaming 확장 범위:
+
+- 오류가 발생한 원본의 topic·partition·offset 추적
 
 파일 배치와 PostgreSQL 연결 실패 실험의 명령·환경은
-[Date 6 결과](../briefings/date6/date6.md)에 기록했습니다. topic·partition·offset
-추적 완료 조건은 Kafka Streaming 장애 실험에서 별도로 충족해야 합니다.
+[Date 6 결과](../briefings/date6/date6.md)에 기록했습니다. Kafka Streaming 장애
+실험에서는 topic·partition·offset을 기준으로 원본을 추적하도록 설계했습니다.
 
 ## 8. 관련 문서
 

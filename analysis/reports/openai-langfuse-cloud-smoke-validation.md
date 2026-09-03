@@ -42,8 +42,8 @@
 | usage reconciliation | `matched` |
 | metadata-only 정책 | 원문·prompt·응답을 전송하지 않음 |
 
-Cloud 전송 명령은 오류와 fallback 경고 없이 종료됐다. Langfuse UI의
-Traces/Generations 화면 확인은 사용자 확인 항목으로 남긴다.
+Cloud 전송 명령은 오류와 fallback 경고 없이 종료됐다. 이후 실제 일별 31건과 월간
+1건도 같은 metadata-only 정책으로 전송해 usage 대조가 일치했다.
 
 ## 3. OpenAI Responses Batch
 
@@ -56,11 +56,12 @@ Traces/Generations 화면 확인은 사용자 확인 항목으로 남긴다.
 | endpoint | `/v1/responses` |
 | completion window | `24h` |
 | 확인된 요청 수 | 2 |
-| 현재 상태 | `in_progress` |
+| 제출 직후 상태 | `in_progress` |
 | 현재 실패 | 0 |
 
-Batch는 비동기 처리이므로 동일 요청을 다시 제출하지 않는다. `completed`로 전환된 뒤
-결과 파일을 다운로드해 다음 조건을 확인하면 소량 외부 검증이 완료된다.
+이 표는 제출 직후 상태를 남긴 smoke 기록이다. 이후 실제 경제·사회 Batch 32개가 모두
+완료됐으며 결과·Schema·usage 검증은
+[Date 7 최종 보고서](../../docs/briefings/date7/economy-social-results-01-31.md)에 기록했다.
 
 ```text
 manifest 2건 = completed + failed
@@ -79,5 +80,4 @@ OpenAI key, Langfuse key pair와 일본 리전 base URL이 존재하는지만 �
 credentials-configured
 ```
 
-실제 Batch 제출은 CLI에서 1회 수행했다. Airflow의 `submit=true` 재실행은 같은 합성
-요청을 중복 제출하므로 수행하지 않는다.
+실제 Batch 제출은 CLI에서 수행했고 Airflow는 `submit=false` dry-run으로 검증했다.

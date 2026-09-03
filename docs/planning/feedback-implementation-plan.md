@@ -24,33 +24,29 @@
 
 ## 3. 전체 진행 현황
 
-상태 표기:
-
-- `[ ]` 시작 전
-- `[-]` 진행 중
-- `[x]` 완료
-- `[!]` 외부 조건 또는 결정 필요
+상태는 `완료`, `진행 중`, `과제 이후 확장`으로 구분합니다.
 
 | 단계 | 작업 | 상태 | 진행률 | 완료 증거 |
 |---:|---|:---:|---:|---|
-| 0 | 피드백 구현 계획 작성 | `[x]` | 100% | 이 문서 작성 |
-| 1 | README 축약과 상세 문서 분리 | `[x]` | 100% | README 437→163줄, 상세 문서 3개, 링크·테스트 검사 통과 |
-| 2 | 데이터셋 명세와 메타데이터 작성 | `[x]` | 100% | 데이터셋 명세 2개, YAML 카탈로그·Schema, 표본 profile 2개, 자동 검사 6개 통과 |
-| 3 | 커뮤니티 텍스트 품질·안전 기준 설계 | `[x]` | 100% | 정책 문서, 기준 구현, fixture 19개·Schema와 자동 검사 7개 통과 |
-| 4 | Spark 100건 처리 MVP | `[x]` | 100% | 명시적 Schema·공통 변환·CLI, 합성 100건 행 회계와 profile |
-| 5 | Spark 1,000건 이상 확장 검증 | `[x]` | 100% | 동일 코드 1,000건 처리, partition·품질·시간·운영 로그 점검 보고서 |
-| 6 | Langfuse 도입 방식 조사와 결정 | `[x]` | 100% | 관리형 일본 리전·metadata-only 정책과 adapter 경계 ADR |
-| 7 | Langfuse 토큰·비용 추적 연동 | `[-]` | 95% | adapter·360 token 대조·장애 fallback 완료, 실제 Cloud 확인만 대기 |
-| 8 | Airflow로 Reddit 일별 수집·Spark 자동화 | `[x]` | 100% | 2016-01-01·2016-02-01 각 1,000건 수집, Spark 처리와 행 회계 검증 완료 |
-| 9 | 2012년 수집·부하·장애 복구 | `[x]` | 100% | Google News 366일, Reddit 원본 12개월, Spark·DB 복구 누락·중복 0건 |
-| 10 | MinIO 로컬 object storage | `[-]` | 60% | Compose 기동·health check·3개 bucket 생성을 검증, 실제 upload·Spark 연동 대기 |
-| 11 | 6차시 보완·LLM Batch | `[-]` | 90% | GPT-5.6 Luna 요청·API CLI·Schema 검증·Airflow dry-run·예산 alert 완료, 실제 API key 대기 |
+| 0 | 피드백 구현 계획 작성 | 완료 | 100% | 이 문서 작성 |
+| 1 | README 축약과 상세 문서 분리 | 완료 | 100% | README 437→163줄, 상세 문서 3개, 링크·테스트 검사 통과 |
+| 2 | 데이터셋 명세와 메타데이터 작성 | 완료 | 100% | 데이터셋 명세 2개, YAML 카탈로그·Schema, 표본 profile 2개, 자동 검사 6개 통과 |
+| 3 | 커뮤니티 텍스트 품질·안전 기준 설계 | 완료 | 100% | 정책 문서, 기준 구현, fixture 19개·Schema와 자동 검사 7개 통과 |
+| 4 | Spark 100건 처리 MVP | 완료 | 100% | 명시적 Schema·공통 변환·CLI, 합성 100건 행 회계와 profile |
+| 5 | Spark 1,000건 이상 확장 검증 | 완료 | 100% | 동일 코드 1,000건 처리, partition·품질·시간·운영 로그 점검 보고서 |
+| 6 | Langfuse 도입 방식 조사와 결정 | 완료 | 100% | 관리형 일본 리전·metadata-only 정책과 adapter 경계 ADR |
+| 7 | Langfuse 토큰·비용 추적 연동 | 완료 | 100% | 실제 Batch 32건의 usage·비용과 Langfuse reconciliation 검증 |
+| 8 | Airflow로 Reddit 일별 수집·Spark 자동화 | 완료 | 100% | 2016-01-01·2016-02-01 각 1,000건 수집, Spark 처리와 행 회계 검증 완료 |
+| 9 | 2012년 수집·부하·장애 복구 | 완료 | 100% | Google News 366일, Reddit 원본 12개월, Spark·DB 복구 누락·중복 0건 |
+| 10 | MinIO 로컬 object storage | 과제 이후 확장 | 60% | Compose 기동·health check·3개 bucket 생성 검증, upload·Spark 연동 설계 보류 |
+| 11 | 6차시 보완·LLM Batch | 완료 | 100% | GPT-5.6 Luna Batch 32건 완료, Schema 검증·비용 집계·Langfuse reconciliation 완료 |
 
 4차시 과제의 **8단계 Airflow 자동화**는 Reddit 하루 날짜 방식으로 완료했습니다.
 5차시 부하·장애 과제도 2012년 데이터 확대, Spark 저장 전 강제 실패와 PostgreSQL
 연결 실패 복구로 완료했습니다. 뉴스 기준 데이터는 GDELT에서 2012년 Google News
-RSS와 Global Voices 보완 경로로 변경했습니다. 7단계의 관리형 Langfuse 실제 trace
-확인은 외부 key 대기 상태이며, 10단계 MinIO는 로컬 서비스와 bucket 준비까지 완료된 상태입니다.
+RSS와 Global Voices 보완 경로로 변경했습니다. 7단계의 관리형 Langfuse 연동은
+실제 Batch 32건 기준으로 검증했습니다. 10단계 MinIO는 로컬 서비스와 bucket
+준비까지 완료했으며 이후 확장 범위로 분리했습니다.
 
 ## 4. 단계별 구현 계획
 
@@ -83,7 +79,7 @@ RSS와 Global Voices 보완 경로로 변경했습니다. 7단계의 관리형 L
 | 상세 Collector·Kafka 실행 설명 | 기존 `docs/guides/ingestion-implementation.md` 활용 |
 | 전체 아키텍처 | 기존 `docs/architecture/system-architecture.html` 활용 |
 
-#### 작업 체크리스트
+#### 구현 결과
 
 - [x] 기존 README 섹션을 핵심·상세로 분류
 - [x] 상세 내용을 관련 문서로 이동하거나 기존 문서와 통합
@@ -162,7 +158,7 @@ datasets:
 
 실제 필드는 구현 시 데이터 계약과 데이터셋 페이지를 다시 확인해 확정합니다.
 
-#### 작업 체크리스트
+#### 구현 결과
 
 - [x] `analysis/` 디렉터리와 안내 문서 생성
 - [x] GDELT 데이터셋 명세 작성
@@ -208,7 +204,7 @@ datasets:
 - 품질 문제와 악성 행위를 코드가 확정적으로 단정하지 않고 quality flag로 표현합니다.
 - Kafka Producer 이전의 방어와 Spark 정제 단계의 방어를 구분합니다.
 
-#### 작업 체크리스트
+#### 구현 결과
 
 - [x] `analysis/quality/text-quality-rules.md` 작성
 - [x] 최대 문자·byte·token 측정 위치와 상한 결정
@@ -273,7 +269,7 @@ tests/
 - 최종 출력 행 수
 - 처리 시간
 
-#### 작업 체크리스트
+#### 구현 결과
 
 - [x] Java·PySpark 실행 환경 확인
 - [x] PySpark 버전과 Python 버전 호환성 확인
@@ -301,7 +297,7 @@ tests/
 
 100건에서 검증한 로직을 1,000건 이상에 적용하고 처리 시간과 품질 분포를 기록합니다.
 
-#### 작업 체크리스트
+#### 구현 결과
 
 - [x] Reddit 또는 합성·실제 혼합 표본 1,000건 준비
 - [x] 1,000건 batch 처리 실행
@@ -344,11 +340,11 @@ LLM 요청의 토큰·비용·지연·오류를 직접 원장으로만 관리하
 
 | 선택안 | 장점 | 주의점 |
 |---|---|---|
-| 관리형 Langfuse | 로컬 운영 부담 감소, 빠른 검증 | 외부 전송 데이터와 비용·정책 확인 필요 |
+| 관리형 Langfuse | 로컬 운영 부담 감소, 빠른 검증 | 외부 전송 데이터와 비용·정책 관리 부담 |
 | Self-hosted Langfuse | 데이터와 운영 환경 통제 | 추가 서비스·저장소·자원·백업 부담 검토 필요 |
 | 초기에는 얇은 adapter만 구현 | 애플리케이션 결합도 감소 | 실제 관측 기능 검증이 늦어질 수 있음 |
 
-#### 작업 체크리스트
+#### 구현 결과
 
 - [x] 현재 Langfuse 공식 설치·SDK·OpenAI 연동 문서 확인
 - [x] 관리형과 self-hosted 구성요소 비교
@@ -393,7 +389,7 @@ Trace: 하나의 LLM Batch 작업
     └── validation result
 ```
 
-#### 작업 체크리스트
+#### 구현 결과
 
 - [x] Langfuse client wrapper 작성
 - [x] 환경 변수와 secret 관리 추가
@@ -404,7 +400,10 @@ Trace: 하나의 LLM Batch 작업
 - [x] prompt·응답 저장 범위 검증
 - [x] 실행·확인 방법 문서화
 
-현재 환경에는 관리형 Langfuse key가 없어 실제 Cloud UI 확인은 남아 있습니다. 로컬에서는 실제 SDK 4.14.4의 tracing 비활성 client로 method 호환성을 확인하고, 구조화 로그 sink로 동일 payload를 검증했습니다. 결과는 [Langfuse 샘플 추적 검증](../../analysis/reports/langfuse-token-validation.md)에 기록합니다.
+초기에는 로컬 SDK와 구조화 로그 sink로 payload를 검증했고, 이후 관리형 Langfuse Cloud
+Japan에 실제 일별 31건과 월간 1건의 metadata-only usage를 전송했습니다. 결과는
+[Langfuse 샘플 추적 검증](../../analysis/reports/langfuse-token-validation.md)과
+[Date 7 최종 결과](../briefings/date7/economy-social-results-01-31.md)에 기록했습니다.
 
 #### 완료 조건
 
@@ -431,7 +430,7 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 
 ## 6. 진행 기록
 
-| 날짜 | 단계 | 변경 내용 | 검증 | 다음 작업 |
+| 날짜 | 단계 | 변경 내용 | 검증 | 당시 후속 단계 |
 |---|---:|---|---|---|
 | 2026-08-21 | 0 | 멘토 피드백을 7단계 구현 계획으로 분리 | 문서 구조·체크리스트 확인 | 1단계 README 내용 분류 |
 | 2026-08-21 | 1 | README를 437줄에서 163줄로 축약하고 저장·LLM·장애 설계를 문서 3개로 분리 | 테스트 16개, Compose, Markdown 8개 로컬 링크 통과 | 2단계 `analysis/` 데이터 명세 작성 |
@@ -442,22 +441,20 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 | 2026-08-24 | Standalone 확장 | Spark Master·Worker·제출 Driver를 Compose 서비스로 분리하고 Job 기본 master URL을 환경 설정화 | Worker 2 cores 등록, batch 100건과 streaming 고유 982건 Executor 처리, checkpoint 재제출 0건 | 장애·부하 실험과 PostgreSQL 적재 |
 | 2026-08-24 | PostgreSQL 적재 | 핵심 4개 테이블 migration, transaction advisory lock, event·batch upsert와 선택적 Streaming sink 구현 | 실제 982건 적재, NUL 실패 rollback 후 재시도, 새 checkpoint 재처리 `already_committed`와 행 수 불변 확인 | 6단계 Langfuse 도입 조사 |
 | 2026-08-24 | 6 | 공식 v4 SDK·Cloud·self-hosted 구성과 OpenAI Batch usage 추적 범위를 비교하고 관리형 일본 리전·metadata-only·adapter 경계를 채택 | ADR에 구성요소, 최소 11 vCPU·25.5 GiB RAM, 허용 metadata, fallback과 재검토 조건 기록 | 7단계 Langfuse 추적 adapter 구현 |
-| 2026-08-24 | 7 | vendor 독립 관측 자료형, Langfuse·구조화 로그·no-op sink와 합성 Batch 검증 CLI 구현 | SDK 4.14.4 smoke test, 3건 360 token·$0.000265 대조, 관측 9개·전체 52개 테스트 통과 | 관리형 Cloud trace 확인 후 LLM Batch workflow 연결 |
-| 2026-08-27 | 8 | 하루 날짜 Param으로 Reddit Collector와 기존 Spark batch를 연결하는 4-task DAG 및 실행 가이드 작성 | 관련 테스트 15개와 DAG import 오류 0건; 2016-01-01·2016-02-01 각 1,000건 실제 run 성공 | Airflow 성공 화면 캡처·GitHub 링크 제출 |
+| 2026-08-24 | 7 | vendor 독립 관측 자료형, Langfuse·구조화 로그·no-op sink와 합성 Batch 검증 CLI 구현 | SDK 4.14.4 smoke test, 3건 360 token·$0.000265 대조, 관측 9개·전체 52개 테스트 통과 | 이후 실제 Batch와 Cloud usage 검증 완료 |
+| 2026-08-27 | 8 | 하루 날짜 Param으로 Reddit Collector와 기존 Spark batch를 연결하는 4-task DAG 및 실행 가이드 작성 | 관련 테스트 15개와 DAG import 오류 0건; 2016-01-01·2016-02-01 각 1,000건 실제 run 성공 | 실행 결과와 검증 보고서 반영 완료 |
 | 2026-08-31 | 9 | Google News 2012년 366일과 Reddit 원본 12개월 수집, 입력 확대와 Spark·PostgreSQL 장애 복구 실행 | Spark 2,935,785건과 DB 200건 모두 누락·중복 0건 | 계획 문서 동기화와 object storage 경계 추가 |
 | 2026-08-31 | 10 | MinIO Compose, health check, raw·processed·checkpoint bucket 생성과 설계 문서 검증 | 로컬 object storage 기반 완료 | 작은 fixture upload와 Python·Spark 연동 |
-| 2026-09-02 | 11 | GPT-5.6 Luna Batch JSONL·API CLI·Schema 검증·Airflow DAG·LLM migration 구현 | 90 tests, DAG import 0, dry-run 성공, 예산 차단·복구와 Langfuse fallback 확인 | 실제 OpenAI·Langfuse key 검증과 결과 upsert |
-| 2026-09-03 | 12 | 경제·사회 1월 일별 Batch 31건, label quality gate, 월간 통합 Batch와 Langfuse 실제 usage 검증 | 71,842건 입력, 일별·월간 실패 0건, 총비용 $0.5482444, 전체 99 tests | PostgreSQL 결과 upsert와 Airflow end-to-end 연결 |
+| 2026-09-02 | 11 | GPT-5.6 Luna Batch JSONL·API CLI·Schema 검증·Airflow DAG·LLM migration 구현 | 90 tests, DAG import 0, dry-run 성공, 예산 차단·복구와 Langfuse fallback 확인 | 이후 실제 Batch 32건과 Langfuse usage 검증 완료 |
+| 2026-09-03 | 12 | 경제·사회 1월 일별 Batch 31건, label quality gate, 월간 통합 Batch와 Langfuse 실제 usage 검증 | 71,842건 입력, 일별·월간 실패 0건, 총비용 $0.5482444, 전체 99 tests | PostgreSQL upsert·Airflow 연결은 기술 확장 범위 |
 
-## 7. 다음 작업
+## 7. 과제 이후 기술 확장 범위
 
-OpenAI·Langfuse 실제 실행과 월간 분석까지 완료했습니다. 다음 작업은 **LLM 결과의
-PostgreSQL upsert와 전체 Airflow 연결**, 그리고 MinIO fixture 검증입니다.
+OpenAI·Langfuse 실제 실행과 월간 분석까지 완료했습니다. 기술 확장 범위는 LLM 결과의
+PostgreSQL upsert, 전체 Airflow 연결, MinIO fixture 검증입니다.
 
-구현 순서:
-
-1. Compose에서 MinIO와 bucket 초기화 Job의 상태를 확인합니다.
-2. 공개 fixture 한 개를 `news-raw`에 업로드하고 size·ETag를 확인합니다.
-3. endpoint·bucket을 환경 변수로 받는 Python S3 adapter를 추가합니다.
-4. Spark `s3a://` 의존성을 고정하고 작은 Parquet 읽기를 검증합니다.
-5. Reddit 2~12월 일별 변환 결과의 MinIO 이동은 로컬·object 행 수 검증 후 진행합니다.
+- MinIO와 bucket 초기화 상태 검증
+- 공개 fixture의 `news-raw` upload와 size·ETag 검증
+- endpoint·bucket을 환경 변수로 받는 Python S3 adapter
+- Spark `s3a://` 의존성 고정과 소형 Parquet 읽기 검증
+- Reddit 2~12월 일별 변환 결과의 로컬·object 행 수 대조

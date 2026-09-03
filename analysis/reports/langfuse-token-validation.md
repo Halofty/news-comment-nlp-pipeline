@@ -4,7 +4,8 @@
 
 OpenAI Batch 형식의 합성 결과를 사용해 문서별 token·비용을 계산하고, Batch 합계와 대조한 뒤 metadata-only 관측 payload로 기록할 수 있는지 확인했습니다.
 
-실제 OpenAI API와 Langfuse Cloud에는 요청하지 않았습니다. 현재 환경에 Langfuse 자격 증명이 없어 Cloud UI 확인은 후속 검증으로 남겼습니다.
+이 문서의 2026-08-24 검증은 외부 API를 사용하지 않은 로컬 adapter 검사입니다. 이후
+2026-09-03에 Langfuse Cloud Japan과 실제 OpenAI Batch 연동까지 완료했습니다.
 
 ## 2. 환경
 
@@ -96,7 +97,7 @@ python -m pytest -q tests/test_langfuse_observability.py
 python -m jobs.verify_langfuse
 ```
 
-관리형 Langfuse key를 환경 변수로 주입한 뒤 실제 Cloud trace를 전송할 때는 다음 명령을 사용합니다.
+실제 Cloud trace 검증에는 다음 명령을 사용했습니다.
 
 ```bash
 python -m jobs.verify_langfuse --sink langfuse
@@ -104,10 +105,9 @@ python -m jobs.verify_langfuse --sink langfuse
 
 필요한 환경 변수는 `.env.example`에 기록되어 있습니다. 실제 key는 Git에 포함하지 않습니다.
 
-## 9. 남은 검증
+## 9. 후속 검증 결과
 
-- 관리형 일본 리전 프로젝트에서 trace 1건과 generation 3건 UI 확인
-- Langfuse API에서 token·비용 합계 조회
-- 실제 LLM Batch workflow와 PostgreSQL 결과 적재에 adapter 연결
-- Cloud endpoint 차단 상태에서 결과 적재가 계속되는 end-to-end 검증
-
+- Langfuse Cloud Japan 인증과 metadata-only sample trace 전송 완료
+- 경제·사회 일별 31건과 월간 1건의 token·비용 usage 대조 `matched`
+- primary 장애 시 구조화 로그 fallback 9건 보존 확인
+- 실제 결과는 [Date 7 최종 보고서](../../docs/briefings/date7/economy-social-results-01-31.md)에 기록

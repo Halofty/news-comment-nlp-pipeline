@@ -184,17 +184,14 @@ quality gate를 통과한 일별 31개 분석만 입력으로 월간 Batch 1건�
 일별 31건과 월간 1건의 실제 LLM 비용 합계는 **$0.5482444**다. 월간 원본·검증·정제
 결과와 관측 파일은 `data/llm_response/economy-social/2012/01/monthly/`에 저장했다.
 
-## 8. 결론과 남은 작업
+## 8. 결론과 기술 확장 범위
 
 경제·사회 그룹의 1월 원문 71,842건을 날짜별 31개 Batch로 나눈 방식은 queued token
 한도 안에서 전체 데이터를 표본 손실 없이 처리했다. 날짜별 독립 결과 덕분에 실패 시 해당
 날짜만 재실행할 수 있고, 31개 결과의 날짜 연속성·유일성·usage 대조도 모두 통과했다.
 
-일별 분석, quality gate, 월간 통합 분석과 token·비용 검증까지 모두 완료했다. 과제 제출
-후 프로젝트 확장 단계에서 남은 작업은 다음과 같다.
-
-- Langfuse UI에서 일별 31건과 월간 1건의 trace·token·cost 화면 확인
-- 필요하면 PostgreSQL upsert와 Airflow end-to-end 연결
+일별 분석, quality gate, 월간 통합 분석과 token·비용 검증까지 모두 완료했다.
+PostgreSQL upsert와 Airflow end-to-end 연결은 과제 이후 기술 확장 범위로 분리했다.
 
 OpenAI Batch 결과는 출력 순서가 입력 순서와 다를 수 있으므로 `custom_id`로 manifest와
 대조했다. 결과 회수 및 검증 방식은

@@ -104,7 +104,7 @@ news-comment-nlp-pipeline/
 | [Date 4 Kafka·Spark 정리](docs/briefings/date4.md) | 메시지 명세, 1,000건 검증, 전처리·저장과 실행 명령 |
 | [Date 5 Airflow 자동화 브리핑](docs/briefings/date5/date5.md) | 과제 요구사항, DAG 구조, 두 번의 파라미터 실행과 제출 자료 |
 | [Date 6 부하·장애·복구](docs/briefings/date6/date6.md) | 2012년 수집, 입력 확대, Spark·PostgreSQL 장애 복구 결과 |
-| [6차시 보완·전체 흐름 점검](docs/briefings/date7/date7.md) | 부하 비교, fallback·alert, LLM Batch와 남은 작업 |
+| [6차시 보완·전체 흐름 점검](docs/briefings/date7/date7.md) | 부하 비교, fallback·alert, LLM Batch와 기술 확장 범위 |
 | [경제·사회 1월 LLM 최종 결과](docs/briefings/date7/economy-social-results-01-31.md) | 일별 31건의 입력·시간·token·비용·감성·주제와 품질 점검 |
 | [시스템 구성도](docs/architecture/system-architecture.html) | 전체 목표 아키텍처 |
 | [Ingestion 구현 설명](docs/guides/ingestion-implementation.md) | Collector부터 Kafka 적재 확인까지의 코드 흐름 |
@@ -124,7 +124,7 @@ news-comment-nlp-pipeline/
 | [PostgreSQL 통합 검증](analysis/reports/postgres-integration-validation.md) | 982건 적재, rollback·재시도와 멱등성 결과 |
 | [데이터와 보안 원칙](docs/security/data-security.md) | 원문·PII·자격 증명·보존과 외부 전송 기준 |
 | [LLM 분석 설계](docs/architecture/llm-analysis-design.md) | Batch 분석과 Langfuse 관측 계획 |
-| [OpenAI API·Langfuse 설정](docs/briefings/date7/openai-langfuse-setup.md) | 사용자가 직접 수행할 프로젝트·key·결제·Airflow 반영과 검증 절차 |
+| [OpenAI API·Langfuse 구성 기록](docs/briefings/date7/openai-langfuse-setup.md) | 실제 프로젝트·환경변수·Airflow 반영과 검증 결과 |
 | [Langfuse 도입 ADR](docs/adr/0001-langfuse-deployment.md) | 관리형·self-hosted 비교, 데이터 경계와 adapter 결정 |
 | [Langfuse 구현·토큰 관리 계획](docs/planning/langfuse-implementation-plan.md) | adapter 구조, token·비용 대조, 예산과 검증 계획 |
 | [Langfuse 샘플 추적 검증](analysis/reports/langfuse-token-validation.md) | 합성 3건의 token·비용·재시도와 metadata-only 결과 |

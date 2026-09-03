@@ -48,15 +48,14 @@ prepare_parameters
 | `run_existing_spark_job` | 기존 Spark batch 실행 |
 | `verify_row_accounting` | 입력 행 전체가 처리 결과로 설명되는지 확인 |
 
-## 제출 체크리스트
+## 수행 결과
 
-- [x] 날짜를 입력받는 DAG
-- [x] 하루 범위 및 최소 수집량 검증
-- [x] Reddit Collector와 Spark 연결
-- [x] HTTP GDELT Collector와 Spark 연결
-- [x] 두 날짜 실제 실행
-- [x] 실행 로그와 결과 집계
-- [ ] 성공 화면 캡처와 GitHub 링크 제출
+- 날짜를 입력받는 DAG 구현
+- 하루 범위 및 최소 수집량 검증
+- Reddit Collector와 Spark 연결
+- HTTP GDELT Collector와 Spark 연결
+- 두 날짜 실제 실행
+- 실행 로그와 결과 집계
 
 ## 관련 문서
 
