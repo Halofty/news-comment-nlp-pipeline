@@ -179,6 +179,11 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-news_pipeline_minio_dev}
       MINIO_RAW_BUCKET: ${MINIO_RAW_BUCKET:-news-raw}
       MINIO_PROCESSED_BUCKET: ${MINIO_PROCESSED_BUCKET:-news-processed}
+      MINIO_LLM_BUCKET: ${MINIO_LLM_BUCKET:-news-llm}
+      MINIO_REPORTS_BUCKET: ${MINIO_REPORTS_BUCKET:-news-reports}
+      MINIO_CHECKPOINT_BUCKET: ${MINIO_CHECKPOINT_BUCKET:-news-checkpoints}
+      PIPELINE_STORAGE_BACKEND: minio
+      PIPELINE_DATA_ROOT: /opt/spark/work-dir/data
     volumes:
       - .:/opt/spark/work-dir
       - spark-ivy:/root/.ivy2

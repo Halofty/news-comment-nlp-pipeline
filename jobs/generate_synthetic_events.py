@@ -71,11 +71,13 @@ def _event(index: int) -> dict[str, Any]:
     }
 
 
-def generate_events(count: int) -> Iterator[dict[str, Any]]:
+def generate_events(count: int, *, start_index: int = 0) -> Iterator[dict[str, Any]]:
     if count < 1:
         raise ValueError("count must be at least 1")
+    if start_index < 0:
+        raise ValueError("start_index must not be negative")
     previous: dict[str, Any] | None = None
-    for index in range(count):
+    for index in range(start_index, start_index + count):
         if index > 0 and index % 50 == 0 and previous is not None:
             event = deepcopy(previous)
         else:
@@ -89,16 +91,18 @@ def build_parser() -> argparse.ArgumentParser:
         description="Generate deterministic public TextEvent samples"
     )
     parser.add_argument("--count", type=int, required=True)
+    parser.add_argument("--start-index", type=int, default=0)
     parser.add_argument("--output", type=Path, required=True)
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
-    written = write_jsonl(generate_events(args.count), args.output)
+    written = write_jsonl(
+        generate_events(args.count, start_index=args.start_index), args.output
+    )
     print(f"wrote {written} deterministic synthetic events to {args.output}")
 
 
 if __name__ == "__main__":
     main()
-

@@ -13,11 +13,41 @@ from jobs.generate_synthetic_events import generate_events
 from spark_jobs.process_sample import create_spark_session
 from spark_jobs.streaming_consumer import (
     StreamingConfig,
+    _join_storage_location,
+    _storage_location,
     build_parser,
     prepare_stream,
     process_micro_batch,
     transform_kafka_messages,
 )
+
+
+def test_s3a_output_and_checkpoint_locations_are_preserved() -> None:
+    config = StreamingConfig(
+        bootstrap_servers="kafka:29092",
+        input_topic="raw-text",
+        dlq_topic="raw-text-dlq",
+        output_path="s3a://news-processed/streaming/test",
+        checkpoint_path="s3a://news-checkpoints/spark/test",
+    )
+    config.validate()
+
+    assert _storage_location(config.checkpoint_path) == (
+        "s3a://news-checkpoints/spark/test"
+    )
+    assert _join_storage_location(config.output_path, "processed", "batch_id=1") == (
+        "s3a://news-processed/streaming/test/processed/batch_id=1"
+    )
+
+    with pytest.raises(ValueError, match="requires parquet"):
+        StreamingConfig(
+            bootstrap_servers="kafka:29092",
+            input_topic="raw-text",
+            dlq_topic="raw-text-dlq",
+            output_path="s3a://news-processed/streaming/test-jsonl",
+            checkpoint_path="s3a://news-checkpoints/spark/test-jsonl",
+            output_format="jsonl",
+        ).validate()
 
 
 def test_cli_uses_standalone_master_from_environment(monkeypatch) -> None:

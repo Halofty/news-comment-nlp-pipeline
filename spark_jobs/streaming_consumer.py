@@ -9,7 +9,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from pyspark.sql import DataFrame, SparkSession, functions as F
 
@@ -42,8 +42,8 @@ class StreamingConfig:
     bootstrap_servers: str
     input_topic: str
     dlq_topic: str
-    output_path: Path
-    checkpoint_path: Path
+    output_path: str | Path
+    checkpoint_path: str | Path
     starting_offsets: str = "earliest"
     watermark_delay: str = "10 minutes"
     max_offsets_per_trigger: int | None = 10_000
@@ -71,14 +71,41 @@ class StreamingConfig:
             raise ValueError("watermark_delay must not be empty")
         if self.max_offsets_per_trigger is not None and self.max_offsets_per_trigger < 1:
             raise ValueError("max_offsets_per_trigger must be positive")
-        if self.output_path.resolve() == self.checkpoint_path.resolve():
+        if _storage_location(self.output_path) == _storage_location(
+            self.checkpoint_path
+        ):
             raise ValueError("output_path and checkpoint_path must differ")
         if self.output_format not in {"parquet", "jsonl"}:
             raise ValueError("output_format must be parquet or jsonl")
+        if self.output_format == "jsonl" and _is_s3a(self.output_path):
+            raise ValueError("s3a output requires parquet format")
         if not self.consumer_name.strip():
             raise ValueError("consumer_name must not be empty")
         if self.postgres_chunk_size < 1:
             raise ValueError("postgres_chunk_size must be positive")
+
+
+def _is_s3a(value: str | Path) -> bool:
+    return str(value).startswith("s3a://")
+
+
+def _storage_location(value: str | Path) -> str:
+    raw = str(value).strip()
+    if raw.startswith("s3a://"):
+        suffix = raw[len("s3a://") :].strip("/")
+        if not suffix or "/../" in f"/{suffix}/" or "/./" in f"/{suffix}/":
+            raise ValueError("s3a location requires a bucket and safe object prefix")
+        return f"s3a://{suffix}"
+    if "://" in raw:
+        raise ValueError("storage location must be a local path or s3a:// URI")
+    return str(Path(raw).resolve())
+
+
+def _join_storage_location(value: str | Path, *parts: str) -> str:
+    root = _storage_location(value)
+    if root.startswith("s3a://"):
+        return "/".join((root.rstrip("/"), *(part.strip("/") for part in parts)))
+    return str(Path(root).joinpath(*parts))
 
 
 def create_streaming_spark_session(
@@ -87,6 +114,7 @@ def create_streaming_spark_session(
     app_name: str,
     kafka_package: str | None,
     kafka_classpath: str | None = None,
+    storage_settings: Mapping[str, str] | None = None,
 ) -> SparkSession:
     configure_java_home()
     python_executable = sys.executable
@@ -106,6 +134,8 @@ def create_streaming_spark_session(
         builder = builder.config(
             "spark.driver.extraClassPath", kafka_classpath
         ).config("spark.executor.extraClassPath", kafka_classpath)
+    for name, value in (storage_settings or {}).items():
+        builder = builder.config(name, value)
     return builder.getOrCreate()
 
 
@@ -189,18 +219,21 @@ def prepare_stream(events: DataFrame, *, watermark_delay: str) -> DataFrame:
     return watermarked.dropDuplicates(["_dedup_key"])
 
 
-def _write_route(events: DataFrame, path: Path, *, output_format: str) -> None:
+def _write_route(
+    events: DataFrame, path: str | Path, *, output_format: str
+) -> None:
     public_events = events.drop(*INTERNAL_COLUMNS)
     if output_format == "parquet":
         (
             public_events.write.mode("overwrite")
             .partitionBy("source_type")
-            .parquet(str(path.resolve()))
+            .parquet(_storage_location(path))
         )
         return
 
-    path.mkdir(parents=True, exist_ok=True)
-    output_file = path / "events.jsonl"
+    local_path = Path(_storage_location(path))
+    local_path.mkdir(parents=True, exist_ok=True)
+    output_file = local_path / "events.jsonl"
     with output_file.open("w", encoding="utf-8") as file:
         for line in public_events.toJSON().toLocalIterator():
             file.write(line + "\n")
@@ -260,7 +293,11 @@ def process_micro_batch(
             if count == 0:
                 continue
             route_events = cached.filter(F.col("output_route") == route)
-            batch_path = config.output_path / route / f"batch_id={batch_id:020d}"
+            batch_path = _join_storage_location(
+                config.output_path,
+                route,
+                f"batch_id={batch_id:020d}",
+            )
             _write_route(
                 route_events,
                 batch_path,
@@ -315,7 +352,7 @@ def start_consumer(
     )
     writer = (
         routed.writeStream.queryName("text-event-kafka-consumer")
-        .option("checkpointLocation", str(config.checkpoint_path.resolve()))
+        .option("checkpointLocation", _storage_location(config.checkpoint_path))
         .foreachBatch(
             lambda events, batch_id: process_micro_batch(
                 events,
@@ -342,8 +379,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--input-topic", default="raw-text")
     parser.add_argument("--dlq-topic", default="raw-text-dlq")
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--log", type=Path)
     parser.add_argument("--starting-offsets", default="earliest")
     parser.add_argument("--watermark-delay", default="10 minutes")
@@ -384,7 +421,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = build_parser().parse_args()
-    log_path = args.log or args.checkpoint / "consumer-run.jsonl"
+    log_path = args.log or (
+        Path("data/logs/stream-consumer.jsonl")
+        if _is_s3a(args.checkpoint)
+        else Path(args.checkpoint) / "consumer-run.jsonl"
+    )
     run_logger = JsonlRunLogger(log_path)
     config = StreamingConfig(
         bootstrap_servers=args.bootstrap_servers,
@@ -413,11 +454,23 @@ def main() -> None:
     spark = None
     query = None
     try:
+        storage_settings = None
+        if _is_s3a(config.output_path) or _is_s3a(config.checkpoint_path):
+            from spark_jobs.minio_roundtrip import build_s3a_config
+
+            storage_settings = build_s3a_config(
+                endpoint=os.getenv("MINIO_ENDPOINT", "http://minio:9000"),
+                access_key=os.getenv("MINIO_ROOT_USER", "news_pipeline"),
+                secret_key=os.getenv(
+                    "MINIO_ROOT_PASSWORD", "news_pipeline_minio_dev"
+                ),
+            )
         spark = create_streaming_spark_session(
             master=args.master,
             app_name="text-event-kafka-consumer",
             kafka_package=None if args.no_resolve_kafka_package else args.kafka_package,
             kafka_classpath=args.kafka_classpath,
+            storage_settings=storage_settings,
         )
         spark.sparkContext.setLogLevel("WARN")
         run_logger.emit(
@@ -451,6 +504,9 @@ def main() -> None:
             query.stop()
         if spark is not None:
             spark.stop()
+        from storage.data_lake import publish_artifact_if_enabled
+
+        publish_artifact_if_enabled(log_path)
 
 
 if __name__ == "__main__":
