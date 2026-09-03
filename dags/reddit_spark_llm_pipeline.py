@@ -7,6 +7,7 @@ from airflow.sdk import DAG, Param, get_current_context, task
 
 from orchestration.end_to_end import prepare_llm_from_spark
 from orchestration.llm_batch import prepare_requests, submit_or_dry_run, verify_submission
+from orchestration.object_storage import sync_spark_output
 from orchestration.reddit_daily import (
     collect_daily_comments,
     prepare_collected_spark_config,
@@ -40,6 +41,7 @@ with DAG(
         "model": Param("gpt-5.6-luna", const="gpt-5.6-luna"),
         "daily_budget_usd": Param("1.00", type="string"),
         "submit": Param(False, type="boolean"),
+        "minio_enabled": Param(True, type="boolean"),
     },
     tags=["reddit", "spark", "openai-batch", "end-to-end", "manual"],
 ) as dag:
@@ -70,14 +72,28 @@ with DAG(
         )
 
     @task(task_id="prepare_llm_parameters")
-    def prepare_llm(config: dict, spark_run: dict, spark_result: dict) -> dict:
+    def prepare_llm(
+        config: dict, spark_run: dict, spark_result: dict, minio_result: dict
+    ) -> dict:
         context = get_current_context()
-        return prepare_llm_from_spark(
+        llm_config = prepare_llm_from_spark(
             project_root=PROJECT_ROOT,
             pipeline_config=config,
             spark_config=spark_run["config"],
             spark_verification=spark_result,
             params=context["params"],
+        )
+        llm_config["minio_result"] = minio_result
+        return llm_config
+
+    @task(task_id="store_spark_output_in_minio")
+    def store_in_minio(spark_run: dict, spark_result: dict) -> dict:
+        context = get_current_context()
+        return sync_spark_output(
+            project_root=PROJECT_ROOT,
+            spark_config=spark_run["config"],
+            spark_verification=spark_result,
+            enabled=bool(context["params"]["minio_enabled"]),
         )
 
     @task(task_id="build_and_budget_check")
@@ -90,11 +106,12 @@ with DAG(
 
     @task(task_id="verify_pipeline")
     def verify_pipeline(
-        spark_result: dict, preflight: dict, submission: dict
+        spark_result: dict, minio_result: dict, preflight: dict, submission: dict
     ) -> dict:
         llm_result = verify_submission(preflight, submission)
         return {
             "spark": spark_result,
+            "object_storage": minio_result,
             "llm": llm_result,
             "status": "completed",
         }
@@ -103,7 +120,10 @@ with DAG(
     collected = collect_reddit_day(pipeline_config)
     spark_run = run_spark(pipeline_config, collected)
     spark_result = verify_spark(spark_run)
-    llm_config = prepare_llm(pipeline_config, spark_run, spark_result)
+    minio_result = store_in_minio(spark_run, spark_result)
+    llm_config = prepare_llm(
+        pipeline_config, spark_run, spark_result, minio_result
+    )
     preflight = build_requests(llm_config)
     submission = submit(llm_config, preflight)
-    verify_pipeline(spark_result, preflight, submission)
+    verify_pipeline(spark_result, minio_result, preflight, submission)

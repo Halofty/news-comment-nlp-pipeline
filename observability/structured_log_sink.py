@@ -58,4 +58,9 @@ class StructuredLogSink:
         self._write("llm_usage_reconciliation", result.metadata())
 
     def flush(self) -> None:
+        if not self._path.is_file():
+            return None
+        from storage.data_lake import publish_artifact_if_enabled
+
+        publish_artifact_if_enabled(self._path)
         return None

@@ -27,3 +27,7 @@ OpenAI API 프로젝트·환경변수와 Langfuse Cloud Japan의 실제 구성·
 있습니다.
 
 MinIO 도입 범위와 bucket 구조는 [`architecture/object-storage.md`](architecture/object-storage.md)에 정리했습니다.
+실제 전체 데이터 복사와 자동 게시 수치는
+[`../analysis/reports/minio-data-migration-validation.md`](../analysis/reports/minio-data-migration-validation.md)에서 확인할 수 있습니다.
+실제 checksum·멱등 업로드, Spark S3A와 Airflow 동기화 결과는
+[`analysis/reports/minio-integration-validation.md`](../analysis/reports/minio-integration-validation.md)에서 확인할 수 있습니다.

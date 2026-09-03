@@ -21,10 +21,22 @@ services:
       LANGFUSE_BASE_URL: "${LANGFUSE_BASE_URL:-https://jp.cloud.langfuse.com}"
       LANGFUSE_TRACING_ENVIRONMENT: "${LANGFUSE_TRACING_ENVIRONMENT:-development}"
       LANGFUSE_TIMEOUT_SECONDS: "${LANGFUSE_TIMEOUT_SECONDS:-5}"
+      MINIO_ENDPOINT: "${MINIO_AIRFLOW_ENDPOINT:-http://host.docker.internal:9000}"
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-news_pipeline}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-news_pipeline_minio_dev}"
+      MINIO_RAW_BUCKET: "${MINIO_RAW_BUCKET:-news-raw}"
+      MINIO_PROCESSED_BUCKET: "${MINIO_PROCESSED_BUCKET:-news-processed}"
+      MINIO_LLM_BUCKET: "${MINIO_LLM_BUCKET:-news-llm}"
+      MINIO_REPORTS_BUCKET: "${MINIO_REPORTS_BUCKET:-news-reports}"
+      MINIO_CHECKPOINT_BUCKET: "${MINIO_CHECKPOINT_BUCKET:-news-checkpoints}"
+      PIPELINE_STORAGE_BACKEND: minio
+      PIPELINE_DATA_ROOT: /opt/airflow/project/data
     ports:
       - "8082:8080"
     volumes:
       - ../..:/opt/airflow/project
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
       interval: 10s

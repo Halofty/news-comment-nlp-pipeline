@@ -28,3 +28,8 @@
 GDELT HTTPS API는 이 환경에서 TLS handshake가 실패해 Collector endpoint를 기능이 동일한 HTTP로 변경했습니다. 다만 이번 제출 실행 결과는 외부 API 상태와 무관하게 재현할 수 있도록 Reddit Collector를 날짜형으로 확장해 확보했습니다.
 
 재현 설정은 [Airflow 실행 가이드](../../docs/guides/airflow-automation.md)를 참고합니다.
+
+이 표는 과제 제출 당시의 4단계 실행 결과다. 이후 두 DAG에
+`store_spark_output_in_minio` task와 `minio_enabled` parameter를 추가했으며, 새 실행은
+수집 원본을 `news-raw`, Spark 출력을 `news-processed`, 저장 보고서를
+`news-reports`에 게시한다.

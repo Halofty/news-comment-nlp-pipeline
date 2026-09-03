@@ -147,6 +147,9 @@ def store_period_results(args: argparse.Namespace) -> dict[str, Any]:
     args.report.write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    from storage.data_lake import publish_artifact_if_enabled
+
+    publish_artifact_if_enabled(args.report)
     return report
 
 

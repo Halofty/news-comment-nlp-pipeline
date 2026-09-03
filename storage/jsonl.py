@@ -9,6 +9,9 @@ from core.events import validate_event
 
 
 def read_jsonl(path: Path) -> Iterator[dict[str, Any]]:
+    from storage.data_lake import materialize_artifact_if_enabled
+
+    materialize_artifact_if_enabled(path)
     with path.open("r", encoding="utf-8") as file:
         for line_number, line in enumerate(file, start=1):
             if not line.strip():
@@ -36,4 +39,7 @@ def write_jsonl(events: Iterable[dict[str, Any]], output: Path) -> int:
     except Exception:
         temporary.unlink(missing_ok=True)
         raise
+    from storage.data_lake import publish_artifact_if_enabled
+
+    publish_artifact_if_enabled(output)
     return count

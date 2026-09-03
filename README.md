@@ -36,13 +36,18 @@ Google News · Global Voices(보완) · Reddit
    ├─ 격리 대상 → quarantine
    └─ 정상·flag → processed
 → partitioned Parquet + PostgreSQL 멱등 upsert
-→ MinIO S3-compatible object storage             [서비스 기반 추가, 데이터 연동 예정]
+→ MinIO S3-compatible object storage             [전체 이전·자동 저장 검증 완료]
 → GPT-5.6 Luna Batch 감정·토픽·요약              [일별 31건 + 월간 1건 완료·검증]
 → Langfuse token·비용 관측 + 구조화 로그 fallback
 → Airflow parameterized batch orchestration
 ```
 
 Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runner`가 `spark-submit`과 Driver 역할을 담당합니다.
+
+MinIO에서는 수집 원본(`news-raw`), Spark 결과(`news-processed`), LLM 요청·응답
+(`news-llm`)과 실행 보고서(`news-reports`)를 분리합니다. 로컬 파일은 atomic write와
+Spark 실행을 위한 staging/cache이며, 완성된 파일을 SHA-256 검증 후 MinIO에 복사합니다.
+기존 로컬 파일은 자동 삭제하지 않습니다.
 
 ![전체 시스템 구성도](docs/architecture/system-architecture.png)
 
@@ -60,7 +65,7 @@ Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runn
 | Spark Standalone | 구현·통합 검증 완료 | Master·Worker 분리, Worker Executor 2 cores 실행 |
 | PostgreSQL 적재 | MVP 구현·통합 검증 완료 | 정상 981건·계약 거부 1건, 새 checkpoint 재처리 중복 0건 |
 | 부하·장애 복구 | 로컬 실험 완료 | 1월 2,935,785건 처리 복구 누락·중복 0건, DB 연결 실패 후 200건 멱등 복구 |
-| MinIO object storage | 서비스 기반 구현 | Compose·bucket 자동 생성 추가, 실제 Spark `s3a://` 연동 전 |
+| MinIO object storage | 전체 데이터 이전·자동 저장 검증 완료 | 현재 정식 파일 869개·40.62GB 일치, 재실행 전송 0B, raw→processed→LLM DAG 저장 성공 |
 | LLM Batch | 일별·월간 분석과 결과 검증 완료 | 71,842개 원문으로 일별 31건과 월간 1건 분석, 실패·누락·중복 0건, 총비용 `$0.5482444` |
 | LLM 결과 품질 | quality gate 구현·실행 완료 | 일별 31행 보존·비정상 label 10개 제외, 월간 label 13개 모두 통과, hash 기록 |
 | Langfuse | Cloud·fallback·실제 usage 검증 완료 | 일별 31건과 월간 1건 token·cost 대조 일치; primary 장애 시 구조화 로그 9건 보존 |
@@ -78,7 +83,7 @@ news-comment-nlp-pipeline/
 ├── producers/                   # Kafka 메시지 발행
 ├── jobs/                        # 토픽 초기화·replay·검증 CLI
 ├── spark_jobs/                  # batch·Structured Streaming Spark Job
-├── storage/                     # JSONL과 PostgreSQL 저장 adapter
+├── storage/                     # JSONL·PostgreSQL·MinIO 저장 adapter
 ├── observability/               # Langfuse·구조화 로그·no-op 관측 adapter
 ├── llm_analysis/                # GPT-5.6 Luna Batch 요청·API client·결과 검증
 ├── orchestration/               # Airflow에서 재사용하는 실행·검증 helper
@@ -91,7 +96,7 @@ news-comment-nlp-pipeline/
 ├── analysis/                    # 데이터셋 명세·품질 fixture·검증 보고서
 ├── tests/                       # 단위·Spark 변환·저장 테스트
 ├── docs/                        # 설계·구현·운영 문서
-├── docker-compose.yml           # Kafka·Spark Standalone·PostgreSQL
+├── docker-compose.yml           # Kafka·Spark Standalone·PostgreSQL·MinIO
 └── requirements.txt
 ```
 
@@ -121,7 +126,9 @@ news-comment-nlp-pipeline/
 | [Spark Streaming Consumer](docs/guides/spark-streaming-consumer.md) | Kafka 입력, watermark, checkpoint, DLQ와 sink |
 | [Spark Streaming 통합 검증](analysis/reports/spark-streaming-consumer-validation.md) | 실제 Kafka 처리와 checkpoint 재시작 결과 |
 | [PostgreSQL 저장 구조](docs/architecture/storage-schema.md) | 핵심 테이블, migration과 transaction upsert |
-| [MinIO Object Storage 설계](docs/architecture/object-storage.md) | 로컬 S3 호환 bucket, 현재 범위와 Spark 연동 순서 |
+| [MinIO Object Storage 설계](docs/architecture/object-storage.md) | bucket 책임, staging/cache 정책과 Spark·Airflow 연동 |
+| [MinIO 통합 검증](analysis/reports/minio-integration-validation.md) | checksum·멱등 업로드, Spark S3A와 Airflow 동기화 결과 |
+| [MinIO 전체 데이터 이전 검증](analysis/reports/minio-data-migration-validation.md) | raw부터 LLM 응답까지 전체 복사, bucket 현황과 새 DAG 자동 게시 결과 |
 | [PostgreSQL 통합 검증](analysis/reports/postgres-integration-validation.md) | 982건 적재, rollback·재시도와 멱등성 결과 |
 | [LLM PostgreSQL·Airflow 통합 검증](analysis/reports/llm-postgres-airflow-integration-validation.md) | 실제 LLM 32건 멱등 적재와 수집→Spark→LLM 단일 DAG 실행 결과 |
 | [데이터와 보안 원칙](docs/security/data-security.md) | 원문·PII·자격 증명·보존과 외부 전송 기준 |

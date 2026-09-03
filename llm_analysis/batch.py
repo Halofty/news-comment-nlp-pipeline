@@ -217,6 +217,10 @@ def build_batch_file(
         json.dumps(result.as_dict(), ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    from storage.data_lake import publish_artifact_if_enabled
+
+    for artifact_path in (result.request_path, result.manifest_path, result.report_path):
+        publish_artifact_if_enabled(artifact_path)
     return result
 
 
@@ -275,6 +279,9 @@ class OpenAIBatchClient:
         target = Path(output)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(response.content)
+        from storage.data_lake import publish_artifact_if_enabled
+
+        publish_artifact_if_enabled(target)
         return target
 
 
@@ -330,6 +337,9 @@ def validate_batch_results(
     with target.open("w", encoding="utf-8", newline="\n") as handle:
         for row in output:
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+    from storage.data_lake import publish_artifact_if_enabled
+
+    publish_artifact_if_enabled(target)
     return {
         "manifest_rows": len(manifest),
         "result_rows": len(seen),

@@ -64,6 +64,9 @@ def _write_json(path: Path, value: object) -> None:
     path.write_text(
         json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    from storage.data_lake import publish_artifact_if_enabled
+
+    publish_artifact_if_enabled(path)
 
 
 def _observability_sink(state_output: Path):
@@ -245,6 +248,19 @@ def run(args: argparse.Namespace) -> dict[str, object]:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     result = run(args)
+    from storage.data_lake import publish_artifact_if_enabled
+
+    for attribute in (
+        "request_output",
+        "manifest_output",
+        "report",
+        "state_output",
+        "result_output",
+        "output",
+    ):
+        path = getattr(args, attribute, None)
+        if isinstance(path, Path) and path.is_file():
+            publish_artifact_if_enabled(path)
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0
 

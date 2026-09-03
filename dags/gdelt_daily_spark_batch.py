@@ -10,6 +10,7 @@ from orchestration.gdelt_daily import (
     prepare_collected_spark_config,
     prepare_daily_config,
 )
+from orchestration.object_storage import sync_spark_output
 from orchestration.spark_batch import run_spark_batch, verify_report
 
 PROJECT_ROOT = Path("/opt/airflow/project")
@@ -34,6 +35,7 @@ with DAG(
         "output_format": Param("parquet", type="string", enum=["parquet", "jsonl"]),
         "partitions": Param(2, type="integer", minimum=1, maximum=64),
         "spark_master": Param("local[2]", type="string"),
+        "minio_enabled": Param(True, type="boolean"),
     },
     tags=["assignment", "gdelt", "spark", "parameterized"],
 ) as dag:
@@ -52,14 +54,32 @@ with DAG(
         return collect_daily_articles(config)
 
     @task(task_id="run_existing_spark_job")
-    def execute_spark(config: dict, collected: dict) -> str:
+    def execute_spark(config: dict, collected: dict) -> dict:
         spark_config = prepare_collected_spark_config(config=config, collected=collected)
-        return run_spark_batch(spark_config)
+        return {
+            "config": spark_config,
+            "report_path": run_spark_batch(spark_config),
+        }
 
     @task(task_id="verify_row_accounting")
-    def check_result(report_path: str) -> dict:
-        return verify_report(project_root=PROJECT_ROOT, report_path=report_path)
+    def check_result(spark_run: dict) -> dict:
+        return verify_report(
+            project_root=PROJECT_ROOT,
+            report_path=spark_run["report_path"],
+        )
+
+    @task(task_id="store_spark_output_in_minio")
+    def store_in_minio(spark_run: dict, spark_result: dict) -> dict:
+        context = get_current_context()
+        return sync_spark_output(
+            project_root=PROJECT_ROOT,
+            spark_config=spark_run["config"],
+            spark_verification=spark_result,
+            enabled=bool(context["params"]["minio_enabled"]),
+        )
 
     prepared = prepare_parameters()
     collected = collect_gdelt_day(prepared)
-    check_result(execute_spark(prepared, collected))
+    spark_run = execute_spark(prepared, collected)
+    spark_result = check_result(spark_run)
+    store_in_minio(spark_run, spark_result)

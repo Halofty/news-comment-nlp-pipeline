@@ -20,12 +20,14 @@
 - 경제·사회 2012년 1월 일별 31개·월간 1개 Batch와 Langfuse usage 대조
 - 실제 LLM 결과 32건의 PostgreSQL 멱등 upsert
 - Reddit 수집→Spark→LLM 요청 생성 Airflow 통합 DAG 실행
+- MinIO checksum·멱등 adapter, Spark S3A와 Airflow 처리 결과 동기화
+- raw·processed·LLM·report 현재 정식 파일 869개·40.62GB 전체 이전과 새 산출물 자동 게시
 
 ## 기술 확장 로드맵
 
 1. Google News 100건 도달 요청의 검색어 단위 재수집과 날짜별 resume·retry
 2. Reddit 2012년 2~12월의 21개 subreddit UTC 일별 Parquet 변환
-3. MinIO fixture upload, Python adapter와 Spark `s3a://` 읽기 연결
+3. MinIO 기반 Structured Streaming checkpoint 복구 검증
 4. Kafka Broker·Spark checkpoint·PostgreSQL 연결 중단 복구 추가 검증
 5. Consumer lag·Spark 처리량·PostgreSQL bulk load 측정과 end-to-end 데모
 

@@ -23,6 +23,8 @@ def _buckets() -> list[str]:
     return [
         os.getenv("MINIO_RAW_BUCKET", "news-raw"),
         os.getenv("MINIO_PROCESSED_BUCKET", "news-processed"),
+        os.getenv("MINIO_LLM_BUCKET", "news-llm"),
+        os.getenv("MINIO_REPORTS_BUCKET", "news-reports"),
         os.getenv("MINIO_CHECKPOINT_BUCKET", "news-checkpoints"),
     ]
 

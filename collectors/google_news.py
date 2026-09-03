@@ -164,6 +164,9 @@ def collect_month(
     report_path.write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    from storage.data_lake import publish_artifact_if_enabled
+
+    publish_artifact_if_enabled(report_path)
     return report
 
 

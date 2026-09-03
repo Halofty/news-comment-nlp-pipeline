@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from storage.data_lake import publish_artifact_if_enabled
+
 DATASET_ID = "fddemarco/pushshift-reddit-comments"
 DEFAULT_CATALOG = Path("docs/briefings/date6/reddit-monthly-source-files.csv")
 DEFAULT_OUTPUT_ROOT = Path("data/raw/reddit-archive")
@@ -100,6 +102,7 @@ def download_archive(
         expected_bytes = int(row["bytes"])
         destination = output_root / "data" / filename
         if validate_size(destination, expected_bytes):
+            publish_artifact_if_enabled(destination)
             emit(
                 progress_log,
                 "month_skipped",
@@ -142,6 +145,7 @@ def download_archive(
                         f"size mismatch for {month}: "
                         f"actual={downloaded.stat().st_size}, expected={expected_bytes}"
                     )
+                publish_artifact_if_enabled(downloaded)
                 emit(
                     progress_log,
                     "month_completed",

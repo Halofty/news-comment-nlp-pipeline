@@ -43,6 +43,9 @@ def _write_json(path: Path, value: object) -> None:
     path.write_text(
         json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    from storage.data_lake import publish_artifact_if_enabled
+
+    publish_artifact_if_enabled(path)
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -183,6 +186,9 @@ def collect(args: argparse.Namespace, client: OpenAIBatchClient | None = None) -
     with args.combined_output.open("w", encoding="utf-8", newline="\n") as handle:
         for row in combined:
             handle.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
+    from storage.data_lake import publish_artifact_if_enabled
+
+    publish_artifact_if_enabled(args.combined_output)
     report = {
         "requested_days": args.end_day - args.start_day + 1,
         "completed_days": sum(row.get("status") == "completed" for row in daily),
@@ -198,6 +204,9 @@ def collect(args: argparse.Namespace, client: OpenAIBatchClient | None = None) -
         "daily": daily,
     }
     _write_json(args.report, report)
+    fallback_path = args.response_root / "observability-fallback.jsonl"
+    if fallback_path.is_file():
+        publish_artifact_if_enabled(fallback_path)
     return report
 
 

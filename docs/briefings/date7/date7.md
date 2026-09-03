@@ -34,7 +34,7 @@ Japan의 metadata-only sample trace와 OpenAI 합성 Batch 검증을 거쳐, 경
 | 3 | fallback 또는 alert의 실제 동작 결과 | 완료 | Langfuse primary 장애를 안전하게 재현해 fallback event 9개를 저장하고, LLM 예산 `critical`·`blocked`를 실행으로 확인 |
 | 4 | 최신 구성도와 데이터 모델 | 완료 | MinIO·LLM·Langfuse·Airflow가 반영된 HTML/PNG 구성도, TextEvent v1, PostgreSQL·LLM migration 연결 |
 | 5 | Kafka·Spark·저장·Airflow 로그, 단계별 건수와 최종 확인법 | 완료 | 공개 검증 보고서와 단계별 처리 건수, 행 회계·고유 ID·usage 대조 방법 제시 |
-| 6 | 아직 실행되지 않는 단계와 남은 작업 | 완료 | 9장에 MinIO 데이터 연동, Google News 검색 세분화, Reddit 추가 가공을 장기 확장으로 명시 |
+| 6 | 아직 실행되지 않는 단계와 남은 작업 | 완료 | 9장에 Google News 검색 세분화, Reddit 추가 가공과 MinIO Streaming checkpoint 전환을 장기 확장으로 명시 |
 | 7 | 현재 실행 방법과 확인 결과를 반영한 README | 완료 | 메인 README에 최신 흐름, 구현 상태, 실행·검증 문서 링크 반영 |
 
 따라서 **6차시 과제의 필수 문서 항목 7개와 이번에 선택한 OpenAI·Langfuse 실행 검증은
@@ -301,33 +301,46 @@ Batch는 1건 완료됐고 Schema·`custom_id`·usage 검증을 모두 통과했
 공식 기준: [GPT-5.6 Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna),
 [Batch API](https://developers.openai.com/api/docs/guides/batch)
 
-## 8. Airflow 수집·처리·LLM 요청 준비 흐름
+## 8. Airflow 수집·처리·MinIO·LLM 요청 준비 흐름
 
-`reddit_spark_llm_pipeline`은 다음 8개 task로 수집부터 LLM 요청 검증까지 연결한다.
+`reddit_spark_llm_pipeline`은 다음 9개 task로 수집부터 LLM 요청 검증까지 연결한다.
 
 ```text
 prepare_parameters
 → collect_reddit_day
 → run_spark
 → verify_spark
+→ store_spark_output_in_minio
 → prepare_llm_parameters
 → build_and_budget_check
 → submit_or_dry_run
 → verify_pipeline
 ```
 
-실제 Run은 Reddit 2016-01-01 100건을 수집해 Spark에서 고유 100건으로 처리하고 그
-출력으로 LLM 요청 10건을 생성했다. 예상 최대 비용은 `$0.0021044`, 예산 상태는 `ok`,
+기존 Run은 Reddit 2016-01-01 100건을 수집해 Spark에서 고유 100건으로 처리하고 그
+출력을 MinIO에 2개 객체·128,906 bytes로 저장하고 LLM 요청 10건을 생성했다. 예상 최대
+비용은 `$0.0021044`, 예산 상태는 `ok`,
 최종 DAG 상태는 `success`였다. 이미 완료된 경제·사회 Batch를 중복 제출하지 않도록
 `submit=false`로 검증했으며 외부 API 비용은 발생하지 않았다.
 
 근거: [LLM PostgreSQL·Airflow 통합 검증](../../../analysis/reports/llm-postgres-airflow-integration-validation.md)
 
+이후 MinIO를 기본 저장 backend로 켜고 2016-01-02를 재실행해 raw 100건,
+Spark 고유 100건과 LLM 요청 10건이 각각 `news-raw`, `news-processed`, `news-llm`에
+자동 게시됨을 확인했다. 최초 `data/` 정식 파일 862개·40,617,977,648 bytes를 전체
+복사한 뒤 새 실행 결과까지 포함한 현재 정식 파일은 869개다. 실패는 0건이었고 같은
+데이터를 다시 실행했을 때 869개 모두 `unchanged`, 실제 전송량은 0 bytes였다.
+실행 report와 log는 `news-reports`로 분리했다. MinIO 전체에는 fixture와 이전 key를
+포함해 952개 객체·약 37.83 GiB가 저장되어 있다.
+
+근거: [MinIO 전체 데이터 이전 검증](../../../analysis/reports/minio-data-migration-validation.md)
+
 ## 9. 과제 범위 밖 기술 확장
 
-이번 과제 완료 여부와 무관한 장기 확장 범위는 MinIO의 실제 데이터 연결, Google News
-100건 상한 검색의 세분화, Reddit 2012년 2~12월의 일별 Parquet 변환이다. 제출 현황
-표에서는 이 항목들을 제외했다.
+MinIO의 Python·Spark·Airflow 통합과 현재 raw부터 LLM 응답까지의 전체 복사는 완료했다.
+장기 확장 범위는 Google News 100건 상한 검색 세분화, Reddit 2012년 2~12월 일별
+Parquet 추가 변환과 Structured Streaming checkpoint 전환이다. 제출 현황 표에서는
+이 항목들을 제외했다.
 
 ## 10. 자동 검증
 

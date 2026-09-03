@@ -316,4 +316,8 @@ def build_period_summary_batch(
     result.report_path.write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    from storage.data_lake import publish_artifact_if_enabled
+
+    for artifact_path in (result.request_path, result.manifest_path, result.report_path):
+        publish_artifact_if_enabled(artifact_path)
     return result

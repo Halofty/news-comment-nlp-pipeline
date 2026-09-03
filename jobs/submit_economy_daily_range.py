@@ -69,6 +69,9 @@ def submit_range(args: argparse.Namespace) -> dict[str, object]:
     args.summary_output.write_text(
         json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    from storage.data_lake import publish_artifact_if_enabled
+
+    publish_artifact_if_enabled(args.summary_output)
     return result
 
 

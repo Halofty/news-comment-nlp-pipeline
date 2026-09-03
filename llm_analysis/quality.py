@@ -165,5 +165,8 @@ def apply_quality_gate(
     report_target.write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    return report
+    from storage.data_lake import publish_artifact_if_enabled
 
+    publish_artifact_if_enabled(target)
+    publish_artifact_if_enabled(report_target)
+    return report

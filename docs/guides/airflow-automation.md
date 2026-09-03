@@ -20,7 +20,8 @@ docker compose -f infra/airflow/docker-compose.airflow.yml logs airflow
   "output_root": "data/airflow-output",
   "output_format": "parquet",
   "partitions": 2,
-  "spark_master": "local[2]"
+  "spark_master": "local[2]",
+  "minio_enabled": true
 }
 ```
 
@@ -34,7 +35,8 @@ docker compose -f infra/airflow/docker-compose.airflow.yml logs airflow
   "output_root": "data/airflow-output",
   "output_format": "parquet",
   "partitions": 2,
-  "spark_master": "local[2]"
+  "spark_master": "local[2]",
+  "minio_enabled": true
 }
 ```
 
@@ -47,7 +49,13 @@ docker compose -f infra/airflow/docker-compose.airflow.yml logs airflow
 1. `collect_reddit_day`의 수집 건수
 2. `run_existing_spark_job`의 Parquet와 report
 3. `verify_row_accounting`의 입력·설명 행 수
-4. 두 날짜 run의 Grid 또는 Graph 화면
+4. `store_spark_output_in_minio`의 객체 수·전체 byte
+5. 두 날짜 run의 Grid 또는 Graph 화면
+
+Collector가 완성한 입력 JSONL은 `news-raw`, Spark 출력은 `news-processed`, 실행
+보고서는 `news-reports`에 checksum과 함께 저장됩니다. 로컬 경로는 실행 중
+staging/cache로 유지되며 `minio_enabled=false`이면 Spark 출력 동기화 task만
+건너뜁니다.
 
 ## GDELT 날짜 실행
 
@@ -62,7 +70,8 @@ GDELT DAG도 같은 Spark·출력 설정을 사용하고 다음 값만 날짜별
   "output_root": "data/airflow-output",
   "output_format": "parquet",
   "partitions": 2,
-  "spark_master": "local[2]"
+  "spark_master": "local[2]",
+  "minio_enabled": true
 }
 ```
 

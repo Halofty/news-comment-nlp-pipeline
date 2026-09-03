@@ -2,9 +2,9 @@
 
 ## 1. 목표
 
-로컬 파일에만 저장하던 수집 원본과 Spark 처리 결과를 S3 호환 object storage 경계로
-옮길 수 있게 한다. 이번 확장의 완료 기준은 서비스 기동이 아니라 실제 업로드·검증,
-Spark `s3a://` 읽기·쓰기와 Airflow 동기화까지다.
+로컬 파일에만 저장하던 수집 원본, Spark 처리 결과와 LLM 요청·응답을 S3 호환 object
+storage 경계로 옮긴다. 이번 확장의 완료 기준은 서비스 기동이 아니라 기존 데이터 전체
+복사, 새 파이프라인 산출물 자동 게시, Spark `s3a://` 읽기·쓰기와 Airflow 동기화다.
 
 ## 2. 구현 범위와 완료 조건
 
@@ -15,7 +15,9 @@ Spark `s3a://` 읽기·쓰기와 Airflow 동기화까지다.
 | 3 | 공개 fixture 실제 검증 | `sample/synthetic-events.jsonl`을 `news-raw`에 저장하고 round-trip checksum 일치 |
 | 4 | Spark S3A 연결 | `news-raw` fixture를 읽어 `news-processed`에 Parquet를 쓰고 행 수 대조 |
 | 5 | Airflow 연결 | Spark 출력 디렉터리를 run별 prefix로 동기화하고 object 수·bytes를 결과에 포함 |
-| 6 | 문서 동기화 | README·구성 문서·로드맵에 실제 실행 결과와 확인 명령 반영 |
+| 6 | 전체 데이터 이전 | 정식 `data/` 산출물을 bucket별로 복사하고 실패 0건·재실행 전송 0 확인 |
+| 7 | 자동 게시 | 새 raw·processed·LLM 산출물이 실행 중 해당 bucket으로 게시됨을 DAG로 검증 |
+| 8 | 문서 동기화 | README·구성 문서·로드맵에 실제 실행 결과와 확인 명령 반영 |
 
 ## 3. Object key 규칙
 
@@ -26,6 +28,15 @@ news-raw/
 news-processed/
 ├── fixtures/text-events/synthetic-events-parquet/
 └── airflow/<run-label>/<airflow-run-id>/output/...
+
+news-llm/
+├── requests/...
+├── responses/...
+└── airflow/...
+
+news-reports/
+├── logs/...
+└── reports/...
 
 news-checkpoints/
 └── spark/<consumer-or-job>/<checkpoint-version>/...
@@ -57,10 +68,15 @@ news-checkpoints/
 
 | 단계 | 상태 | 검증 자료 |
 |---:|:---:|---|
-| 1 | 진행 중 | Python adapter와 단위 테스트 |
-| 2 | 대기 | 같은 fixture 2회 업로드 결과 비교 |
-| 3 | 대기 | MinIO round-trip 보고서 |
-| 4 | 대기 | Spark S3A 실행 보고서 |
-| 5 | 대기 | Airflow DAG import 및 동기화 실행 결과 |
-| 6 | 대기 | README·Date 7·로드맵 링크 검사 |
+| 1 | 완료 | `storage/object_store.py`, adapter 단위 테스트 3건 |
+| 2 | 완료 | 첫 실행 `uploaded`, 같은 fixture 재실행 `unchanged` |
+| 3 | 완료 | 994 bytes 업로드·다운로드 SHA-256 일치 |
+| 4 | 완료 | Spark S3A 2행 읽기·Parquet 2행 쓰기, 누락 0 |
+| 5 | 완료 | Airflow에서 100건 결과 2개 객체·128,906 bytes 동기화 |
+| 6 | 완료 | 최초 862개·40,617,977,648 bytes 복사, 현재 정식 파일 869개 동기화 |
+| 7 | 완료 | Reddit 100건→Spark 100건→LLM 요청 10건 DAG에서 bucket별 자동 저장 |
+| 8 | 완료 | README·Date 7·로드맵과 전체 이전 검증 보고서 갱신 |
 
+마지막 멱등 재실행에서는 정식 파일 869개가 모두 `unchanged`, 실제 전송량 0 bytes로
+확인됐다. 현재 5개 bucket에는 fixture와 legacy key를 포함해 952개 객체, 약 37.83
+GiB가 저장되어 있다. 로컬 파일은 작업 staging/cache로 유지하며 자동 삭제하지 않는다.

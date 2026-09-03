@@ -39,6 +39,7 @@
 | 7 | Langfuse 토큰·비용 추적 연동 | 완료 | 100% | 실제 Batch 32건의 usage·비용과 Langfuse reconciliation 검증 |
 | 8 | Airflow로 Reddit 일별 수집·Spark 자동화 | 완료 | 100% | 2016-01-01·2016-02-01 각 1,000건 수집, Spark 처리와 행 회계 검증 완료 |
 | 9 | 2012년 수집·부하·장애 복구 | 완료 | 100% | Google News 366일, Reddit 원본 12개월, Spark·DB 복구 누락·중복 0건 |
+| 10 | MinIO local object storage | 완료 | 100% | 현재 정식 파일 869개·40.62GB 동기화, 재실행 전송 0B, 새 raw·processed·LLM 자동 게시 |
 | 11 | 6차시 보완·LLM Batch | 완료 | 100% | GPT-5.6 Luna Batch 32건 완료, Schema 검증·비용 집계·Langfuse reconciliation 완료 |
 | 12 | LLM 저장·Airflow 통합 보완 | 완료 | 100% | LLM 결과 32건 PostgreSQL 멱등 적재, 수집→Spark→LLM 요청 준비 DAG 실제 성공 |
 
@@ -47,8 +48,8 @@
 연결 실패 복구로 완료했습니다. 뉴스 기준 데이터는 GDELT에서 2012년 Google News
 RSS와 Global Voices 보완 경로로 변경했습니다. 7단계의 관리형 Langfuse 연동은
 실제 Batch 32건 기준으로 검증했습니다. LLM 결과의 PostgreSQL 적재와 Airflow 통합
-검증도 완료했습니다. MinIO는 로컬 서비스와 bucket 기반만 준비했으며 장기 확장 범위로
-표 밖에 분리했습니다.
+검증도 완료했습니다. MinIO도 Python adapter, Spark S3A와 Airflow 결과 동기화까지
+실제 로컬 환경에서 검증했습니다.
 
 ## 4. 단계별 구현 계획
 
@@ -448,15 +449,12 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 | 2026-08-31 | 9 | Google News 2012년 366일과 Reddit 원본 12개월 수집, 입력 확대와 Spark·PostgreSQL 장애 복구 실행 | Spark 2,935,785건과 DB 200건 모두 누락·중복 0건 | 계획 문서 동기화와 object storage 경계 추가 |
 | 2026-08-31 | 10 | MinIO Compose, health check, raw·processed·checkpoint bucket 생성과 설계 문서 검증 | 로컬 object storage 기반 완료 | 작은 fixture upload와 Python·Spark 연동 |
 | 2026-09-02 | 11 | GPT-5.6 Luna Batch JSONL·API CLI·Schema 검증·Airflow DAG·LLM migration 구현 | 90 tests, DAG import 0, dry-run 성공, 예산 차단·복구와 Langfuse fallback 확인 | 이후 실제 Batch 32건과 Langfuse usage 검증 완료 |
-| 2026-09-03 | 12 | 경제·사회 1월 Batch 결과 저장과 Airflow 통합 보완 | LLM 세 테이블 각 32행, 동일 입력 재실행 후 불변; DAG import 오류 0, 통합 dry-run 성공 | MinIO 실제 데이터 연결은 장기 확장 범위 |
+| 2026-09-03 | 12 | 경제·사회 1월 Batch 결과 저장과 Airflow 통합 보완 | LLM 세 테이블 각 32행, 동일 입력 재실행 후 불변; DAG import 오류 0, 통합 dry-run 성공 | MinIO 실제 데이터 연결 |
+| 2026-09-03 | 13 | MinIO Python·Spark·Airflow 통합 | fixture SHA-256 왕복, Spark S3A 2→2행, Airflow 2개 객체·128,906 bytes 저장 | 전체 데이터 이전 |
+| 2026-09-03 | 14 | MinIO 전체 데이터 이전·자동 게시 | 현재 정식 파일 869개·40.62GB, 실패 0; 멱등 재실행 전송 0B; raw 100건→Spark 100건→LLM 요청 10건 자동 게시 | Streaming checkpoint 검증 |
 
 ## 7. 과제 이후 기술 확장 범위
 
-OpenAI·Langfuse 실제 실행, 월간 분석, LLM PostgreSQL 적재와 Airflow 통합 검증까지
-완료했습니다. 남은 장기 확장 범위는 다음과 같습니다.
-
-- MinIO와 bucket 초기화 상태 검증
-- 공개 fixture의 `news-raw` upload와 size·ETag 검증
-- endpoint·bucket을 환경 변수로 받는 Python S3 adapter
-- Spark `s3a://` 의존성 고정과 소형 Parquet 읽기 검증
-- Reddit 2~12월 일별 변환 결과의 로컬·object 행 수 대조
+OpenAI·Langfuse 실제 실행, 월간 분석, LLM PostgreSQL 적재, Airflow와 MinIO 통합
+검증과 기존 raw·processed·LLM·report 전체 데이터 이전까지 완료했습니다. 남은 장기
+확장 범위는 Structured Streaming checkpoint의 MinIO 전환과 재시작 검증입니다.

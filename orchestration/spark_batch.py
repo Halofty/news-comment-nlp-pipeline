@@ -37,6 +37,10 @@ def prepare_run_config(
     project_root = project_root.resolve()
     input_file = str(params["input_file"])
     input_path = _resolve_within(project_root, input_file, field="input_file")
+    if not input_path.is_file():
+        from storage.data_lake import materialize_artifact_if_enabled
+
+        materialize_artifact_if_enabled(input_path)
     if input_path.suffix != ".jsonl":
         raise ValueError("input_file must have a .jsonl suffix")
     if input_path.relative_to(project_root).parts[0] not in ALLOWED_INPUT_ROOTS:

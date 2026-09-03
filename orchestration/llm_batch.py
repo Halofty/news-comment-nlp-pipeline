@@ -71,6 +71,9 @@ def submit_or_dry_run(config: dict[str, Any], preflight: dict[str, Any]) -> dict
     state_path.write_text(
         json.dumps(batch, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    from storage.data_lake import publish_artifact_if_enabled
+
+    publish_artifact_if_enabled(state_path)
     return {
         "status": str(batch["status"]),
         "batch_id": str(batch["id"]),

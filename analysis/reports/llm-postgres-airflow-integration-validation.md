@@ -1,4 +1,4 @@
-# LLM PostgreSQL 적재와 Airflow 통합 검증
+# LLM PostgreSQL 적재와 Airflow·MinIO 통합 검증
 
 - 검증일: 2026-09-03 KST
 - LLM 데이터: 경제·사회 2012년 1월 일별 31건과 월간 1건
@@ -29,7 +29,7 @@ python -m jobs.store_llm_results \
   --report data/llm_response/economy-social/2012/01/postgres-import.json
 ```
 
-## 2. Airflow 수집·처리·LLM 요청 준비 연결
+## 2. Airflow 수집·처리·MinIO·LLM 요청 준비 연결
 
 새 DAG는 다음 단계를 하나의 의존 관계로 연결한다.
 
@@ -38,6 +38,7 @@ prepare_parameters
 → collect_reddit_day
 → run_spark
 → verify_spark
+→ store_spark_output_in_minio
 → prepare_llm_parameters
 → build_and_budget_check
 → submit_or_dry_run
@@ -52,7 +53,8 @@ prepare_parameters
 | DAG import 오류 | 0 |
 | 수집 입력 | Reddit 2016-01-01, 100건 |
 | Spark 처리·저장 | 100건 / 고유 100건 / 오류 0건 |
-| Spark 처리 시간 | 5.836초 |
+| Spark 처리 시간 | 5.620초 |
+| MinIO 저장 | 2개 객체 / 128,906 bytes |
 | LLM 요청 생성 | 10건 |
 | 예상 입력 token | 3,044 |
 | 최대 출력 token | 3,000 |
@@ -61,7 +63,8 @@ prepare_parameters
 | 제출 상태 | `dry_run` |
 | 최종 DAG 상태 | `success` |
 
-실제 경제·사회 LLM 결과 32건은 이미 OpenAI Batch로 완료했기 때문에 이 통합 검증에서
+MinIO 객체별 key·크기·SHA-256은 run별 `minio-storage.json`에 기록했다. 실제
+경제·사회 LLM 결과 32건은 이미 OpenAI Batch로 완료했기 때문에 이 통합 검증에서
 같은 데이터를 다시 제출하지 않았다. 통합 DAG의 `submit=true` 경로는 기존 Batch
 제출 helper를 그대로 사용하며 기본값은 비용 안전을 위해 `false`다.
 
@@ -69,6 +72,7 @@ prepare_parameters
 
 - LLM PostgreSQL record·upsert 테스트 2개
 - Spark 출력→LLM 입력 연결 테스트 1개
+- MinIO adapter·Spark 설정·Airflow 동기화 테스트 7개
 - 기존 LLM Airflow dry-run·예산 차단 테스트 2개
 - Airflow DAG 목록에서 `reddit_spark_llm_pipeline` 확인
 - DAG import 오류 0건
