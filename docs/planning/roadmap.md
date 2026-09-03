@@ -18,15 +18,15 @@
 - Langfuse 장애의 구조화 로그 fallback과 LLM 예산 경고 dry-run
 - Airflow LLM Batch 수동 DAG와 기본 dry-run 보호
 - 경제·사회 2012년 1월 일별 31개·월간 1개 Batch와 Langfuse usage 대조
+- 실제 LLM 결과 32건의 PostgreSQL 멱등 upsert
+- Reddit 수집→Spark→LLM 요청 생성 Airflow 통합 DAG 실행
 
 ## 기술 확장 로드맵
 
 1. Google News 100건 도달 요청의 검색어 단위 재수집과 날짜별 resume·retry
 2. Reddit 2012년 2~12월의 21개 subreddit UTC 일별 Parquet 변환
 3. MinIO fixture upload, Python adapter와 Spark `s3a://` 읽기 연결
-4. 검증된 LLM 결과의 PostgreSQL upsert
-5. 기존 Airflow DAG와 LLM DAG의 dataset 또는 명시적 의존성 연결
-6. Kafka Broker·Spark checkpoint·PostgreSQL 연결 중단 복구 추가 검증
-7. Consumer lag·Spark 처리량·PostgreSQL bulk load 측정과 end-to-end 데모
+4. Kafka Broker·Spark checkpoint·PostgreSQL 연결 중단 복구 추가 검증
+5. Consumer lag·Spark 처리량·PostgreSQL bulk load 측정과 end-to-end 데모
 
 단계별 완료 조건과 기록은 [피드백 구현 계획](feedback-implementation-plan.md), 장애 시나리오는 [장애·부하 테스트 계획](failure-and-load-test-plan.md)에서 관리합니다.

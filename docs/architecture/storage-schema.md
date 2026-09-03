@@ -76,11 +76,12 @@ Spark foreachBatch
 - 1,000건 MVP의 transaction upsert 방식
 - Langfuse와 PostgreSQL의 LLM 관측 데이터 책임 구분
 - LLM Batch·요청·문서 분석 migration
+- 검증된 LLM 결과의 PostgreSQL transaction upsert adapter
+- 실제 일별 31건·월간 1건 적재와 동일 입력 재실행 멱등성 검증
 
 과제 이후 확장 범위:
 
 - 보존 기간과 개인정보 삭제 정책
-- 검증된 LLM 결과의 PostgreSQL upsert adapter
 - migration과 rollback 절차
 
 ## 7. 로컬 실행

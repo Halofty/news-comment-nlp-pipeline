@@ -191,7 +191,8 @@ quality gate를 통과한 일별 31개 분석만 입력으로 월간 Batch 1건�
 날짜만 재실행할 수 있고, 31개 결과의 날짜 연속성·유일성·usage 대조도 모두 통과했다.
 
 일별 분석, quality gate, 월간 통합 분석과 token·비용 검증까지 모두 완료했다.
-PostgreSQL upsert와 Airflow end-to-end 연결은 과제 이후 기술 확장 범위로 분리했다.
+검증 결과 32건은 PostgreSQL에 멱등 적재했고, 별도의 Airflow 통합 DAG에서
+수집→Spark→LLM 요청 생성·예산 검사 흐름을 검증했다.
 
 OpenAI Batch 결과는 출력 순서가 입력 순서와 다를 수 있으므로 `custom_id`로 manifest와
 대조했다. 결과 회수 및 검증 방식은

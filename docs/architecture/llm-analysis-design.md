@@ -101,16 +101,16 @@ Langfuse 기록 실패가 핵심 분석 결과 저장을 중단시키지 않도�
 - Batch JSONL 생성기 구현
 - 제출·상태 확인·결과 다운로드 구현
 - 결과 JSON Schema 검증 구현
+- 검증 결과 PostgreSQL upsert adapter와 32건 멱등 적재 검증
 - Langfuse 도입 방식과 데이터 경계 결정
 - 소량 합성 데이터로 토큰·비용·fallback 추적 검증
 
 과제 이후 확장 범위:
 
-- 검증 결과 PostgreSQL 적재 adapter
 - 누락·오류·만료 재처리
 
 구현 파일은 `llm_analysis/`, 실행 CLI는 `jobs/openai_batch.py`, Airflow DAG는
-`dags/llm_batch_pipeline.py`입니다. 공식 사양은 [GPT-5.6 Luna 모델](https://developers.openai.com/api/docs/models/gpt-5.6-luna)과
+`dags/llm_batch_pipeline.py`와 `dags/reddit_spark_llm_pipeline.py`입니다. 공식 사양은 [GPT-5.6 Luna 모델](https://developers.openai.com/api/docs/models/gpt-5.6-luna)과
 [Batch API](https://developers.openai.com/api/reference/resources/batches)를 기준으로 했습니다.
 
 ## 9. 관련 문서

@@ -64,9 +64,10 @@ Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runn
 | LLM Batch | 일별·월간 분석과 결과 검증 완료 | 71,842개 원문으로 일별 31건과 월간 1건 분석, 실패·누락·중복 0건, 총비용 `$0.5482444` |
 | LLM 결과 품질 | quality gate 구현·실행 완료 | 일별 31행 보존·비정상 label 10개 제외, 월간 label 13개 모두 통과, hash 기록 |
 | Langfuse | Cloud·fallback·실제 usage 검증 완료 | 일별 31건과 월간 1건 token·cost 대조 일치; primary 장애 시 구조화 로그 9건 보존 |
-| Airflow orchestration | 일별 DAG 실행·LLM DAG 구현 | Reddit 두 날짜 수집→Spark 성공, LLM은 기본 dry-run·예산 차단 지원 |
+| Airflow orchestration | 수집·처리·LLM 준비 통합 검증 완료 | 단일 DAG에서 Reddit 100건→Spark 100건→LLM 요청 10건 dry-run 성공 |
+| LLM PostgreSQL 적재 | 실제 멱등 적재 완료 | Batch·request·analysis 각 32행, 동일 입력 재실행 후 행 수 불변 |
 
-현재 Python 3.11 환경에서 자동 테스트 99개가 통과합니다. PostgreSQL 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
+현재 자동 테스트는 LLM 저장과 Airflow 통합 테스트를 포함합니다. PostgreSQL의 Spark 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
 
 ## 저장소 구조
 
@@ -122,6 +123,7 @@ news-comment-nlp-pipeline/
 | [PostgreSQL 저장 구조](docs/architecture/storage-schema.md) | 핵심 테이블, migration과 transaction upsert |
 | [MinIO Object Storage 설계](docs/architecture/object-storage.md) | 로컬 S3 호환 bucket, 현재 범위와 Spark 연동 순서 |
 | [PostgreSQL 통합 검증](analysis/reports/postgres-integration-validation.md) | 982건 적재, rollback·재시도와 멱등성 결과 |
+| [LLM PostgreSQL·Airflow 통합 검증](analysis/reports/llm-postgres-airflow-integration-validation.md) | 실제 LLM 32건 멱등 적재와 수집→Spark→LLM 단일 DAG 실행 결과 |
 | [데이터와 보안 원칙](docs/security/data-security.md) | 원문·PII·자격 증명·보존과 외부 전송 기준 |
 | [LLM 분석 설계](docs/architecture/llm-analysis-design.md) | Batch 분석과 Langfuse 관측 계획 |
 | [OpenAI API·Langfuse 구성 기록](docs/briefings/date7/openai-langfuse-setup.md) | 실제 프로젝트·환경변수·Airflow 반영과 검증 결과 |

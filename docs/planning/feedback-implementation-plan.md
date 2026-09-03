@@ -24,7 +24,8 @@
 
 ## 3. 전체 진행 현황
 
-상태는 `완료`, `진행 중`, `과제 이후 확장`으로 구분합니다.
+이 표에는 완료된 구현 단계만 기록합니다. 과제 완료 여부와 무관한 장기 확장은 표 아래에
+별도로 정리합니다.
 
 | 단계 | 작업 | 상태 | 진행률 | 완료 증거 |
 |---:|---|:---:|---:|---|
@@ -38,15 +39,16 @@
 | 7 | Langfuse 토큰·비용 추적 연동 | 완료 | 100% | 실제 Batch 32건의 usage·비용과 Langfuse reconciliation 검증 |
 | 8 | Airflow로 Reddit 일별 수집·Spark 자동화 | 완료 | 100% | 2016-01-01·2016-02-01 각 1,000건 수집, Spark 처리와 행 회계 검증 완료 |
 | 9 | 2012년 수집·부하·장애 복구 | 완료 | 100% | Google News 366일, Reddit 원본 12개월, Spark·DB 복구 누락·중복 0건 |
-| 10 | MinIO 로컬 object storage | 과제 이후 확장 | 60% | Compose 기동·health check·3개 bucket 생성 검증, upload·Spark 연동 설계 보류 |
 | 11 | 6차시 보완·LLM Batch | 완료 | 100% | GPT-5.6 Luna Batch 32건 완료, Schema 검증·비용 집계·Langfuse reconciliation 완료 |
+| 12 | LLM 저장·Airflow 통합 보완 | 완료 | 100% | LLM 결과 32건 PostgreSQL 멱등 적재, 수집→Spark→LLM 요청 준비 DAG 실제 성공 |
 
 4차시 과제의 **8단계 Airflow 자동화**는 Reddit 하루 날짜 방식으로 완료했습니다.
 5차시 부하·장애 과제도 2012년 데이터 확대, Spark 저장 전 강제 실패와 PostgreSQL
 연결 실패 복구로 완료했습니다. 뉴스 기준 데이터는 GDELT에서 2012년 Google News
 RSS와 Global Voices 보완 경로로 변경했습니다. 7단계의 관리형 Langfuse 연동은
-실제 Batch 32건 기준으로 검증했습니다. 10단계 MinIO는 로컬 서비스와 bucket
-준비까지 완료했으며 이후 확장 범위로 분리했습니다.
+실제 Batch 32건 기준으로 검증했습니다. LLM 결과의 PostgreSQL 적재와 Airflow 통합
+검증도 완료했습니다. MinIO는 로컬 서비스와 bucket 기반만 준비했으며 장기 확장 범위로
+표 밖에 분리했습니다.
 
 ## 4. 단계별 구현 계획
 
@@ -446,12 +448,12 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 | 2026-08-31 | 9 | Google News 2012년 366일과 Reddit 원본 12개월 수집, 입력 확대와 Spark·PostgreSQL 장애 복구 실행 | Spark 2,935,785건과 DB 200건 모두 누락·중복 0건 | 계획 문서 동기화와 object storage 경계 추가 |
 | 2026-08-31 | 10 | MinIO Compose, health check, raw·processed·checkpoint bucket 생성과 설계 문서 검증 | 로컬 object storage 기반 완료 | 작은 fixture upload와 Python·Spark 연동 |
 | 2026-09-02 | 11 | GPT-5.6 Luna Batch JSONL·API CLI·Schema 검증·Airflow DAG·LLM migration 구현 | 90 tests, DAG import 0, dry-run 성공, 예산 차단·복구와 Langfuse fallback 확인 | 이후 실제 Batch 32건과 Langfuse usage 검증 완료 |
-| 2026-09-03 | 12 | 경제·사회 1월 일별 Batch 31건, label quality gate, 월간 통합 Batch와 Langfuse 실제 usage 검증 | 71,842건 입력, 일별·월간 실패 0건, 총비용 $0.5482444, 전체 99 tests | PostgreSQL upsert·Airflow 연결은 기술 확장 범위 |
+| 2026-09-03 | 12 | 경제·사회 1월 Batch 결과 저장과 Airflow 통합 보완 | LLM 세 테이블 각 32행, 동일 입력 재실행 후 불변; DAG import 오류 0, 통합 dry-run 성공 | MinIO 실제 데이터 연결은 장기 확장 범위 |
 
 ## 7. 과제 이후 기술 확장 범위
 
-OpenAI·Langfuse 실제 실행과 월간 분석까지 완료했습니다. 기술 확장 범위는 LLM 결과의
-PostgreSQL upsert, 전체 Airflow 연결, MinIO fixture 검증입니다.
+OpenAI·Langfuse 실제 실행, 월간 분석, LLM PostgreSQL 적재와 Airflow 통합 검증까지
+완료했습니다. 남은 장기 확장 범위는 다음과 같습니다.
 
 - MinIO와 bucket 초기화 상태 검증
 - 공개 fixture의 `news-raw` upload와 size·ETag 검증

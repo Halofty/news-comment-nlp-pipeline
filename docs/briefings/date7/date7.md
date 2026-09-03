@@ -9,9 +9,10 @@
 - Batch 파일 업로드·제출·상태 조회·결과 다운로드 CLI
 - 감정·토픽·키워드·요약 응답 JSON Schema와 결과 검증
 - LLM label quality gate와 일별 31건 기반 월간 통합 분석
+- 검증 결과의 PostgreSQL transaction upsert와 재실행 멱등성 검증
 - 제출 전 예상 token·최대 비용 경고와 예산 초과 차단
 - Langfuse 장애 시 구조화 로그 fallback 실제 실행
-- Airflow `llm_batch_pipeline` 수동 DAG와 기본 `submit=false` 보호
+- Airflow 수집→Spark→LLM 통합 DAG와 기본 `submit=false` 보호
 - 최신 구성도와 LLM 데이터 모델 migration
 
 2026-09-03에 `OPENAI_API_KEY`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`를 로컬
@@ -20,6 +21,9 @@ Japan의 metadata-only sample trace와 OpenAI 합성 Batch 검증을 거쳐, 경
 2012년 1월 일별 Batch 31개를 제출했다. 31개 모두 결과 다운로드·Schema 검증·실제 usage
 및 비용 대조를 완료했고, 누락·중복·실패 없이 31개 일별 응답을 확보했다. 비정상 label
 10개를 quality gate로 제외한 뒤 월간 통합 Batch 1건도 완료·검증했다.
+검증 결과 32건은 PostgreSQL에 적재했고 같은 입력을 재실행한 뒤에도 세 LLM 테이블이
+각각 32행으로 유지됐다. Airflow에서는 Reddit 100건 수집, Spark 100건 처리, LLM 요청
+10건 생성을 하나의 통합 DAG Run으로 실행했다.
 
 ### 1.1 과제 요구사항 충족 현황
 
@@ -29,21 +33,13 @@ Japan의 metadata-only sample trace와 OpenAI 합성 Batch 검증을 거쳐, 경
 | 2 | 실패 단계, 재실행 위치와 재실행 후 저장 결과 | 완료 | Spark write 직전 실패와 PostgreSQL 연결 실패를 각각 복구하고 누락·중복을 검증 |
 | 3 | fallback 또는 alert의 실제 동작 결과 | 완료 | Langfuse primary 장애를 안전하게 재현해 fallback event 9개를 저장하고, LLM 예산 `critical`·`blocked`를 실행으로 확인 |
 | 4 | 최신 구성도와 데이터 모델 | 완료 | MinIO·LLM·Langfuse·Airflow가 반영된 HTML/PNG 구성도, TextEvent v1, PostgreSQL·LLM migration 연결 |
-| 5 | Kafka·Spark·저장·Airflow 로그, 단계별 건수와 최종 확인법 | 완료 | 6장의 공개 검증 보고서 링크와 단계별 처리 건수, 행 회계·고유 ID·usage 대조 방법 제시 |
-| 6 | 아직 실행되지 않는 단계와 남은 작업 | 완료 | 9장에 MinIO 연동과 전체 DAG 연결 등을 과제 이후 기술 확장으로 명시 |
+| 5 | Kafka·Spark·저장·Airflow 로그, 단계별 건수와 최종 확인법 | 완료 | 공개 검증 보고서와 단계별 처리 건수, 행 회계·고유 ID·usage 대조 방법 제시 |
+| 6 | 아직 실행되지 않는 단계와 남은 작업 | 완료 | 9장에 MinIO 데이터 연동, Google News 검색 세분화, Reddit 추가 가공을 장기 확장으로 명시 |
 | 7 | 현재 실행 방법과 확인 결과를 반영한 README | 완료 | 메인 README에 최신 흐름, 구현 상태, 실행·검증 문서 링크 반영 |
-| 선택 | BI·대시보드·API·inference 결과 예시 | 해당 없음 | 해당 기능을 추가하지 않았으므로 제출 의무 없음 |
 
 따라서 **6차시 과제의 필수 문서 항목 7개와 이번에 선택한 OpenAI·Langfuse 실행 검증은
-모두 완료했다.** 아래 저장·오케스트레이션 항목은 과제 제출 후 기술 확장 범위다.
-
-| 추가 구현 항목 | 현재 상태 | 최종 완료 조건 |
-|---|---|---|
-| GPT-5.6 Luna Batch | 완료 | 일별 31건·월간 1건 검증, 총비용 `$0.5482444` |
-| LLM quality gate | 완료 | 일별 31행 보존·비정상 label 10개 제외, 월간 13개 label 통과 |
-| Langfuse Cloud | 완료 | 일별 31건·월간 1건 usage 대조 `matched` |
-| LLM PostgreSQL 적재 | 부분 완료 | 검증 결과 upsert adapter 구현과 동일 결과 재실행 멱등성 확인 |
-| 전체 end-to-end Airflow | 부분 완료 | 수집·Spark·LLM DAG를 dataset dependency로 연결해 한 흐름으로 실행 |
+모두 완료했다.** LLM 결과 32건의 PostgreSQL 멱등 적재와 Airflow의
+수집→Spark→LLM 요청 준비 흐름도 실제 로컬 환경에서 검증했다.
 
 ## 2. 기준 실행과 부하 실행 비교
 
@@ -200,6 +196,7 @@ Airflow에서도 동일 입력을 `$0.00001` 예산으로 실행해 `submit_or_d
 - LLM 결과 계약: `llm_analysis/contract.py`
 - LLM migration: `sql/migrations/004_llm_analysis.sql`
 - migration 검증: [LLM 저장 migration](../../../analysis/reports/llm-storage-migration-validation.md)
+- 실제 적재·통합 검증: [LLM PostgreSQL·Airflow 검증](../../../analysis/reports/llm-postgres-airflow-integration-validation.md)
 
 LLM 영역의 핵심 키는 다음과 같다.
 
@@ -230,6 +227,8 @@ PostgreSQL은 재개·멱등성의 기준이고 Langfuse는 token·비용·지�
 | OpenAI 일별 Batch | Reddit 71,209건·News 633건을 무표본 분석, 31/31 완료 | [실행 기록](economy-social-batch.md) |
 | LLM quality gate | 31행 보존, 403개 label 중 비정상 10개 제외 | [최종 결과](economy-social-results-01-31.md#6-출력-품질-점검) |
 | OpenAI 월간 Batch | 정제된 일별 31건으로 1건 생성·검증, 실패·누락 0건 | [최종 결과](economy-social-results-01-31.md#7-1월-통합-요약-결과) |
+| LLM PostgreSQL | 실제 32건 적재·동일 입력 재실행 후 세 테이블 각 32행 유지 | [통합 검증](../../../analysis/reports/llm-postgres-airflow-integration-validation.md) |
+| Airflow 통합 DAG | Reddit 100→Spark 100→LLM 요청 10건 dry-run, 최종 성공 | [통합 검증](../../../analysis/reports/llm-postgres-airflow-integration-validation.md) |
 | 경제·사회 1월 결과 | 일별·월간 총비용 $0.5482444, 주요 감성·주제 정리 | [최종 결과](economy-social-results-01-31.md) |
 
 최종 행은 각 Spark report에서 `input = contract_rejected + duplicate + unique`를 확인하고,
@@ -302,32 +301,33 @@ Batch는 1건 완료됐고 Schema·`custom_id`·usage 검증을 모두 통과했
 공식 기준: [GPT-5.6 Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna),
 [Batch API](https://developers.openai.com/api/docs/guides/batch)
 
-## 8. Airflow 실행과 확인
+## 8. Airflow 수집·처리·LLM 요청 준비 흐름
 
-`llm_batch_pipeline`은 다음 4개 task로 구성된다.
+`reddit_spark_llm_pipeline`은 다음 8개 task로 수집부터 LLM 요청 검증까지 연결한다.
 
 ```text
 prepare_parameters
+→ collect_reddit_day
+→ run_spark
+→ verify_spark
+→ prepare_llm_parameters
 → build_and_budget_check
 → submit_or_dry_run
-→ verify_preflight_and_submission
+→ verify_pipeline
 ```
 
-기본 `submit=false`이므로 OpenAI key가 없어도 요청 형식·건수·예산을 확인한다. 실제
-경제·사회 분석은 CLI Batch로 완료했으며 Airflow DAG는 중복 제출을 피하기 위해 dry-run
-검증 상태로 유지했다. 낮은 `daily_budget_usd`를 사용한 제출 전 차단은 외부 API 호출
-없이 검증했다.
+실제 Run은 Reddit 2016-01-01 100건을 수집해 Spark에서 고유 100건으로 처리하고 그
+출력으로 LLM 요청 10건을 생성했다. 예상 최대 비용은 `$0.0021044`, 예산 상태는 `ok`,
+최종 DAG 상태는 `success`였다. 이미 완료된 경제·사회 Batch를 중복 제출하지 않도록
+`submit=false`로 검증했으며 외부 API 비용은 발생하지 않았다.
 
-## 9. 과제 이후 기술 확장 범위
+근거: [LLM PostgreSQL·Airflow 통합 검증](../../../analysis/reports/llm-postgres-airflow-integration-validation.md)
 
-| 단계 | 현재 상태 | 확장 범위 |
-|---|---|---|
-| LLM PostgreSQL 저장 | migration·결과 검증 완료 | upsert adapter와 재실행 검증 |
-| MinIO 데이터 연결 | 서비스·bucket 완료 | fixture upload와 Spark `s3a://` 검증 |
-| 전체 Airflow 연결 | 수집·Spark DAG, LLM DAG 각각 구현 | dataset dependency로 end-to-end 연결 |
-| Google News 상한 | 경고 3건 기록 | 검색 조건 세분화·resume 수집 |
-| Reddit 2012 가공 | 12개월 원본 다운로드 완료 | 21개 subreddit 일별 Parquet 변환 |
-| BI·API·inference 화면 | 추가하지 않음 | 이번 제출 대상 아님 |
+## 9. 과제 범위 밖 기술 확장
+
+이번 과제 완료 여부와 무관한 장기 확장 범위는 MinIO의 실제 데이터 연결, Google News
+100건 상한 검색의 세분화, Reddit 2012년 2~12월의 일별 Parquet 변환이다. 제출 현황
+표에서는 이 항목들을 제외했다.
 
 ## 10. 자동 검증
 
