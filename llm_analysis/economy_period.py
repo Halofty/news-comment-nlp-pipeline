@@ -339,9 +339,32 @@ def build_economy_monthly_batch(
     if len(rows) != expected_days:
         raise ValueError(f"monthly input requires {expected_days} validated daily results")
     label = f"{year:04d}-{month:02d}"
+    expected_event_ids = {
+        f"period:economy-society:{year:04d}-{month:02d}-{day:02d}"
+        for day in range(1, expected_days + 1)
+    }
+    event_ids = [str(row.get("event_id") or "") for row in rows]
+    if len(set(event_ids)) != len(event_ids):
+        raise ValueError("monthly input event_id values must be unique")
+    missing = expected_event_ids - set(event_ids)
+    unexpected = set(event_ids) - expected_event_ids
+    if missing or unexpected:
+        raise ValueError(
+            "monthly input date coverage mismatch: "
+            f"missing={sorted(missing)}, unexpected={sorted(unexpected)}"
+        )
     rows.sort(key=lambda row: str(row["event_id"]))
+    monthly_fields = (
+        "event_id",
+        "sentiment",
+        "sentiment_score",
+        "topics",
+        "keywords",
+        "summary",
+    )
+    analyses = [{field: row[field] for field in monthly_fields} for row in rows]
     input_text = "Period: " + label + "\n<daily_analyses>\n" + "\n".join(
-        json.dumps(row, ensure_ascii=False, separators=(",", ":")) for row in rows
+        json.dumps(row, ensure_ascii=False, separators=(",", ":")) for row in analyses
     ) + "\n</daily_analyses>"
     body = _request_body(
         model=model,

@@ -8,6 +8,7 @@
 - GPT-5.6 Luna Responses Batch 요청 JSONL과 metadata-only manifest 생성
 - Batch 파일 업로드·제출·상태 조회·결과 다운로드 CLI
 - 감정·토픽·키워드·요약 응답 JSON Schema와 결과 검증
+- LLM label quality gate와 일별 31건 기반 월간 통합 분석
 - 제출 전 예상 token·최대 비용 경고와 예산 초과 차단
 - Langfuse 장애 시 구조화 로그 fallback 실제 실행
 - Airflow `llm_batch_pipeline` 수동 DAG와 기본 `submit=false` 보호
@@ -17,7 +18,8 @@
 `.env`에 주입했다. 값은 출력하지 않고 존재 여부와 실제 인증만 확인했다. Langfuse Cloud
 Japan의 metadata-only sample trace와 OpenAI 합성 Batch 검증을 거쳐, 경제·사회 그룹의
 2012년 1월 일별 Batch 31개를 제출했다. 31개 모두 결과 다운로드·Schema 검증·실제 usage
-및 비용 대조를 완료했고, 누락·중복·실패 없이 31개 일별 응답을 확보했다.
+및 비용 대조를 완료했고, 누락·중복·실패 없이 31개 일별 응답을 확보했다. 비정상 label
+10개를 quality gate로 제외한 뒤 월간 통합 Batch 1건도 완료·검증했다.
 
 ### 1.1 과제 요구사항 충족 현황
 
@@ -28,18 +30,19 @@ Japan의 metadata-only sample trace와 OpenAI 합성 Batch 검증을 거쳐, 경
 | 3 | fallback 또는 alert의 실제 동작 결과 | 완료 | Langfuse primary 장애를 안전하게 재현해 fallback event 9개를 저장하고, LLM 예산 `critical`·`blocked`를 실행으로 확인 |
 | 4 | 최신 구성도와 데이터 모델 | 완료 | MinIO·LLM·Langfuse·Airflow가 반영된 HTML/PNG 구성도, TextEvent v1, PostgreSQL·LLM migration 연결 |
 | 5 | Kafka·Spark·저장·Airflow 로그, 단계별 건수와 최종 확인법 | 완료 | 6장의 공개 검증 보고서 링크와 단계별 처리 건수, 행 회계·고유 ID·usage 대조 방법 제시 |
-| 6 | 아직 실행되지 않는 단계와 남은 작업 | 완료 | 9장에 실제 OpenAI·Langfuse Cloud 실행, MinIO 연동, 전체 DAG 연결 등을 미완료로 명시 |
+| 6 | 아직 실행되지 않는 단계와 남은 작업 | 완료 | 9장에 Langfuse UI 증빙, MinIO 연동과 전체 DAG 연결을 과제 이후 확장으로 명시 |
 | 7 | 현재 실행 방법과 확인 결과를 반영한 README | 완료 | 메인 README에 최신 흐름, 구현 상태, 실행·검증 문서 링크 반영 |
 | 선택 | BI·대시보드·API·inference 결과 예시 | 해당 없음 | 해당 기능을 추가하지 않았으므로 제출 의무 없음 |
 
-따라서 **6차시 과제의 필수 문서 항목 7개는 모두 갖춘 상태**다. 다만 이번에 추가 목표로
-선택한 OpenAI·Langfuse의 외부 서비스 검증까지 모두 끝난 것은 아니다. 아래 항목은 key와
-외부 계정 설정이 있어야 완료할 수 있다.
+따라서 **6차시 과제의 필수 문서 항목 7개와 이번에 선택한 OpenAI·Langfuse 실행 검증은
+모두 완료했다.** Langfuse Cloud UI 화면 확인과 아래 저장·오케스트레이션 항목은 과제
+제출 후 확장 범위다.
 
 | 추가 구현 항목 | 현재 상태 | 최종 완료 조건 |
 |---|---|---|
-| GPT-5.6 Luna Batch | 일별 31개 결과 검증 완료 | quality gate 적용 후 월간 요약 실행 |
-| Langfuse Cloud | 실제 usage 전송 완료·UI 확인 대기 | 31일 실제 token·cost trace 육안 확인 필요 |
+| GPT-5.6 Luna Batch | 완료 | 일별 31건·월간 1건 검증, 총비용 `$0.5482444` |
+| LLM quality gate | 완료 | 일별 31행 보존·비정상 label 10개 제외, 월간 13개 label 통과 |
+| Langfuse Cloud | 실행 검증 완료·UI 확인 권장 | 일별 31건·월간 1건 usage 대조 `matched` |
 | LLM PostgreSQL 적재 | 부분 완료 | 검증 결과 upsert adapter 구현과 동일 결과 재실행 멱등성 확인 |
 | 전체 end-to-end Airflow | 부분 완료 | 수집·Spark·LLM DAG를 dataset dependency로 연결해 한 흐름으로 실행 |
 
@@ -155,16 +158,25 @@ python -m jobs.verify_langfuse \
 
 ### 4.2 Langfuse Cloud 실제 연결
 
-2026-09-03에 Langfuse Cloud Japan에서 인증을 확인한 뒤 같은 metadata-only sample을
-실제로 전송했다. `generation_count=3`, 입력 300·출력 60·전체 360 token이 일치했고
-fallback 경고 없이 종료됐다. 기사·댓글 원문, prompt와 응답 본문은 전송하지 않았다.
-Cloud UI에서 trace와 비용이 보이는지는 사용자가 마지막으로 확인한다.
+2026-09-03에 Langfuse Cloud Japan에서 metadata-only sample로 인증과 SDK 연결을 먼저
+확인한 뒤, 실제 경제·사회 일별 31건과 월간 1건의 usage를 전송했다. 기사·댓글 원문,
+prompt와 응답 본문은 전송하지 않았다.
 
-근거: [OpenAI·Langfuse 소량 검증](../../../analysis/reports/openai-langfuse-cloud-smoke-validation.md)
+| 실제 분석 범위 | generation | 입력 token | 출력 token | 비용 | usage 대조 |
+|---|---:|---:|---:|---:|---|
+| 일별 분석 | 31 | 5,432,661 | 7,423 | $0.5477199 | 31건 `matched` |
+| 월간 통합 | 1 | 4,213 | 172 | $0.0005245 | 1건 `matched` |
+| 합계 | 32 | 5,436,874 | 7,595 | **$0.5482444** | 32건 일치 |
 
-### 4.3 LLM 예산 경고
+실제 전송에서 구조화 로그 fallback 파일은 비어 있어 primary 전송 실패가 없었다. Cloud
+UI의 trace와 비용 화면 캡처만 사용자가 선택적으로 추가한다.
 
-공개 합성 이벤트 2건으로 GPT-5.6 Luna Batch 요청을 만들었다. 최대 출력 300 token/건,
+근거: [경제·사회 최종 결과](economy-social-results-01-31.md),
+[OpenAI·Langfuse 사전 소량 검증](../../../analysis/reports/openai-langfuse-cloud-smoke-validation.md)
+
+### 4.3 제출 전 LLM 예산 경고 안전장치
+
+실데이터 제출 전 공개 합성 이벤트 2건으로 예산 안전장치만 검증했다. 최대 출력 300 token/건,
 일별 예산 `$0.00045`를 지정했을 때 예상 최대 비용 `$0.0004189`로 예산의 93.09%가 되어
 `budget_status=critical`이 실제 기록됐다. 100% 이상이면 `blocked`로 판정하며 Airflow
 submit task는 API를 호출하기 전에 실패한다.
@@ -216,99 +228,81 @@ PostgreSQL은 재개·멱등성의 기준이고 Langfuse는 token·비용·지�
 | Airflow LLM | 4개 task 성공, 요청 2건 dry-run | [LLM DAG 검증](../../../analysis/reports/airflow-llm-dry-run-validation.md) |
 | LLM dry-run | 요청 2, 비용 critical 경고 | [preflight JSON](../../../analysis/reports/llm-batch-dry-run.json) |
 | Langfuse fallback | primary 실패 후 관측 event 9개 보존 | [fallback JSONL](../../../analysis/reports/langfuse-fallback-trace.jsonl) |
-| Langfuse Cloud | 일본 리전 인증·metadata-only trace 전송 성공 | [Cloud 소량 검증](../../../analysis/reports/openai-langfuse-cloud-smoke-validation.md) |
-| OpenAI Batch | 경제·사회 1월 결과 31건 검증, 누락·중복·실패 0건 | [최종 결과](economy-social-results-01-31.md) |
-| 2012년 1월 기간 요약 Batch | 기존 32건 표본안은 미제출·대체됨 | `data/llm/period-summary-2012-01/preflight.json` |
-| 대주제별 계층형 Batch | 4개 대주제 전체 + AskReddit 비교 표본 비용 산정 완료 | [비용 예측](llm-cost-estimate.md) |
-| 경제·사회 일별 Batch | Reddit 71,209건과 News 633건 기반 날짜별 독립 Batch 31개 완료 | [실행 기록](economy-social-batch.md) |
-| 경제·사회 1월 결과 | 31/31 검증, 실제 비용 $0.5477199, 주요 주제·품질 문제 정리 | [최종 결과](economy-social-results-01-31.md) |
+| Langfuse Cloud | 실제 일별 31건·월간 1건 usage 대조 일치 | [최종 결과](economy-social-results-01-31.md) |
+| OpenAI 일별 Batch | Reddit 71,209건·News 633건을 무표본 분석, 31/31 완료 | [실행 기록](economy-social-batch.md) |
+| LLM quality gate | 31행 보존, 403개 label 중 비정상 10개 제외 | [최종 결과](economy-social-results-01-31.md#6-출력-품질-점검) |
+| OpenAI 월간 Batch | 정제된 일별 31건으로 1건 생성·검증, 실패·누락 0건 | [최종 결과](economy-social-results-01-31.md#7-1월-통합-요약-결과) |
+| 경제·사회 1월 결과 | 일별·월간 총비용 $0.5482444, 주요 감성·주제 정리 | [최종 결과](economy-social-results-01-31.md) |
 
 최종 행은 각 Spark report에서 `input = contract_rejected + duplicate + unique`를 확인하고,
 PostgreSQL에서는 `count(*)`, `count(distinct event_id)` 및
 `stream_batch_commits`를 확인한다. LLM은 manifest 수, Batch `request_counts`, 검증 결과
 수와 usage 합계를 대조한다.
 
-## 7. LLM Batch 실행 방법
+## 7. 실제 LLM Batch 실행
 
-### 7.1 비용 없는 사전 검사
+### 7.1 확정한 분석 범위
+
+실제로 보낸 분석은 표본 기반 32건 요청안이 아니다. 2012년 1월 경제·사회 범위의 원문을
+날짜별로 모두 넣은 일별 요청 31건과, 검증·정제된 일별 응답을 합친 월간 요청 1건이다.
+
+| 항목 | 실제 실행 값 |
+|---|---|
+| Reddit 범위 | `Economics`, `business`, `news`, `TrueReddit`, `changemyview` |
+| Reddit 입력 | 71,209건 |
+| Google News 입력 | `economy` 주제 633건 |
+| 표본 추출 | 없음 |
+| 일별 요청·Batch | 31 requests / 31 independent Batches |
+| 월간 요청·Batch | 1 request / 1 Batch |
+| 성공한 분석 Batch | 총 32개 |
+| 모델·endpoint | `gpt-5.6-luna`, `/v1/responses` |
+
+처음에는 일별 요청 31건을 한 Batch로 묶었으나 조직 queued token 한도 5,000,000을
+초과해 validation에서 실패했다. 완료 request와 사용 token은 0이므로 비용도 발생하지
+않았다. 이후 날짜별 독립 Batch로 분리하고 queue가 비워지는 순서에 따라 1~15일,
+16~21일, 22~31일을 제출했다.
+
+### 7.2 일별 결과 회수와 검증
 
 ```bash
-python -m jobs.openai_batch prepare \
-  --input sample/synthetic-events.jsonl \
-  --request-output data/llm/requests.jsonl \
-  --manifest-output data/llm/manifest.jsonl \
-  --report data/llm/requests.report.json \
-  --model gpt-5.6-luna \
-  --limit 100 \
-  --daily-budget-usd 1.00
+python -m jobs.collect_economy_daily_results \
+  --artifact-root data/llm/economy-social-2012-01/days \
+  --response-root data/llm_response/economy-social/2012/01/days \
+  --year 2012 --month 1 --start-day 1 --end-day 31 \
+  --combined-output data/llm_response/economy-social/2012/01/daily-results-01-31.validated.jsonl \
+  --report data/llm_response/economy-social/2012/01/daily-results-01-31.report.json
 ```
 
-### 7.2 실제 제출·상태·다운로드·검증
+결과는 출력 순서가 아니라 `custom_id`로 날짜별 manifest와 대조했다. 일별 31건 모두
+Schema 검증과 usage reconciliation을 통과했고 누락·중복·실패는 0건이다.
+
+### 7.3 quality gate와 월간 통합
 
 ```bash
-export OPENAI_API_KEY='환경에서만 설정'
+python -m jobs.quality_gate_llm_results \
+  --input data/llm_response/economy-social/2012/01/daily-results-01-31.validated.jsonl \
+  --output data/llm_response/economy-social/2012/01/daily-results-01-31.cleaned.jsonl \
+  --report data/llm_response/economy-social/2012/01/quality-gate-report.json
 
-python -m jobs.openai_batch submit \
-  --request-file data/llm/requests.jsonl \
-  --preflight-report data/llm/requests.report.json \
-  --state-output data/llm/batch-state.json \
-  --internal-batch-id manual-001
-
-python -m jobs.openai_batch status \
-  --batch-id batch_xxx \
-  --state-output data/llm/batch-state.json
-
-python -m jobs.openai_batch download \
-  --batch-id batch_xxx \
-  --result-output data/llm/results.jsonl \
-  --state-output data/llm/batch-state.json
-
-python -m jobs.openai_batch validate \
-  --results data/llm/results.jsonl \
-  --manifest data/llm/manifest.jsonl \
-  --output data/llm/validated-analysis.jsonl \
-  --report data/llm/validation-report.json
+python -m jobs.economy_period_batch prepare-monthly \
+  --daily-results data/llm_response/economy-social/2012/01/daily-results-01-31.cleaned.jsonl \
+  --request-output data/llm/economy-social-2012-01/monthly/requests.jsonl \
+  --manifest-output data/llm/economy-social-2012-01/monthly/manifest.jsonl \
+  --report data/llm/economy-social-2012-01/monthly/preflight.json \
+  --year 2012 --month 1 --budget-usd 0.05
 ```
+
+quality gate는 31행을 모두 보존하면서 403개 label 중 비정상 10개를 제외했다. 월간
+Batch는 1건 완료됐고 Schema·`custom_id`·usage 검증을 모두 통과했다. 실제 일별 비용은
+`$0.5477199`, 월간 비용은 `$0.0005245`, 합계는 `$0.5482444`다.
+
+초기의 표본 기반 32 requests/1 Batch 계획은 실제 제출하지 않았다. 해당 사전검사 파일은
+의사결정 이력으로만 남기며 현재 실행 결과나 비용에 포함하지 않는다. 상세 실행 명령과
+결과는 [Batch 실행 기록](economy-social-batch.md)과
+[최종 결과](economy-social-results-01-31.md)를 기준으로 한다.
 
 공식 기준: [GPT-5.6 Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna),
-[Batch API](https://developers.openai.com/api/reference/resources/batches)
-
-### 7.3 대체된 32건 표본안
-
-`data/experiments/week5/january-recovery`의 2012년 1월 통합 Parquet를 한 번
-순회하여 1월 1일부터 31일까지의 일별 요청 31건과 월 통합 요청 1건, 총 32건을
-생성했다. 전체 2,935,785행의 건수와 소스 분포는 모두 집계하되 원문 전체를 한
-요청에 넣지 않는다. 일별 요청에는 Reddit 댓글과 Web News 제목을 각각 최대 20건,
-월 요청에는 각각 최대 100건을 고정 seed reservoir sampling으로 포함한다. 작성자와
-URL은 전송 대상에서 제외하며, 삭제 글·빈 글·제어 문자를 제거하고 항목당 1,000자로
-제한한다.
-
-| 항목 | 사전 검증 결과 |
-|---|---:|
-| 전체 입력 행 | 2,935,785 |
-| Reddit 행 | 2,933,375 |
-| Web News 행 | 2,410 |
-| Batch 요청 | 32 |
-| 예상 입력 토큰 | 63,061 |
-| 최대 출력 토큰 | 9,600 |
-| 최대 예상 비용 | $0.0120661 |
-| 로컬 비용 한도 | $0.10 |
-| 판정 | `ok` |
-
-> 이 요청 파일은 OpenAI에 제출하지 않았다. 이후 확정한 `4개 대주제 + AskReddit`
-> 계층형 분석안으로 대체하며, 새 비용 예측은 [별도 문서](llm-cost-estimate.md)를
-> 기준으로 한다.
-
-재현 명령:
-
-```bash
-python -m jobs.period_summary_batch \
-  --input data/experiments/week5/january-recovery \
-  --request-output data/llm/period-summary-2012-01/requests.jsonl \
-  --manifest-output data/llm/period-summary-2012-01/manifest.jsonl \
-  --report data/llm/period-summary-2012-01/preflight.json \
-  --year 2012 --month 1 --daily-budget-usd 0.10
-```
+[Batch API](https://developers.openai.com/api/docs/guides/batch)
 
 ## 8. Airflow 실행과 확인
 
@@ -326,12 +320,11 @@ prepare_parameters
 Airflow 컨테이너에 `OPENAI_API_KEY`를 전달한 경우에만 수행한다. 의도적 장애 재현은
 낮은 `daily_budget_usd`로 제출 전 차단을 확인할 수 있으며 외부 API에는 요청하지 않는다.
 
-## 9. 아직 실행되지 않는 단계와 남은 작업
+## 9. 과제 이후 확장 작업
 
 | 단계 | 현재 상태 | 남은 작업 |
 |---|---|---|
-| OpenAI Batch 실제 실행 | 경제·사회 일별 31개 완료·검증 | 품질 필터와 월간 요약 실행 |
-| Langfuse Cloud | 인증·실제 usage 전송 완료 | Cloud UI에서 31일 trace·token·cost 육안 확인 |
+| Langfuse Cloud UI | 일별·월간 실제 usage 전송 완료 | Cloud UI 화면 캡처를 제출 증빙에 선택적으로 추가 |
 | LLM PostgreSQL 저장 | migration·결과 검증 완료 | upsert adapter와 재실행 검증 |
 | MinIO 데이터 연결 | 서비스·bucket 완료 | fixture upload와 Spark `s3a://` 검증 |
 | 전체 Airflow 연결 | 수집·Spark DAG, LLM DAG 각각 구현 | dataset dependency로 end-to-end 연결 |
@@ -355,26 +348,15 @@ Airflow 컨테이너에 `OPENAI_API_KEY`를 전달한 경우에만 수행한다.
 | 5 | Langfuse Cloud Japan 프로젝트 생성 | 완료 | 일본 리전 인증 성공 |
 | 6 | Langfuse 프로젝트 key pair 발급 | 완료 | `.env` 존재·Cloud 인증 확인, 값 미출력 |
 | 7 | Airflow 컨테이너 다시 생성 | 완료 | `credentials-configured` 확인 |
-| 8 | Langfuse sample trace 전송 | 전송 완료·UI 확인 필요 | 3 generations, 300/60/360 token 확인 |
+| 8 | Langfuse trace 전송 | 실제 usage 전송 완료·UI 확인 권장 | 일별 31건과 월간 1건 trace를 UI에서 육안 확인 |
 | 9 | Airflow 2건 dry-run | 완료 | `submit=false`, 4개 task 성공 |
-| 10 | OpenAI 실제 Batch 제출 | 일별 31개 완료·검증 | quality gate 적용 후 월간 요약 제출 |
+| 10 | OpenAI 실제 Batch 제출 | 완료 | 일별 31건과 월간 1건 결과·Schema·usage 검증 완료 |
 
-최초 실제 제출 권장 configuration:
-
-```json
-{
-  "input_path": "sample/synthetic-events.jsonl",
-  "output_root": "data/airflow-output/llm-batch",
-  "model": "gpt-5.6-luna",
-  "limit": 2,
-  "daily_budget_usd": "0.01",
-  "submit": false
-}
-```
-
-실제 2건은 CLI에서 이미 한 번 제출했으므로 Airflow에서 같은 요청을 `submit=true`로
-다시 실행하지 않는다. 남은 사용자 확인은 OpenAI dashboard budget·notification,
-Langfuse UI trace·token·cost, Batch 완료 후 결과·usage다.
+실제 경제·사회 분석은 CLI로 일별 31개와 월간 1개 Batch를 완료했으므로 같은 요청을
+Airflow에서 다시 제출하지 않는다. Airflow의 합성 2건 실행은 DAG 파라미터·예산 차단을
+검증한 `submit=false` dry-run이며 실제 분석 건수와 비용에 포함하지 않는다. 사용자가
+화면에서 확인할 항목은 OpenAI dashboard budget·notification과 Langfuse UI의 일별
+31건·월간 1건 trace·token·cost다.
 
 ## 11. 자동 검증
 

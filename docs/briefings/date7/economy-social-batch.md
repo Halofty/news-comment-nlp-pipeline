@@ -7,7 +7,7 @@
 - Web News: `google_news_topic_group=economy`
 - 표본 추출: 없음
 - 이번 제출 대상: 일별 분석 31건
-- 월간 분석 1건: 일별 응답 31건이 모두 완료·검증된 뒤 별도 제출
+- 월간 분석 1건: quality gate를 통과한 일별 응답 31건으로 제출·검증 완료
 - 모델과 API: `gpt-5.6-luna`, Responses API, Batch
 - 관측 정보: Langfuse에는 원문·key 없이 Batch·stage·token·cost metadata만 기록
 
@@ -141,16 +141,26 @@ python -m jobs.collect_economy_daily_results \
 최종 결과는 31/31 검증 성공, 실패·누락·중복 0건이며 실제 비용은 `$0.5477199`다.
 상세 결과는 [1월 최종 보고서](economy-social-results-01-31.md)에 정리했다.
 
-월간 요청은 검증된 일별 결과 31행을 입력으로 다음 명령에서 생성한다.
+검증된 일별 결과에 quality gate를 적용한 뒤, 정제된 31행으로 월간 요청을 생성했다.
 
 ```bash
+python -m jobs.quality_gate_llm_results \
+  --input data/llm_response/economy-social/2012/01/daily-results-01-31.validated.jsonl \
+  --output data/llm_response/economy-social/2012/01/daily-results-01-31.cleaned.jsonl \
+  --report data/llm_response/economy-social/2012/01/quality-gate-report.json
+
 python -m jobs.economy_period_batch prepare-monthly \
-  --daily-results data/llm_response/economy-social/2012/01/daily-results-01-31.validated.jsonl \
+  --daily-results data/llm_response/economy-social/2012/01/daily-results-01-31.cleaned.jsonl \
   --request-output data/llm/economy-social-2012-01/monthly/requests.jsonl \
   --manifest-output data/llm/economy-social-2012-01/monthly/manifest.jsonl \
   --report data/llm/economy-social-2012-01/monthly/preflight.json \
   --year 2012 --month 1 --budget-usd 0.05
 ```
+
+월간 Batch는 2026-09-03에 완료됐다. 입력 4,213 token, 출력 172 token, reasoning 35
+token을 사용했고 실제 비용은 `$0.0005245`다. 결과 1건은 Schema와 `custom_id` 검증을
+통과했으며 Langfuse usage reconciliation은 `matched`다. 월간 출력의 13개 label도
+quality gate를 모두 통과했다.
 
 ## 6. 관련 파일
 
@@ -158,6 +168,7 @@ python -m jobs.economy_period_batch prepare-monthly \
 - `jobs/economy_period_batch.py`: 재현 가능한 CLI
 - `jobs/submit_economy_daily_range.py`: 날짜마다 독립 Batch를 제출하고 중복 제출 방지
 - `jobs/collect_economy_daily_results.py`: 완료 결과 회수, manifest·Schema·usage 검증
+- `jobs/quality_gate_llm_results.py`: LLM label 정규화·품질 검사와 hash 보고서 생성
 - `jobs/openai_batch.py`: 업로드·제출·상태 조회와 Langfuse/fallback 기록
 - `tests/test_economy_period_batch.py`: 표본 미사용, 그룹 필터, 31일·월간 생성 테스트
 
@@ -166,8 +177,8 @@ python -m jobs.economy_period_batch prepare-monthly \
 
 ## 7. 테스트 결과
 
-- Python 3.11 (`.venv311`): 전체 `95 passed`
-- 경제·사회 요청·OpenAI workflow·Langfuse 집중 검사: `16 passed`
+- Python 3.11 (`.venv311`): 전체 `99 passed`
+- 경제·사회 요청·OpenAI workflow·Langfuse·quality gate 집중 검사: `20 passed`
 - Python 3.14 (`.venv`): LLM 관련 검사는 통과하지만 PySpark 3.5의 `cloudpickle`
   호환 문제로 Spark 테스트 3개가 실패한다.
 

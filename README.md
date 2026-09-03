@@ -37,7 +37,7 @@ Google News · Global Voices(보완) · Reddit
    └─ 정상·flag → processed
 → partitioned Parquet + PostgreSQL 멱등 upsert
 → MinIO S3-compatible object storage             [서비스 기반 추가, 데이터 연동 예정]
-→ GPT-5.6 Luna Batch 감정·토픽·요약              [합성 2건 실제 제출, 결과 회수 대기]
+→ GPT-5.6 Luna Batch 감정·토픽·요약              [일별 31건 + 월간 1건 완료·검증]
 → Langfuse token·비용 관측 + 구조화 로그 fallback
 → Airflow parameterized batch orchestration
 ```
@@ -61,11 +61,12 @@ Spark는 Standalone Master·Worker 구조로 실행하며, 별도의 `spark-runn
 | PostgreSQL 적재 | MVP 구현·통합 검증 완료 | 정상 981건·계약 거부 1건, 새 checkpoint 재처리 중복 0건 |
 | 부하·장애 복구 | 로컬 실험 완료 | 1월 2,935,785건 처리 복구 누락·중복 0건, DB 연결 실패 후 200건 멱등 복구 |
 | MinIO object storage | 서비스 기반 구현 | Compose·bucket 자동 생성 추가, 실제 Spark `s3a://` 연동 전 |
-| LLM Batch | 실제 소량 제출·결과 검증 구현 | GPT-5.6 Luna 합성 2건 접수·처리 중, 비용 alert 확인; 결과 회수 대기 |
-| Langfuse | Cloud·fallback 검증 완료 | 일본 리전 인증과 metadata-only trace 성공; primary 장애 시 구조화 로그 9건 보존 |
+| LLM Batch | 일별·월간 분석과 결과 검증 완료 | 71,842개 원문으로 일별 31건과 월간 1건 분석, 실패·누락·중복 0건, 총비용 `$0.5482444` |
+| LLM 결과 품질 | quality gate 구현·실행 완료 | 일별 31행 보존·비정상 label 10개 제외, 월간 label 13개 모두 통과, hash 기록 |
+| Langfuse | Cloud·fallback·실제 usage 검증 완료 | 일별 31건과 월간 1건 token·cost 대조 일치; primary 장애 시 구조화 로그 9건 보존 |
 | Airflow orchestration | 일별 DAG 실행·LLM DAG 구현 | Reddit 두 날짜 수집→Spark 성공, LLM은 기본 dry-run·예산 차단 지원 |
 
-현재 자동 테스트 90개가 통과합니다. PostgreSQL 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
+현재 Python 3.11 환경에서 자동 테스트 99개가 통과합니다. PostgreSQL 적재는 1,000건 규모의 Driver chunk upsert 방식이며, 대규모 확장에서는 JDBC staging 또는 bulk load로 교체할 예정입니다.
 
 ## 저장소 구조
 
@@ -104,6 +105,7 @@ news-comment-nlp-pipeline/
 | [Date 5 Airflow 자동화 브리핑](docs/briefings/date5/date5.md) | 과제 요구사항, DAG 구조, 두 번의 파라미터 실행과 제출 자료 |
 | [Date 6 부하·장애·복구](docs/briefings/date6/date6.md) | 2012년 수집, 입력 확대, Spark·PostgreSQL 장애 복구 결과 |
 | [6차시 보완·전체 흐름 점검](docs/briefings/date7/date7.md) | 부하 비교, fallback·alert, LLM Batch와 남은 작업 |
+| [경제·사회 1월 LLM 최종 결과](docs/briefings/date7/economy-social-results-01-31.md) | 일별 31건의 입력·시간·token·비용·감성·주제와 품질 점검 |
 | [시스템 구성도](docs/architecture/system-architecture.html) | 전체 목표 아키텍처 |
 | [Ingestion 구현 설명](docs/guides/ingestion-implementation.md) | Collector부터 Kafka 적재 확인까지의 코드 흐름 |
 | [Scrapy 웹 뉴스 수집](docs/guides/web-news-collection.md) | 기간·키워드 실행, 책임 분리, 요청 정책과 검증 방법 |

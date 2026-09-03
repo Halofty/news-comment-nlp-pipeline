@@ -5,9 +5,10 @@
 정제된 뉴스·댓글을 LLM Batch API로 분석해 감정, 토픽 후보, 키워드와 요약을 생성하는 목표 설계입니다.
 
 GPT-5.6 Luna용 Responses Batch JSONL 생성, API 업로드·제출·상태 조회·결과
-다운로드 CLI와 JSON Schema 결과 검증을 구현했습니다. 2026-09-03에 합성 2건을 실제
-OpenAI Batch로 제출했으며 결과 회수는 처리 완료를 기다리고 있습니다. 관리형 Langfuse
-Cloud Japan 인증과 metadata-only sample trace 전송도 확인했습니다. 토큰·비용 관측은
+다운로드 CLI와 JSON Schema 결과 검증을 구현했습니다. 2026-09-03에 경제·사회 그룹의
+2012년 1월 원문 71,842건을 일별 31건으로 분석하고 quality gate를 거쳐 월간 요약 1건까지
+완료했습니다. 관리형 Langfuse Cloud Japan에는 원문 없이 실제 token·cost usage를
+전송하고 32건 모두 reconciliation이 일치함을 확인했습니다. 토큰·비용 관측은
 [ADR-0001](../adr/0001-langfuse-deployment.md)에 따라 관리형 Langfuse와 격리된
 adapter로 구현합니다.
 
@@ -20,6 +21,8 @@ PostgreSQL의 분석 대기 문서 조회
 → Batch ID와 요청 custom ID 기록
 → 완료·오류·만료 상태 확인
 → 결과 JSON Schema 검증
+→ Unicode·label quality gate
+→ 일별 결과 기반 월간 통합 분석
 → 감정·토픽·요약 저장
 → 실패·누락 요청 재처리
 → Langfuse로 토큰·비용·지연 관측

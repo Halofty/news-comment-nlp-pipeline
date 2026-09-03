@@ -447,11 +447,12 @@ Langfuse 조사 → 운영 방식 결정 → LLM 추적 연동
 | 2026-08-31 | 9 | Google News 2012년 366일과 Reddit 원본 12개월 수집, 입력 확대와 Spark·PostgreSQL 장애 복구 실행 | Spark 2,935,785건과 DB 200건 모두 누락·중복 0건 | 계획 문서 동기화와 object storage 경계 추가 |
 | 2026-08-31 | 10 | MinIO Compose, health check, raw·processed·checkpoint bucket 생성과 설계 문서 검증 | 로컬 object storage 기반 완료 | 작은 fixture upload와 Python·Spark 연동 |
 | 2026-09-02 | 11 | GPT-5.6 Luna Batch JSONL·API CLI·Schema 검증·Airflow DAG·LLM migration 구현 | 90 tests, DAG import 0, dry-run 성공, 예산 차단·복구와 Langfuse fallback 확인 | 실제 OpenAI·Langfuse key 검증과 결과 upsert |
+| 2026-09-03 | 12 | 경제·사회 1월 일별 Batch 31건, label quality gate, 월간 통합 Batch와 Langfuse 실제 usage 검증 | 71,842건 입력, 일별·월간 실패 0건, 총비용 $0.5482444, 전체 99 tests | PostgreSQL 결과 upsert와 Airflow end-to-end 연결 |
 
 ## 7. 다음 작업
 
-다음 작업은 **실제 OpenAI·Langfuse key를 사용한 합성 2건 검증**입니다. Key가 없는
-현재 환경에서는 API를 호출하지 않으며, 완료 후 MinIO fixture 작업으로 돌아갑니다.
+OpenAI·Langfuse 실제 실행과 월간 분석까지 완료했습니다. 다음 작업은 **LLM 결과의
+PostgreSQL upsert와 전체 Airflow 연결**, 그리고 MinIO fixture 검증입니다.
 
 구현 순서:
 

@@ -131,8 +131,8 @@ LLM이 날짜마다 표현을 다르게 사용하므로 일별 `topics`, `keywor
 - `keep short` 같은 생성 과정의 메타 문구가 label에 포함된 사례
 - 의미가 다른 항목이 지나치게 긴 하나의 topic으로 합쳐진 사례
 
-이는 구조 검증만으로 의미 품질을 보장할 수 없다는 증거다. 월간 요약 입력을 만들기 전에
-다음 quality gate를 적용한다.
+이는 구조 검증만으로 의미 품질을 보장할 수 없다는 증거다. 원본 응답은 그대로 보존하고
+다음 quality gate로 별도 정제본을 생성했다.
 
 1. NFKC 정규화 후 Unicode `Cf` 및 제어문자 제거
 2. topic·keyword label의 허용 문자와 단어 수 검사
@@ -140,18 +140,60 @@ LLM이 날짜마다 표현을 다르게 사용하므로 일별 `topics`, `keywor
 4. 비정상 label만 제외하되 원래 일별 응답은 별도 보존
 5. 정제 전후 건수와 제외 사유를 보고서에 기록
 
-## 7. 결론과 남은 작업
+| quality gate 지표 | 결과 |
+|---|---:|
+| 입력·출력 행 | 31 / 31 |
+| 변경된 행 | 14 |
+| 변경 없는 행 | 17 |
+| 입력 label | 403 |
+| 출력 label | 393 |
+| 제외 label | 10 |
+
+제외 사유는 허용되지 않은 문자 2건, 비ASCII 문자 2건, 비정상 장문 문자열 2건, 단어 수
+초과 4건이다. Unicode·공백 정규화 7건과 summary 정규화 2건은 의미를 보존한 채
+수정했다. 정제 결과와 원본·출력 SHA-256은
+`data/llm_response/economy-social/2012/01/quality-gate-report.json`에 기록했다.
+
+## 7. 1월 통합 요약 결과
+
+quality gate를 통과한 일별 31개 분석만 입력으로 월간 Batch 1건을 제출했다. 일별
+응답의 `usage`, 내부 metadata와 원문은 월간 요청에서 제외했다.
+
+| 지표 | 결과 |
+|---|---:|
+| Batch 상태 | `completed` |
+| 실행 시간 | 2026-09-03 11:25:37~11:28:29 KST, 2분 52초 |
+| request count | 완료 1 / 실패 0 |
+| Schema·`custom_id` 검증 | 성공 1 / 실패·누락 0 |
+| 입력 token | 4,213 |
+| 출력 token | 172 |
+| reasoning token | 35 |
+| 실제 비용 | **$0.0005245** |
+| Langfuse usage reconciliation | `matched` |
+| 월간 출력 quality gate | 13 labels 모두 통과 |
+
+- 감성: `negative`, score `-0.35`
+- 주제: 경제적 불평등과 정체 임금, 부채·긴축·금융 불안, 기업 권력과 규제,
+  일자리·자동화·세계화, 인터넷 자유와 검열 반대
+- 키워드: unemployment, inequality, austerity, debt, bailouts, wages, automation,
+  outsourcing
+- 요약: 1월에는 불평등, 불안정 고용, 부채와 긴축, 기업 책임 및 세계화에 대한
+  비관적 논의가 지배적이었고 인터넷 규제 반대와 시민권·의료·교육·에너지 문제도
+  지속해서 나타났다.
+
+일별 31건과 월간 1건의 실제 LLM 비용 합계는 **$0.5482444**다. 월간 원본·검증·정제
+결과와 관측 파일은 `data/llm_response/economy-social/2012/01/monthly/`에 저장했다.
+
+## 8. 결론과 남은 작업
 
 경제·사회 그룹의 1월 원문 71,842건을 날짜별 31개 Batch로 나눈 방식은 queued token
 한도 안에서 전체 데이터를 표본 손실 없이 처리했다. 날짜별 독립 결과 덕분에 실패 시 해당
 날짜만 재실행할 수 있고, 31개 결과의 날짜 연속성·유일성·usage 대조도 모두 통과했다.
 
-남은 작업은 다음과 같다.
+일별 분석, quality gate, 월간 통합 분석과 token·비용 검증까지 모두 완료했다. 과제 제출
+후 프로젝트 확장 단계에서 남은 작업은 다음과 같다.
 
-- 의미 품질 필터 구현 및 정제 전후 통계 저장
-- 정제된 일별 31개 응답으로 1월 통합 Batch 1건 생성·제출
-- 월간 결과의 Schema·usage·비용 검증
-- Langfuse UI에서 31일 실제 trace·token·cost 최종 확인
+- Langfuse UI에서 일별 31건과 월간 1건의 trace·token·cost 화면 확인
 - 필요하면 PostgreSQL upsert와 Airflow end-to-end 연결
 
 OpenAI Batch 결과는 출력 순서가 입력 순서와 다를 수 있으므로 `custom_id`로 manifest와

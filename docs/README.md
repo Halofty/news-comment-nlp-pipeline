@@ -18,6 +18,9 @@
 
 6차시 전체 흐름 점검과 GPT-5.6 Luna·Langfuse 보완 결과는
 [`briefings/date7/date7.md`](briefings/date7/date7.md)에서 확인할 수 있습니다.
+경제·사회 1월 일별 31건, quality gate와 월간 통합 분석의 실제 결과는
+[`briefings/date7/economy-social-results-01-31.md`](briefings/date7/economy-social-results-01-31.md)에
+정리했습니다.
 
 OpenAI API 프로젝트·결제·key와 Langfuse Cloud Japan 프로젝트를 사용자가 직접 설정하는
 절차는

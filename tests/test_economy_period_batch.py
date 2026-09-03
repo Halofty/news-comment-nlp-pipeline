@@ -5,6 +5,7 @@ from decimal import Decimal
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+import pytest
 
 from llm_analysis.economy_period import (
     build_economy_daily_batch,
@@ -63,6 +64,8 @@ def test_builds_monthly_request_from_31_daily_results(tmp_path) -> None:
                 "event_id": f"period:economy-society:2012-01-{day:02d}",
                 "sentiment": "neutral", "sentiment_score": 0,
                 "topics": ["economy"], "keywords": ["market"], "summary": "Daily summary.",
+                "usage": {"input_tokens": 10, "output_tokens": 2},
+                "quality_gate": {"status": "passed"},
             }) + "\n"
             for day in range(1, 32)
         ),
@@ -75,6 +78,39 @@ def test_builds_monthly_request_from_31_daily_results(tmp_path) -> None:
     )
     assert result.request_rows == 1
     assert len((tmp_path / "monthly.jsonl").read_text().splitlines()) == 1
+    request_text = (tmp_path / "monthly.jsonl").read_text()
+    assert '"usage"' not in request_text
+    assert '"quality_gate"' not in request_text
+
+
+def test_monthly_request_rejects_duplicate_or_missing_dates(tmp_path) -> None:
+    source = tmp_path / "daily.jsonl"
+    rows = [
+        {
+            "event_id": f"period:economy-society:2012-01-{day:02d}",
+            "sentiment": "neutral",
+            "sentiment_score": 0,
+            "topics": ["economy"],
+            "keywords": ["market"],
+            "summary": "Daily summary.",
+        }
+        for day in range(1, 32)
+    ]
+    rows[-1]["event_id"] = rows[-2]["event_id"]
+    source.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="event_id values must be unique"):
+        build_economy_monthly_batch(
+            daily_results_path=source,
+            request_path=tmp_path / "monthly.jsonl",
+            manifest_path=tmp_path / "monthly-manifest.jsonl",
+            report_path=tmp_path / "monthly-report.json",
+            year=2012,
+            month=1,
+            budget_usd=Decimal("1"),
+        )
 
 
 def test_builds_selected_daily_range(tmp_path) -> None:
