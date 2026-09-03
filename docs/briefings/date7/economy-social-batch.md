@@ -97,12 +97,12 @@ data/llm_response/economy-social/2012/01/days/YYYY-MM-DD/
 |---|---:|---:|---|
 | 1~15일 | 15 | 3,425,531 | 날짜별 제출·완료 |
 | 16~21일 | 6 | 1,444,267 | 날짜별 제출·완료 |
-| 22~31일 | 10 | 2,779,961 | 날짜별 제출 완료, 처리 중 |
+| 22~31일 | 10 | 2,779,961 | 날짜별 제출·완료 |
 
 앞선 21개가 모두 완료되어 queue가 비워진 것을 확인한 뒤 22~31일도 날짜별 독립
-Batch로 제출했다. 현재 총 31개의 독립 Batch가 등록됐다. 22~31일 제출 직후 조회 결과는
-`completed` 22개, `in_progress` 7개, `validating` 2개, `failed` 0개다. 새 범위 중
-28일은 먼저 완료됐다.
+Batch로 제출했다. 최종적으로 31개의 독립 Batch가 모두 `completed`됐으며, 날짜별
+`request_counts`는 완료 1건·실패 0건이다. 31개 결과를 manifest와 대조한 결과 Schema,
+`custom_id`, 날짜 연속성, 유일성, usage 합계가 모두 일치했다.
 
 대표 Batch ID:
 
@@ -113,7 +113,7 @@ Batch로 제출했다. 현재 총 31개의 독립 Batch가 등록됐다. 22~31�
 
 나머지 Batch ID는 로컬 날짜별 state와 `submission-days-22-31.json`에서 확인한다.
 
-## 5. 후속 실행
+## 5. 결과 회수와 후속 실행
 
 날짜별 제출은 다음 도구를 사용한다. 이미 성공적으로 제출된 날짜는 state 파일을 기준으로
 건너뛰므로 같은 명령을 다시 실행해도 중복 제출하지 않는다.
@@ -126,15 +126,26 @@ python -m jobs.submit_economy_daily_range \
   --summary-output data/llm_response/economy-social/2012/01/submission-days-22-31.json
 ```
 
-위 명령은 2026-09-03에 실행 완료했다. 각 날짜 완료 후에는 그 날짜의 결과와 같은 날짜
-manifest를 검증한다. 최종적으로 31개 날짜의 `event_id`가 유일하며 누락이 없는지
-확인한 후 월간 요청을 생성한다.
+위 명령은 2026-09-03에 실행 완료했다. 완료 결과는 다음 명령으로 내려받아 각 날짜의
+manifest와 대조하고, 31일 통합 JSONL과 usage 보고서를 생성했다.
+
+```bash
+python -m jobs.collect_economy_daily_results \
+  --artifact-root data/llm/economy-social-2012-01/days \
+  --response-root data/llm_response/economy-social/2012/01/days \
+  --year 2012 --month 1 --start-day 1 --end-day 31 \
+  --combined-output data/llm_response/economy-social/2012/01/daily-results-01-31.validated.jsonl \
+  --report data/llm_response/economy-social/2012/01/daily-results-01-31.report.json
+```
+
+최종 결과는 31/31 검증 성공, 실패·누락·중복 0건이며 실제 비용은 `$0.5477199`다.
+상세 결과는 [1월 최종 보고서](economy-social-results-01-31.md)에 정리했다.
 
 월간 요청은 검증된 일별 결과 31행을 입력으로 다음 명령에서 생성한다.
 
 ```bash
 python -m jobs.economy_period_batch prepare-monthly \
-  --daily-results data/llm_response/economy-social/2012/01/daily-results.validated.jsonl \
+  --daily-results data/llm_response/economy-social/2012/01/daily-results-01-31.validated.jsonl \
   --request-output data/llm/economy-social-2012-01/monthly/requests.jsonl \
   --manifest-output data/llm/economy-social-2012-01/monthly/manifest.jsonl \
   --report data/llm/economy-social-2012-01/monthly/preflight.json \
@@ -146,6 +157,7 @@ python -m jobs.economy_period_batch prepare-monthly \
 - `llm_analysis/economy_period.py`: 전체 범위 선택, 일별·월간 요청 생성, 비용 검사
 - `jobs/economy_period_batch.py`: 재현 가능한 CLI
 - `jobs/submit_economy_daily_range.py`: 날짜마다 독립 Batch를 제출하고 중복 제출 방지
+- `jobs/collect_economy_daily_results.py`: 완료 결과 회수, manifest·Schema·usage 검증
 - `jobs/openai_batch.py`: 업로드·제출·상태 조회와 Langfuse/fallback 기록
 - `tests/test_economy_period_batch.py`: 표본 미사용, 그룹 필터, 31일·월간 생성 테스트
 

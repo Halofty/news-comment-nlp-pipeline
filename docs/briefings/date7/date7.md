@@ -16,8 +16,8 @@
 2026-09-03에 `OPENAI_API_KEY`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`를 로컬
 `.env`에 주입했다. 값은 출력하지 않고 존재 여부와 실제 인증만 확인했다. Langfuse Cloud
 Japan의 metadata-only sample trace와 OpenAI 합성 Batch 검증을 거쳐, 경제·사회 그룹의
-2012년 1월 일별 Batch 31개를 제출했다. 이 중 1~21일은 결과 다운로드·Schema 검증·실제
-usage 및 비용 대조까지 완료했고, 22~31일은 별도 Batch 완료 후 같은 절차로 회수한다.
+2012년 1월 일별 Batch 31개를 제출했다. 31개 모두 결과 다운로드·Schema 검증·실제 usage
+및 비용 대조를 완료했고, 누락·중복·실패 없이 31개 일별 응답을 확보했다.
 
 ### 1.1 과제 요구사항 충족 현황
 
@@ -38,8 +38,8 @@ usage 및 비용 대조까지 완료했고, 22~31일은 별도 Batch 완료 후 
 
 | 추가 구현 항목 | 현재 상태 | 최종 완료 조건 |
 |---|---|---|
-| GPT-5.6 Luna Batch | 1~21일 결과 검증 완료 | 22~31일 회수 후 31일 통합·월간 요약 실행 |
-| Langfuse Cloud | 실제 usage 전송 완료·UI 확인 대기 | 1~21일 실제 token·cost trace 육안 확인 필요 |
+| GPT-5.6 Luna Batch | 일별 31개 결과 검증 완료 | quality gate 적용 후 월간 요약 실행 |
+| Langfuse Cloud | 실제 usage 전송 완료·UI 확인 대기 | 31일 실제 token·cost trace 육안 확인 필요 |
 | LLM PostgreSQL 적재 | 부분 완료 | 검증 결과 upsert adapter 구현과 동일 결과 재실행 멱등성 확인 |
 | 전체 end-to-end Airflow | 부분 완료 | 수집·Spark·LLM DAG를 dataset dependency로 연결해 한 흐름으로 실행 |
 
@@ -217,11 +217,11 @@ PostgreSQL은 재개·멱등성의 기준이고 Langfuse는 token·비용·지�
 | LLM dry-run | 요청 2, 비용 critical 경고 | [preflight JSON](../../../analysis/reports/llm-batch-dry-run.json) |
 | Langfuse fallback | primary 실패 후 관측 event 9개 보존 | [fallback JSONL](../../../analysis/reports/langfuse-fallback-trace.jsonl) |
 | Langfuse Cloud | 일본 리전 인증·metadata-only trace 전송 성공 | [Cloud 소량 검증](../../../analysis/reports/openai-langfuse-cloud-smoke-validation.md) |
-| OpenAI Batch | 경제·사회 1~21일 결과 21건 검증, 누락·중복·실패 0건 | [중간 결과](economy-social-results-01-21.md) |
+| OpenAI Batch | 경제·사회 1월 결과 31건 검증, 누락·중복·실패 0건 | [최종 결과](economy-social-results-01-31.md) |
 | 2012년 1월 기간 요약 Batch | 기존 32건 표본안은 미제출·대체됨 | `data/llm/period-summary-2012-01/preflight.json` |
 | 대주제별 계층형 Batch | 4개 대주제 전체 + AskReddit 비교 표본 비용 산정 완료 | [비용 예측](llm-cost-estimate.md) |
-| 경제·사회 일별 Batch | 전체 71,209건 기반 날짜별 독립 Batch 31개 제출 완료·처리 중 | [실행 기록](economy-social-batch.md) |
-| 경제·사회 1~21일 결과 | 21/21 검증, 실제 비용 $0.3488443, 주요 주제·품질 문제 정리 | [중간 결과](economy-social-results-01-21.md) |
+| 경제·사회 일별 Batch | Reddit 71,209건과 News 633건 기반 날짜별 독립 Batch 31개 완료 | [실행 기록](economy-social-batch.md) |
+| 경제·사회 1월 결과 | 31/31 검증, 실제 비용 $0.5477199, 주요 주제·품질 문제 정리 | [최종 결과](economy-social-results-01-31.md) |
 
 최종 행은 각 Spark report에서 `input = contract_rejected + duplicate + unique`를 확인하고,
 PostgreSQL에서는 `count(*)`, `count(distinct event_id)` 및
@@ -330,8 +330,8 @@ Airflow 컨테이너에 `OPENAI_API_KEY`를 전달한 경우에만 수행한다.
 
 | 단계 | 현재 상태 | 남은 작업 |
 |---|---|---|
-| OpenAI Batch 실제 실행 | 경제·사회 1~21일 완료·검증 | 22~31일 회수, 품질 필터와 월간 요약 실행 |
-| Langfuse Cloud | 인증·실제 usage 전송 완료 | Cloud UI에서 1~21일 trace·token·cost 육안 확인 |
+| OpenAI Batch 실제 실행 | 경제·사회 일별 31개 완료·검증 | 품질 필터와 월간 요약 실행 |
+| Langfuse Cloud | 인증·실제 usage 전송 완료 | Cloud UI에서 31일 trace·token·cost 육안 확인 |
 | LLM PostgreSQL 저장 | migration·결과 검증 완료 | upsert adapter와 재실행 검증 |
 | MinIO 데이터 연결 | 서비스·bucket 완료 | fixture upload와 Spark `s3a://` 검증 |
 | 전체 Airflow 연결 | 수집·Spark DAG, LLM DAG 각각 구현 | dataset dependency로 end-to-end 연결 |
@@ -357,7 +357,7 @@ Airflow 컨테이너에 `OPENAI_API_KEY`를 전달한 경우에만 수행한다.
 | 7 | Airflow 컨테이너 다시 생성 | 완료 | `credentials-configured` 확인 |
 | 8 | Langfuse sample trace 전송 | 전송 완료·UI 확인 필요 | 3 generations, 300/60/360 token 확인 |
 | 9 | Airflow 2건 dry-run | 완료 | `submit=false`, 4개 task 성공 |
-| 10 | OpenAI 실제 Batch 제출 | 1~21일 완료·22~31일 회수 대기 | 31일 결과·usage·날짜 연속성 최종 대조 |
+| 10 | OpenAI 실제 Batch 제출 | 일별 31개 완료·검증 | quality gate 적용 후 월간 요약 제출 |
 
 최초 실제 제출 권장 configuration:
 
