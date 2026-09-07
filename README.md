@@ -81,7 +81,7 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 | 해당 Run PostgreSQL 분석 | 30건 |
 | 전체 누적 PostgreSQL 분석 | 217건 |
 | serving snapshot | 30개 |
-| 자동 테스트 | 149/152 통과 (Spark 환경 의존 3건, 본 변경과 무관 확인) |
+| 자동 테스트 | 152개 통과 |
 
 이 30일 Run은 Kafka bounded batch가 최종 DAG에 들어간 뒤 처음으로 `submit=true` 전체
 파이프라인을 실행한 기록입니다. 이전 92일 pre-Kafka baseline을 포함한 전체 수치와
