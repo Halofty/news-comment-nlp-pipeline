@@ -69,9 +69,11 @@ Streamlit이 PostgreSQL의 `document_analyses` 계열 결과를 읽는다. 기�
 source-balanced v3만 조회하며 필요하면 v1·v2·전체로 전환할 수 있다. 감정 분포,
 polarization, 주요 topic, positive/negative tones를 사람이 읽을 수 있는 형태로 표시한다.
 
-![Streamlit 저장 결과](../../streamlit_result.png)
+![Streamlit 요약 지표와 분포](../../streamlit_result1.png)
+![Streamlit 상위 토픽과 최근 분석 결과](../../streamlit_result2.png)
 
-> 발표 전에 실제 화면을 `docs/streamlit_result.png`로 캡처한다.
+요약 지표와 분포를 담은 1번 화면 다음에 상위 토픽과 최근 분석 테이블을 담은 2번
+화면을 세로로 배치했다. 원본 해상도를 유지해 표의 작은 글자도 확인할 수 있다.
 
 ## 6. 발표 시연 순서
 
@@ -90,13 +92,13 @@ polarization, 주요 topic, positive/negative tones를 사람이 읽을 수 있�
 
 | 요구사항 | 상태 | 근거 |
 |---|:---:|---|
-| 저장 결과를 읽는 장면 | 캡처 대기 | Streamlit 구현·실조회 완료, `docs/streamlit_result.png`만 추가 예정 |
+| 저장 결과를 읽는 장면 | 완료 | 실제 Streamlit 상·하단 화면을 `streamlit_result1.png`, `streamlit_result2.png`로 연속 배치 |
 | 입력→처리→저장→읽기 단일 실행 | 완료 | Kafka 포함 smoke Run 14/14 task success; 92일 실데이터 Run 별도 완료 |
 | README 실행 방법 | 완료 | README 요약 + 별도 실행 가이드 링크 |
 | 최신 구성도와 데이터 모델 | 완료 | HTML·PNG, TextEvent v1, PostgreSQL schema |
 | 실행 결과 표 | 완료 | 본 문서 3장과 최신 실행 기록 |
 | 부하·장애·복구 및 미보장 범위 | 완료 | 본 문서 4장과 Date 6·7 보고서 |
-| 저장 결과 사용 장면 | 캡처 대기 | Streamlit 실제 조회는 완료 |
+| 저장 결과 사용 장면 | 완료 | 요약 지표·분포·토픽·최근 분석 테이블 캡처 |
 | 남은 문제와 다음 단계 | 완료 | 본 문서 4장과 아래 항목 |
 
 ## 8. 다음 단계

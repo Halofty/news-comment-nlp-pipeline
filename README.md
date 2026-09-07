@@ -43,9 +43,10 @@
 Streamlit은 PostgreSQL의 분석 결과를 읽으며 기본적으로 최신 v3 schema만 보여줍니다.
 분석 버전과 최근 조회 건수는 화면에서 변경할 수 있습니다.
 
-![Streamlit 저장 결과](docs/streamlit_result.png)
+![Streamlit 요약 지표와 분포](docs/streamlit_result1.png)
+![Streamlit 상위 토픽과 최근 분석 결과](docs/streamlit_result2.png)
 
-> `docs/streamlit_result.png`는 발표 전에 실제 실행 화면으로 추가합니다.
+두 캡처를 위아래로 이어 요약 지표·분포부터 상위 토픽·최근 분석 결과까지 보여줍니다.
 
 ## 빠른 실행
 

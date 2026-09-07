@@ -98,7 +98,8 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 선택한 뒤 Trigger 화면
 5. Slack에서 날짜·대주제·완료 상태·시작/종료/소요시간·감정·topic 알림을 확인한다.
 6. Streamlit에서 schema 버전을 v3로 두고 분석 결과와 세부 정서를 조회한다.
 
-발표용 저장 결과 화면은 `docs/streamlit_result.png`로 캡처한다. 최신 실제 실행 수치는
+발표용 저장 결과 화면은 `docs/streamlit_result1.png`와 `docs/streamlit_result2.png`를
+상·하단 순서로 연결해 기록했다. 최신 실제 실행 수치는
 [최신 end-to-end 실행 기록](../reports/latest-end-to-end-run.md)에 있다.
 
 ## 6. Kafka→Spark 단계만 점검

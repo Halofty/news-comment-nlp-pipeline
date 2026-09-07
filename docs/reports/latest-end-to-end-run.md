@@ -104,5 +104,6 @@ Airflow metadata의 최종 복구 구간은 2026-09-06 23:06:00~23:06:51 UTC로 
 - Slack: 날짜별 완료 알림 확인
 - Streamlit: v3 결과, 감정 분포, polarization, positive/negative tones, topic 조회
 
-발표 화면은 저장소의 `docs/streamlit_result.png`를 사용한다. 실행 절차는
+발표 화면은 저장소의 `docs/streamlit_result1.png`, `docs/streamlit_result2.png`를
+위아래 순서로 사용한다. 실행 절차는
 [현재 end-to-end 실행 방법](../guides/end-to-end-execution.md)에 있다.
