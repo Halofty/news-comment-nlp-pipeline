@@ -83,7 +83,7 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 재사용해 해당 task부터 복구했습니다. 전체 수치와 복구 경계는
 [최신 실행 기록](docs/reports/latest-end-to-end-run.md)에 정리했습니다.
 
-## 구현 상태와 한계
+## 구현 상태
 
 | 영역 | 상태 |
 |---|---|
@@ -92,9 +92,9 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 | MinIO, PostgreSQL 멱등 저장 | 구현·재시작 검증 완료 |
 | OpenAI Batch, Langfuse, Slack | 구현·실제 Batch 검증 완료 |
 | Airflow 단일 DAG, Streamlit | 구현·end-to-end 검증 완료 |
-| 기사 전문 수집 | 계획 — 현재는 제목만 사용 |
-| MinIO에서 AWS S3 전환 | 계획 — S3-compatible 경계만 검증 |
-| 대규모 PostgreSQL bulk load | 계획 — 현재 Driver chunk upsert |
+
+아직 구현하지 않은 기능은 현재 구조에 포함하지 않으며
+[후속 확장 계획](docs/planning/future-expansions.md)에서 별도로 관리합니다.
 
 ## 저장소 구조
 

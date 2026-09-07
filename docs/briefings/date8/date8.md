@@ -96,7 +96,6 @@ polarization, 주요 topic, positive/negative tones를 사람이 읽을 수 있�
 
 ## 8. 다음 단계
 
-- Google News 100건 상한 도달 검색을 더 작은 조건으로 분할
-- PostgreSQL Driver chunk upsert를 JDBC staging 또는 bulk load로 교체
-- 기사 전문은 robots·저작권·본문 추출 성공률 검증 후 별도 계층으로 추가
-- 운영 object storage가 필요하면 현재 S3-compatible key 구조를 AWS S3·IAM으로 전환
+S3 전환, 기사 전문 수집, PostgreSQL bulk load 등 아직 구현하지 않은 기능은 현재
+구성도와 구현 상태에서 제외하고 [후속 확장 계획](../../planning/future-expansions.md)에서
+별도로 관리한다.

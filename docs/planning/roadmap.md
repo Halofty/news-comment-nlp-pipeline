@@ -26,10 +26,7 @@
 
 ## 기술 확장 로드맵
 
-1. Google News 100건 도달 요청의 검색어 단위 재수집과 날짜별 resume·retry
-2. Reddit 2012년 2~12월의 21개 subreddit UTC 일별 Parquet 변환
-3. Kafka Broker·Spark worker·PostgreSQL 연결 중단 복구 추가 검증
-4. Consumer lag·Spark 처리량·PostgreSQL bulk load 측정과 end-to-end 데모
-5. 운영 필요 시 MinIO bucket/key를 유지한 AWS S3·IAM 기반 저장소 전환
+아직 구현하지 않은 항목과 현재 구현의 경계는
+[후속 확장 계획](future-expansions.md)에서 통합 관리합니다.
 
 단계별 완료 조건과 기록은 [피드백 구현 계획](feedback-implementation-plan.md), 장애 시나리오는 [장애·부하 테스트 계획](failure-and-load-test-plan.md)에서 관리합니다.

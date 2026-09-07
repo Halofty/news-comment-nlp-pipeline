@@ -16,6 +16,9 @@
 [`guides/end-to-end-execution.md`](guides/end-to-end-execution.md), 92일 실제 Batch의
 단계별 수치와 복구 기록은
 [`reports/latest-end-to-end-run.md`](reports/latest-end-to-end-run.md)에 있습니다.
+아직 구현하지 않은 S3 전환·기사 전문·저장 확장은
+[`planning/future-expansions.md`](planning/future-expansions.md)에서 현재 구조와 분리해
+관리합니다.
 
 웹 뉴스 수집은 [`guides/web-news-collection.md`](guides/web-news-collection.md), 현재
 2012년 수집·부하·복구 결과는 [`briefings/date6/date6.md`](briefings/date6/date6.md)에서
