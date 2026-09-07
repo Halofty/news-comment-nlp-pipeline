@@ -18,6 +18,7 @@ from llm_analysis.contract import (
     ANALYSIS_SCHEMA_V2,
     PROMPT_VERSION,
     RESULT_SCHEMA_VERSION,
+    normalize_dominant_sentiment,
     normalize_tone_shares,
     validate_sentiment_semantics,
     SYSTEM_INSTRUCTIONS,
@@ -331,6 +332,7 @@ def validate_batch_results(
             validator = Draft202012Validator(schema)
             validator.validate(analysis)
             if schema_version >= 2:
+                analysis = normalize_dominant_sentiment(analysis)
                 if schema_version >= 3:
                     analysis = normalize_tone_shares(analysis)
                 validate_sentiment_semantics(analysis)

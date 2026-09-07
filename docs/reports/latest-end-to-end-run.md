@@ -1,10 +1,125 @@
 # 최신 end-to-end 실행 기록
 
-> 아래 30일 Run은 Kafka bounded batch가 최종 DAG에 들어간 뒤 처음으로 `submit=true`
-> 전체 파이프라인을 실행한 기록이다. 이전 92일 Run은 Kafka를 DAG에 편입하기 전
-> 성능·LLM 결과이며 **92일 pre-Kafka baseline** 절에 그대로 보존한다.
+> 아래 31일 Run이 현재 기준이다. 이전 30일 Run(Kafka 데이터 손실 장애·복구 포함)은
+> **30일 Run (이전 기록)** 절에, 92일 Run은 **92일 pre-Kafka baseline** 절에 그대로
+> 보존한다.
 
-## 실행 식별자 (Kafka 포함, 30일)
+## 실행 식별자 (Kafka 포함, 31일)
+
+| 항목 | 값 |
+|---|---|
+| DAG | `news_comment_end_to_end_pipeline` |
+| Run ID | `manual__2026-09-07T06:50:08.586260+00:00` |
+| 데이터 범위 | 2012-12-01~2012-12-31, 양 끝 포함 31일 |
+| 대주제 | `economy` |
+| Reddit 제한 | 없음 (`limit=0`) |
+| OpenAI 제출 | 실제 제출 (`submit=true`) |
+| prompt | `group-daily-v3-emotional-tones-compact-source-balanced` |
+
+이 Run은 날짜별 mapped task 31개를 만들었다. map_index=2(2012-12-03)의
+`submit_wait_validate_store_notify`가 4회 재시도까지 실패했다(원인·수정은 아래
+**LLM 구조화 출력 불일치** 절 참고). 코드 수정 후 별도 재발행 없이 같은 batch
+결과로 재검증해 통과했고, 최종 상태는 `success`이며 14개 task 종류의 모든
+instance(mapped task 포함 총 194개)가 성공했다(06:50:09~07:37:43 UTC, 약 47분).
+
+## Kafka 발행·필터링 상세
+
+여러 날짜 task가 같은 `raw-text` topic을 공유하므로, Spark는 ledger에 기록된
+partition별 시작·종료 offset 구간을 읽은 뒤 그 안에서 `pipeline_run_id`와
+`analysis_date`가 같은 이벤트만 다시 선택한다.
+
+| 지표 | 결과 |
+|---|---:|
+| Kafka 발행 / Spark 매칭(`matched_run_rows`) | 113,302 / 113,302건 |
+| offset 구간 내 다른 실행분(`ignored_foreign_rows`) | 3,399,060건 |
+| offset 구간 총합(`offset_range_rows`) | 3,512,362건 |
+| Spark 입력 / 고유 저장 | 113,302 / 113,302건 |
+| 계약 거부 / 중복 / DLQ | 0 / 0 / 0건 |
+
+`ignored_foreign_rows`가 매칭 건수보다 훨씬 큰 것은 같은 topic을 반복 사용해온
+과거 실행들의 메시지가 offset 구간 안에 함께 존재하기 때문이다.
+`pipeline_run_id`·날짜 필터링이 이 노이즈 속에서도 정확히 113,302건만 골라냈다는
+뜻이며, 발행·선택·Spark 입력·행 회계가 모두 같지 않으면
+`verify_kafka_spark_accounting`이 다음 단계 진행을 막는다.
+
+## 단계별 결과
+
+| 단계 | task instance | 처리·저장 결과 |
+|---|---:|---:|
+| 날짜 설정 | 1 | 31개 날짜 설정 생성 |
+| 원본 수집·병합 | 31 | 뉴스 2,418 + Reddit(댓글) 110,884건 |
+| Kafka 발행 | 31 | 113,302건 |
+| Spark 처리 | 31 | 입력 113,302건 (품질 accept 112,210 / quarantine 982) |
+| Spark 고유 저장 | 31 | 113,302건 |
+| 계약 거부 / 중복 | 31 | 0 / 0건 |
+| MinIO 게시 | 31 | 310개 객체, 83,629,414 bytes |
+| LLM 요청 준비 | 31 | 날짜별 economy 요청 1개, `budget_status=ok` 31/31 |
+| OpenAI Batch | 31 | 완료 31, 실패 0 |
+| PostgreSQL 분석 저장 | 31 | 이 Run 31건 |
+| serving snapshot 읽기 | 31 | ready 31개 |
+
+Spark application별 실행 시간의 합은 149.4초다. mapped task가 일부 병렬로
+실행되므로 이 값은 DAG wall-clock 시간과 같지 않다.
+
+## LLM 사용량
+
+| 지표 | 값 |
+|---|---:|
+| 입력 token | 7,424,406 |
+| 출력 token | 17,628 |
+| 기록된 비용 | $0.9949076 |
+| PostgreSQL 전체 누적 분석 | 248건 |
+
+각 Batch는 Reddit과 web news를 먼저 출처별로 해석하고, 두 출처가 모두 있으면
+출처 수준 결론에 각각 50% 가중치를 적용한다. 행 수나 token 수가 많은 Reddit이
+뉴스보다 더 큰 출처 비중을 갖지 않도록 한 설정이다.
+
+## LLM 구조화 출력 불일치 — dominant_sentiment가 분포 최댓값과 다름
+
+map_index=2(2012-12-03)의 OpenAI 응답이 `estimated_sentiment_distribution`을
+`{positive: 0.15, neutral: 0.45, negative: 0.40}`으로 반환하면서 동시에
+`dominant_sentiment`는 `negative`로 반환했다. 분포상 실제 최댓값은 `neutral`이라
+[llm_analysis/contract.py](../../llm_analysis/contract.py)의 의미 검증이 이를
+잡아냈다.
+
+| 확인 항목 | 결과 |
+|---|---:|
+| 재시도 횟수 | 4회, 매번 동일하게 실패 |
+| 실패 사유 | `RuntimeError: Batch result validation failed: validated=0/1, failed=1, missing=0` |
+| JSON 스키마 검증 | 통과 (구조 자체는 정상) |
+| tone share 합계 검증 | 통과 |
+| 실패한 검증 | `dominant_sentiment must match the largest estimated share` |
+
+`submit_batch`는 완료된 OpenAI Batch ID를 재사용하므로(중복 과금 방지), 같은
+모델 응답을 몇 번 재시도해도 값 자체가 바뀌지 않아 항상 같은 이유로 실패했다.
+`llm_analysis/contract.py`에 `normalize_dominant_sentiment()`를 추가해
+`validate_sentiment_semantics` 실행 전에 `dominant_sentiment`를 분포 최댓값
+라벨로 교정하도록 [llm_analysis/batch.py](../../llm_analysis/batch.py)의
+`validate_batch_results`에 연결했다. 같은 원본 응답으로 재검증한 결과
+`validated=1/1, failed=0`이었고, 이 Run은 별도 재발행 없이 통과해 31/31로
+완료됐다. 관련 테스트는 [tests/test_sentiment_contract.py](../../tests/test_sentiment_contract.py)에
+추가했다.
+
+## 최종 결과 확인
+
+- Airflow: 31개 날짜의 14개 task 종류, mapped instance 총 194개가 모두 `success`
+- MinIO: 날짜와 Run ID prefix 아래 310개 object와 checksum 기록 확인
+- PostgreSQL: 이 Run 분석 31건, 전체 누적 248건 확인
+- Langfuse: 날짜별 generation token·비용 trace 확인
+- Slack: 날짜별 완료 알림 확인
+- Streamlit: v3 결과, 감정 분포, polarization, positive/negative tones, topic 조회
+
+실행 절차는 [현재 end-to-end 실행 방법](../guides/end-to-end-execution.md)에 있다.
+
+---
+
+## 30일 Run (이전 기록)
+
+> Kafka bounded batch가 최종 DAG에 들어간 뒤 처음으로 `submit=true` 전체
+> 파이프라인을 실행한 기록이다. 위 31일 Run으로 대체된 이전 기준 수치이며,
+> Kafka 데이터 손실 장애 기록을 보존하기 위해 그대로 둔다.
+
+### 실행 식별자 (Kafka 포함, 30일)
 
 | 항목 | 값 |
 |---|---|
@@ -21,11 +136,7 @@
 절 참고). 복구 후 최종 상태는 `success`이며 14개 task 종류의 모든 instance(mapped
 task 포함 총 188개)가 성공했다.
 
-## Kafka 발행·필터링 상세
-
-여러 날짜 task가 같은 `raw-text` topic을 공유하므로, Spark는 ledger에 기록된
-partition별 시작·종료 offset 구간을 읽은 뒤 그 안에서 `pipeline_run_id`와
-`analysis_date`가 같은 이벤트만 다시 선택한다.
+### Kafka 발행·필터링 상세
 
 | 지표 | 결과 |
 |---|---:|
@@ -35,13 +146,7 @@ partition별 시작·종료 offset 구간을 읽은 뒤 그 안에서 `pipeline_
 | Spark 입력 / 고유 저장 | 84,569 / 84,569건 |
 | 계약 거부 / 중복 / DLQ | 0 / 0 / 0건 |
 
-`ignored_foreign_rows`가 매칭 건수의 20배를 넘는 것은 같은 topic을 반복 사용해온
-과거 테스트·smoke run들의 메시지가 offset 구간 안에 함께 존재했기 때문이다.
-`pipeline_run_id`·날짜 필터링이 이 노이즈 속에서도 정확히 84,569건만 골라냈다는
-뜻이며, 발행·선택·Spark 입력·행 회계가 모두 같지 않으면
-`verify_kafka_spark_accounting`이 다음 단계 진행을 막는다.
-
-## 단계별 결과
+### 단계별 결과
 
 | 단계 | task instance | 처리·저장 결과 |
 |---|---:|---:|
@@ -57,25 +162,20 @@ partition별 시작·종료 offset 구간을 읽은 뒤 그 안에서 `pipeline_
 | PostgreSQL 분석 저장 | 30 | 이 Run 30건 |
 | serving snapshot 읽기 | 30 | ready 30개 |
 
-Spark application별 실행 시간의 합은 150.4초다. mapped task가 일부 병렬로
-실행되므로 이 값은 DAG wall-clock 시간과 같지 않다.
+Spark application별 실행 시간의 합은 150.4초다.
 
-## LLM 사용량
+### LLM 사용량
 
 | 지표 | 값 |
 |---|---:|
 | 입력 token | 5,430,971 |
 | 출력 token | 17,014 |
 | 기록된 비용 | $0.5533055 |
-| PostgreSQL 전체 누적 분석 | 217건 |
+| PostgreSQL 전체 누적 분석(당시) | 217건 |
 
-각 Batch는 Reddit과 web news를 먼저 출처별로 해석하고, 두 출처가 모두 있으면
-출처 수준 결론에 각각 50% 가중치를 적용한다. 행 수나 token 수가 많은 Reddit이
-뉴스보다 더 큰 출처 비중을 갖지 않도록 한 설정이다.
+### Kafka 데이터 손실 장애와 복구
 
-## Kafka 데이터 손실 장애와 복구
-
-### 증상
+#### 증상
 
 최초 시도(`manual__2026-09-07T04:20:54.825421+00:00`, 04:20:54 UTC 시작)에서 뒤쪽
 16개 날짜(map_index 14~29, 2012-11-15~2012-11-30)의 `run_kafka_spark_batch`가
@@ -89,7 +189,7 @@ FetchPosition{offset=53, ...} is out of range for partition raw-text-0
 
 첫 실패는 04:26:42 UTC, 시작으로부터 약 6분 뒤였다.
 
-### 원인
+#### 원인
 
 `raw-text` topic은 `retention.ms=604800000`(7일)이고 `message.timestamp.type=CreateTime`
 이라 브로커는 메시지의 CreateTime을 기준으로 보존 기간을 판정한다. 그런데
@@ -105,7 +205,7 @@ retention 체크 주기(기본 5분)마다 이를 이미 만료된 세그먼트�
 "재시도 대기 후 실패"는 재시도 자체의 문제가 아니라, 첫 시도와 재시도 사이에 이미
 Kafka가 해당 offset 구간을 지워버려 어떤 재시도로도 복구할 수 없는 상태였다.
 
-### 수정
+#### 수정
 
 [producers/kafka.py](../../producers/kafka.py)에서 `produce()` 호출 시 `timestamp=`
 인자를 제거했다. confluent-kafka 클라이언트는 `timestamp`를 지정하지 않으면 실제
@@ -115,7 +215,7 @@ Kafka가 해당 offset 구간을 지워버려 어떤 재시도로도 복구할 �
 ([spark_jobs/streaming_consumer.py](../../spark_jobs/streaming_consumer.py))에는
 영향이 없다. `tests/test_kafka_producer.py`의 관련 assertion도 이 동작에 맞춰 갱신했다.
 
-### 복구
+#### 복구
 
 이미 삭제된 offset을 가리키는 map_index는 `run_kafka_spark_batch`만 재시도해서는
 복구되지 않으므로, 실패한 16개 날짜만 `capture_kafka_start_offsets`부터 다시
@@ -133,30 +233,25 @@ Kafka가 해당 offset 구간을 지워버려 어떤 재시도로도 복구할 �
    `run_kafka_spark_batch`부터 `read_final_result`까지 성공해 DagRun이 `success`로
    종료됐다(06:08:47~06:21:04 UTC, 약 12분).
 
-### 교훈
+#### 교훈
 
 과거 날짜 데이터를 replay하는 파이프라인에서는 Kafka 레코드의 timestamp를 이벤트
 원본 시각으로 설정하면 안 된다. topic의 시간 기반 retention은 항상 실제 ingestion
 시각을 기준으로 평가돼야 하며, 사건 시각처럼 별도 의미를 갖는 시각은 페이로드
 필드로만 전달해야 한다.
 
-## 최종 결과 확인
+### 최종 결과 확인 (30일 Run 당시)
 
 - Airflow: 30개 날짜의 14개 task 종류, mapped instance 총 188개가 모두 `success`
 - MinIO: 날짜와 Run ID prefix 아래 300개 object와 checksum 기록 확인
 - PostgreSQL: 이 Run 분석 30건, 전체 누적 217건 확인
-- Langfuse: 날짜별 generation token·비용 trace 확인
-- Slack: 날짜별 완료 알림 확인
-- Streamlit: v3 결과, 감정 분포, polarization, positive/negative tones, topic 조회
-
-실행 절차는 [현재 end-to-end 실행 방법](../guides/end-to-end-execution.md)에 있다.
 
 ---
 
 ## 92일 pre-Kafka baseline (과거 기록)
 
 > Kafka를 최종 DAG에 편입하기 전, 별도 Spark batch 단계로 실행한 성능·LLM 결과다.
-> 위 30일 Run으로 대체된 현재 기준 수치이며, 규모 비교를 위해 그대로 보존한다.
+> 위 Kafka 포함 Run들로 대체된 이전 기준 수치이며, 규모 비교를 위해 그대로 보존한다.
 
 ### 실행 식별자
 

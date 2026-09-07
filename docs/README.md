@@ -13,9 +13,9 @@
 실행 결과와 공개 가능한 수치 검증은 저장소 최상위의 [`analysis/reports/`](../analysis/reports/)에서 관리합니다.
 
 현재 단일 Airflow DAG의 실행 절차는
-[`guides/end-to-end-execution.md`](guides/end-to-end-execution.md), Kafka 포함 30일
-실제 Batch의 단계별 수치·Kafka 데이터 손실 장애 복구 기록과 이전 92일 pre-Kafka
-baseline은
+[`guides/end-to-end-execution.md`](guides/end-to-end-execution.md), Kafka 포함 31일
+실제 Batch의 단계별 수치·LLM 구조화 출력 불일치 기록과 이전 30일 Run(Kafka 데이터
+손실 장애 복구 포함)·92일 pre-Kafka baseline은
 [`reports/latest-end-to-end-run.md`](reports/latest-end-to-end-run.md)에 있습니다.
 아직 구현하지 않은 S3 전환·기사 전문·저장 확장은
 [`planning/future-expansions.md`](planning/future-expansions.md)에서 현재 구조와 분리해
@@ -35,7 +35,7 @@ baseline은
 [`briefings/date8/date8.md`](briefings/date8/date8.md)에 정리했습니다(당시 기준
 92일 Run). 현재 실행 방법은
 [`guides/end-to-end-execution.md`](guides/end-to-end-execution.md), 최신 Kafka 포함
-30일 실제 Run은 [`reports/latest-end-to-end-run.md`](reports/latest-end-to-end-run.md)를
+31일 실제 Run은 [`reports/latest-end-to-end-run.md`](reports/latest-end-to-end-run.md)를
 기준으로 합니다.
 `date8/demo-runbook.md`와 `date8/execution-result.md`는 최종 통합 전 소규모 실행의
 과거 기록으로 보존합니다.

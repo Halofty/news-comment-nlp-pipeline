@@ -5,6 +5,7 @@ from jsonschema import Draft202012Validator
 
 from llm_analysis.contract import (
     ANALYSIS_SCHEMA,
+    normalize_dominant_sentiment,
     normalize_tone_shares,
     validate_sentiment_semantics,
 )
@@ -131,6 +132,29 @@ def test_emotional_tone_shares_normalize_omitted_minor_tones() -> None:
 
     assert sum(item["share"] for item in normalized["negative_tones"]) == 1.0
     validate_sentiment_semantics(normalized)
+
+
+def test_normalize_dominant_sentiment_corrects_mismatched_label() -> None:
+    result = _result()
+    result["dominant_sentiment"] = "negative"
+    result["estimated_sentiment_distribution"] = {
+        "positive": 0.15,
+        "neutral": 0.45,
+        "negative": 0.40,
+    }
+
+    normalized = normalize_dominant_sentiment(result)
+
+    assert normalized["dominant_sentiment"] == "neutral"
+    validate_sentiment_semantics(normalized)
+
+
+def test_normalize_dominant_sentiment_leaves_consistent_result_unchanged() -> None:
+    result = _result()
+
+    normalized = normalize_dominant_sentiment(result)
+
+    assert normalized == result
 
 
 def test_emotional_tone_shares_reject_zero_or_excessive_total() -> None:

@@ -69,23 +69,52 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 
 | 항목 | 현재 결과 |
 |---|---:|
-| 최신 단일 Airflow Run 범위 | 2012-11-01~2012-11-30, 30일 (Kafka bounded batch 포함, `submit=true` 실제 제출) |
-| Kafka 발행 / Spark 매칭 | 84,569 / 84,569건 |
-| 같은 topic 다른 실행분 필터링 | 1,829,429건 (`pipeline_run_id`·날짜로 제외) |
-| Spark 입력 / 고유 저장 | 84,569 / 84,569건 |
+| 최근 Airflow Run 범위 | 2012-11-01~2012-12-31, 61일 (30일+31일 두 차례 실행 합산, Kafka bounded batch 포함, `submit=true` 실제 제출) |
+| Kafka 발행 / Spark 매칭 | 197,871 / 197,871건 |
+| 같은 topic 다른 실행분 필터링 | 5,228,489건 (`pipeline_run_id`·날짜로 제외) |
+| Spark 입력 / 고유 저장 | 197,871 / 197,871건 |
 | 계약 거부 / 중복 / DLQ | 0 / 0 / 0건 |
-| 뉴스 / Reddit | 2,624 / 81,945건 |
-| MinIO processed | 300개 객체, 62,383,890 bytes |
-| OpenAI Batch | 30/30 완료, 실패 0건 |
-| LLM 입력 / 출력 token | 5,430,971 / 17,014 |
-| 해당 Run PostgreSQL 분석 | 30건 |
-| 전체 누적 PostgreSQL 분석 | 217건 |
-| serving snapshot | 30개 |
-| 자동 테스트 | 152개 통과 |
+| 뉴스 / Reddit | 5,042 / 192,829건 |
+| MinIO processed | 610개 객체, 146,013,304 bytes |
+| OpenAI Batch | 61/61 완료, 실패 0건 |
+| LLM 입력 / 출력 token | 12,855,377 / 34,642 |
+| 해당 Run PostgreSQL 분석 | 61건 |
+| 전체 누적 PostgreSQL 분석 | 248건 |
+| serving snapshot | 61개 |
+| 자동 테스트 | 154개 통과 |
 
-이 30일 Run은 Kafka bounded batch가 최종 DAG에 들어간 뒤 처음으로 `submit=true` 전체
-파이프라인을 실행한 기록입니다. 이전 92일 pre-Kafka baseline을 포함한 전체 수치와
-장애·복구 기록은 [최신 실행 기록](docs/reports/latest-end-to-end-run.md)에 정리했습니다.
+이전 92일 pre-Kafka baseline을 포함한 전체 수치, 장애·복구 기록은
+[최신 실행 기록](docs/reports/latest-end-to-end-run.md)에 정리했습니다.
+
+## 부하·장애·복구에서 확인한 것과 아직 보장하지 못하는 것
+
+확인한 것:
+
+| 실험 | 조건 | 결과 |
+|---|---|---|
+| Spark 저장 직전 강제 실패 | 2012-01 Reddit+News 15,063,050건 입력 | 실패 시 출력 0건, 옵션 제거 후 재실행하면 2,935,785건 처리·저장·고유 ID 일치 |
+| PostgreSQL 연결 실패 | 잘못된 포트로 200건 적재 시도 | 장애 직후 0/200건 적재, 정상 포트 복구 후 200/200건, 동일 배치 재실행 후에도 200/200건(중복 0) |
+| Kafka→Spark Structured Streaming | 같은 checkpoint로 3회 재시작 | 무입력 재시작 0건 처리, 추가 입력만 정확히 반영, Spark·MinIO 컨테이너 재시작 포함 누락·중복 0건 |
+| Kafka 데이터 손실 (이번 30일 실행) | 과거 이벤트 replay 시 Kafka 레코드 timestamp를 원본 사건 시각으로 지정 | topic의 7일 retention이 발행 직후 이미 지난 것으로 판정해 16/30일치 offset이 삭제됨. 원인 수정 후 해당 날짜만 재발행해 30/30 복구 |
+| LLM 구조화 출력 모순 (2012-12-03, 31일 Run) | `dominant_sentiment`가 `estimated_sentiment_distribution` 최댓값과 불일치 | 검증 게이트가 4회 재시도 모두 감지해 task 실패, 분포 최댓값으로 보정하는 규칙을 추가해 재발행 없이 31/31 통과 |
+
+전체 수치와 재현 명령은 [Date 6 결과](docs/briefings/date6/date6.md), 이번 실행의
+원인·수정·복구 절차는 [최신 실행 기록](docs/reports/latest-end-to-end-run.md)에
+있습니다.
+
+아직 보장하지 못하는 것:
+
+- Streaming 실행 중 Driver·Worker 강제 종료, PostgreSQL 적재 도중(연결 시점이
+  아니라 쓰기 중간) 연결 끊김은 실행하지 않았습니다.
+- OpenAI API 자체의 오류 응답·응답 누락·Batch 만료는 재현하지 않았습니다. 이번에
+  실제로 만난 문제는 API 장애가 아니라 정상 응답 안의 값 불일치였습니다.
+- Spark는 `local[2]`~`local[4]` 단일 노드 소규모 실행만 검증했고, 분산 클러스터·
+  대용량 처리량은 검증 범위 밖입니다.
+- MinIO·PostgreSQL은 단일 인스턴스로만 검증했고, 백업·복원과 다중 노드 장애는
+  확인하지 않았습니다.
+
+남은 시나리오는 [장애·부하 테스트 계획](docs/planning/failure-and-load-test-plan.md)에서
+관리합니다.
 
 ## 구현 상태
 
@@ -98,7 +127,21 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 | OpenAI Batch, Langfuse, Slack | 구현·실제 Batch 검증 완료 |
 | Airflow 단일 DAG, Streamlit | 구현·end-to-end 검증 완료 |
 
-아직 구현하지 않은 기능은 [후속 확장 계획](docs/planning/future-expansions.md)에서 별도로 관리합니다.
+## 남은 문제와 다음 단계
+
+- Python 실행환경 고정: 이 저장소는 Python 3.11을 기준으로 하지만 그 버전을 강제하는
+  파일이 없어, 3.14 환경에서는 PySpark cloudpickle 비호환으로 Spark 관련 자동 테스트
+  3개가 깨집니다(3.11에서는 154개 전부 통과).
+- [장애·부하 테스트 계획](docs/planning/failure-and-load-test-plan.md)에 남은 항목:
+  Streaming 중 Driver·Worker 강제 종료, DB 적재 도중 연결 끊김,
+  LLM API 오류 재현.
+- [후속 확장 계획](docs/planning/future-expansions.md)에 정리된 확장: Kafka Streaming
+  상시 운영 통합, MinIO→S3 전환, 기사 전문 수집, PostgreSQL 대규모 적재, 분산 object
+  storage 백업·복원.
+- 이번에 새로 확인한 항목: LLM이 구조화 출력 안에서 서로 다른 필드끼리 모순된 값을
+  낼 수 있습니다. 지금은 `dominant_sentiment`/`estimated_sentiment_distribution`
+  조합만 자동으로 보정하며, 다른 필드 조합(`sentiment_score` 방향 등)이 모순되면
+  여전히 실패로 남습니다.
 
 ## 저장소 구조
 

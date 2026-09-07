@@ -184,6 +184,25 @@ def normalize_tone_shares(
     return normalized
 
 
+def normalize_dominant_sentiment(result: dict[str, object]) -> dict[str, object]:
+    """Correct dominant_sentiment to the label with the largest estimated share.
+
+    Models occasionally report a dominant_sentiment that disagrees with their own
+    estimated_sentiment_distribution (e.g. dominant=negative while neutral has the
+    larger share). Rather than rejecting an otherwise-usable result, defer to the
+    distribution the model already committed to.
+    """
+    distribution = result.get("estimated_sentiment_distribution")
+    if not isinstance(distribution, dict) or not distribution:
+        return result
+    largest_label = max(distribution, key=lambda label: float(distribution[label]))
+    if result.get("dominant_sentiment") == largest_label:
+        return result
+    normalized = dict(result)
+    normalized["dominant_sentiment"] = largest_label
+    return normalized
+
+
 def validate_sentiment_semantics(result: dict[str, object]) -> None:
     distribution = result.get("estimated_sentiment_distribution")
     if not isinstance(distribution, dict):
