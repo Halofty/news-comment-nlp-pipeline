@@ -46,7 +46,6 @@ Streamlit은 PostgreSQL의 분석 결과를 읽으며 기본적으로 최신 v3 
 ![Streamlit 요약 지표와 분포](docs/streamlit_result1.png)
 ![Streamlit 상위 토픽과 최근 분석 결과](docs/streamlit_result2.png)
 
-두 캡처를 위아래로 이어 요약 지표·분포부터 상위 토픽·최근 분석 결과까지 보여줍니다.
 
 ## 빠른 실행
 
@@ -70,22 +69,23 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 
 | 항목 | 현재 결과 |
 |---|---:|
-| 최신 단일 Airflow Run 범위 | 2012-08-01~2012-10-31, 92일 |
-| Spark 입력 / 고유 저장 | 303,396 / 303,396건 |
-| 계약 거부 / 중복 | 0 / 0건 |
-| 뉴스 / Reddit | 7,343 / 296,053건 |
-| OpenAI Batch | 92/92 완료, 실패 0건 |
-| LLM 입력 / 출력 token | 20,265,672 / 52,166 |
-| 해당 Run PostgreSQL 분석 | 92건 |
-| 전체 누적 PostgreSQL 분석 | 187건 |
-| serving snapshot | 92개 |
-| 자동 테스트 | 152개 통과 |
+| 최신 단일 Airflow Run 범위 | 2012-11-01~2012-11-30, 30일 (Kafka bounded batch 포함, `submit=true` 실제 제출) |
+| Kafka 발행 / Spark 매칭 | 84,569 / 84,569건 |
+| 같은 topic 다른 실행분 필터링 | 1,829,429건 (`pipeline_run_id`·날짜로 제외) |
+| Spark 입력 / 고유 저장 | 84,569 / 84,569건 |
+| 계약 거부 / 중복 / DLQ | 0 / 0 / 0건 |
+| 뉴스 / Reddit | 2,624 / 81,945건 |
+| MinIO processed | 300개 객체, 62,383,890 bytes |
+| OpenAI Batch | 30/30 완료, 실패 0건 |
+| LLM 입력 / 출력 token | 5,430,971 / 17,014 |
+| 해당 Run PostgreSQL 분석 | 30건 |
+| 전체 누적 PostgreSQL 분석 | 217건 |
+| serving snapshot | 30개 |
+| 자동 테스트 | 149/152 통과 (Spark 환경 의존 3건, 본 변경과 무관 확인) |
 
-위 92일 Run은 Kafka를 최종 DAG에 편입하기 전 실행 기록입니다. 현재 Kafka 포함 DAG는
-2012-02-01 smoke Run에서 14개 task가 모두 성공했고, Kafka 발행·Spark 입력·행 회계가
-각 151건으로 일치했습니다. 최신 92일 Run은 세 건의 구조화 출력 오류를 탐지했고, 완료된 OpenAI Batch를
-재사용해 해당 task부터 복구했습니다. 전체 수치와 복구 경계는
-[최신 실행 기록](docs/reports/latest-end-to-end-run.md)에 정리했습니다.
+이 30일 Run은 Kafka bounded batch가 최종 DAG에 들어간 뒤 처음으로 `submit=true` 전체
+파이프라인을 실행한 기록입니다. 이전 92일 pre-Kafka baseline을 포함한 전체 수치와
+장애·복구 기록은 [최신 실행 기록](docs/reports/latest-end-to-end-run.md)에 정리했습니다.
 
 ## 구현 상태
 
@@ -98,8 +98,7 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 | OpenAI Batch, Langfuse, Slack | 구현·실제 Batch 검증 완료 |
 | Airflow 단일 DAG, Streamlit | 구현·end-to-end 검증 완료 |
 
-아직 구현하지 않은 기능은 현재 구조에 포함하지 않으며
-[후속 확장 계획](docs/planning/future-expansions.md)에서 별도로 관리합니다.
+아직 구현하지 않은 기능은 [후속 확장 계획](docs/planning/future-expansions.md)에서 별도로 관리합니다.
 
 ## 저장소 구조
 
@@ -118,6 +117,4 @@ analysis/         데이터 명세·품질 fixture·검증 보고서
 docs/             아키텍처·실행 가이드·발표 기록
 ```
 
-문서 전체 목록은 [docs/README.md](docs/README.md), 부하·장애·복구 결과는
-[Date 6](docs/briefings/date6/date6.md), 최종 발표 정리는
-[Date 8](docs/briefings/date8/date8.md)에서 확인할 수 있습니다.
+문서 전체 목록: [docs/README.md](docs/README.md)

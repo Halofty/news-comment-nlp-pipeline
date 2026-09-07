@@ -91,7 +91,13 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 선택한 뒤 Trigger 화면
 1. Airflow Grid에서 DAG Run과 14개 task 종류의 mapped task가 초록색인지 확인한다.
 2. 실패한 task는 로그의 원인을 수정한 뒤 해당 task부터 Clear하여 재실행한다. 이미
    완료된 OpenAI Batch가 있으면 `batch-state.json`의 ID를 재사용하므로 중복 제출하지
-   않는다.
+   않는다. `run_kafka_spark_batch`가 `OffsetOutOfRangeException`으로 실패했다면 이미
+   삭제된 offset을 가리키는 상태이므로 그 task만 재시도해서는 복구되지 않는다 —
+   해당 날짜의 `capture_kafka_start_offsets`부터 다시 clear해 새 offset으로 재발행해야
+   한다. 여러 날짜가 실패했다면 이미 성공한 날짜(map_index)는 건드리지 않도록
+   `(task_id, map_index)` 단위로 clear 범위를 좁힌다. 원인과 복구 절차는
+   [최신 실행 기록의 Kafka 데이터 손실 장애와 복구](../reports/latest-end-to-end-run.md#kafka-데이터-손실-장애와-복구)에
+   정리했다.
 3. Kafka ledger에서 시작·종료 offset과 `published_rows`를 확인하고 Spark report의
    `matched_run_rows`, `input_rows`, `accounted_rows`가 같은지 확인한다.
 4. MinIO에서 날짜·run ID 경로의 raw, processed, LLM, report 객체를 확인한다.

@@ -13,8 +13,9 @@
 실행 결과와 공개 가능한 수치 검증은 저장소 최상위의 [`analysis/reports/`](../analysis/reports/)에서 관리합니다.
 
 현재 단일 Airflow DAG의 실행 절차는
-[`guides/end-to-end-execution.md`](guides/end-to-end-execution.md), 92일 실제 Batch의
-단계별 수치와 복구 기록은
+[`guides/end-to-end-execution.md`](guides/end-to-end-execution.md), Kafka 포함 30일
+실제 Batch의 단계별 수치·Kafka 데이터 손실 장애 복구 기록과 이전 92일 pre-Kafka
+baseline은
 [`reports/latest-end-to-end-run.md`](reports/latest-end-to-end-run.md)에 있습니다.
 아직 구현하지 않은 S3 전환·기사 전문·저장 확장은
 [`planning/future-expansions.md`](planning/future-expansions.md)에서 현재 구조와 분리해
@@ -31,9 +32,11 @@
 정리했습니다.
 
 최종 발표의 최신 흐름, 핵심 수치와 시연 순서는
-[`briefings/date8/date8.md`](briefings/date8/date8.md)에 정리했습니다. 현재 실행 방법은
-[`guides/end-to-end-execution.md`](guides/end-to-end-execution.md), 최신 92일 실제 Run은
-[`reports/latest-end-to-end-run.md`](reports/latest-end-to-end-run.md)를 기준으로 합니다.
+[`briefings/date8/date8.md`](briefings/date8/date8.md)에 정리했습니다(당시 기준
+92일 Run). 현재 실행 방법은
+[`guides/end-to-end-execution.md`](guides/end-to-end-execution.md), 최신 Kafka 포함
+30일 실제 Run은 [`reports/latest-end-to-end-run.md`](reports/latest-end-to-end-run.md)를
+기준으로 합니다.
 `date8/demo-runbook.md`와 `date8/execution-result.md`는 최종 통합 전 소규모 실행의
 과거 기록으로 보존합니다.
 Streamlit 서빙과 Batch 완료 Slack 알림의 실행·설정은

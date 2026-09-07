@@ -12,7 +12,7 @@
 <p class="eyebrow">SYSTEM ARCHITECTURE</p>
 <h1 class="title">뉴스·댓글 NLP 파이프라인</h1>
 <p class="lead">Airflow 한 번으로 수집부터 Kafka bounded batch, 분석 결과 저장과 조회까지 이어지는 현재 구조</p>
-<svg viewBox="0 0 1500 650" role="img" aria-labelledby="title desc">
+<svg viewBox="0 0 1500 675" role="img" aria-labelledby="title desc">
 <title id="title">뉴스 댓글 NLP 파이프라인 전체 시스템 구성도</title>
 <desc id="desc">Google News와 Reddit 수집, TextEvent 변환, Kafka bounded batch, Spark 처리, MinIO, OpenAI Batch, PostgreSQL, Streamlit, Slack과 Langfuse가 하나의 Airflow 실행으로 연결된 구조</desc>
 <defs>
@@ -22,7 +22,7 @@
   <marker id="purple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0 0L8 3L0 6Z" fill="#7c5aa6"/></marker>
   <marker id="red" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0 0L8 3L0 6Z" fill="#c84d49"/></marker>
 </defs>
-<rect width="1500" height="650" fill="#f4f5f7"/>
+<rect width="1500" height="675" fill="#f4f5f7"/>
 
 <rect class="source" x="28" y="76" width="150" height="66" rx="7"/>
 <text class="label" x="41" y="94">NEWS</text><text class="name" x="103" y="116" text-anchor="middle">Google News</text><text class="sub" x="103" y="132" text-anchor="middle">영어 기사 제목</text>
@@ -57,21 +57,21 @@
 <rect class="node" x="1342" y="388" width="110" height="58" rx="7"/>
 <text class="label" x="1355" y="406">ALERT</text><text class="name" x="1397" y="427" text-anchor="middle">Slack</text>
 
-<path class="main-flow" d="M477 182V238H127V332"/>
+<path class="main-flow" d="M477 182V310H127V332"/>
 <path class="main-flow" d="M202 370H238"/><path class="main-flow" d="M388 370H424"/><path class="main-flow" d="M574 370H610"/><path class="main-flow" d="M760 370H796"/><path class="main-flow" d="M946 370H982"/><path class="main-flow" d="M1132 370H1168"/><path class="arrow" d="M1306 352H1342"/><path class="arrow" d="M1132 391H1150V417H1342"/>
 
-<rect class="control" x="52" y="506" width="708" height="48" rx="7"/>
-<text class="name" x="70" y="528">Airflow</text><text class="sub" x="70" y="544">수집 → offset 캡처 → 발행 → Spark → 저장 → Batch → 조회 · 날짜 범위와 동시 실행 제어</text>
-<path class="control-flow" d="M406 506V430"/>
+<rect class="error-node" x="238" y="506" width="150" height="48" rx="7"/>
+<text class="name" x="313" y="527" text-anchor="middle">Kafka raw-text-dlq</text><text class="sub" x="313" y="543" text-anchor="middle">계약·파싱 실패</text>
+<path class="error-flow" d="M313 408V506"/>
 
-<rect class="error-node" x="238" y="578" width="150" height="48" rx="7"/>
-<text class="name" x="313" y="599" text-anchor="middle">Kafka raw-text-dlq</text><text class="sub" x="313" y="615" text-anchor="middle">계약·파싱 실패</text>
-<path class="error-flow" d="M313 408V578"/>
+<rect class="control" x="52" y="578" width="708" height="48" rx="7"/>
+<text class="name" x="70" y="600">Airflow</text><text class="sub" x="70" y="616">수집 → offset 캡처 → 발행 → Spark → 저장 → Batch → 조회 · 날짜 범위와 동시 실행 제어</text>
+<path class="control-flow" d="M406 578V430"/>
 
-<rect class="observe" x="796" y="506" width="336" height="48" rx="7"/>
-<text class="name" x="814" y="528">Langfuse</text><text class="sub" x="814" y="544">OpenAI Batch token · 비용 · trace · 로컬 fallback</text>
-<path class="observe-flow" d="M871 408V506"/>
+<rect class="observe" x="796" y="578" width="336" height="48" rx="7"/>
+<text class="name" x="814" y="600">Langfuse</text><text class="sub" x="814" y="616">OpenAI Batch token · 비용 · trace · 로컬 fallback</text>
+<path class="observe-flow" d="M871 408V578"/>
 
-<g transform="translate(1015 604)"><line x1="0" y1="0" x2="32" y2="0" stroke="#e86c34" stroke-width="1.55"/><text class="legend" x="40" y="3">처리 흐름</text><line x1="110" y1="0" x2="142" y2="0" stroke="#3974aa" stroke-width="1.2" stroke-dasharray="8 3 2 3"/><text class="legend" x="150" y="3">제어</text><line x1="205" y1="0" x2="237" y2="0" stroke="#7c5aa6" stroke-width="1.2" stroke-dasharray="7 4"/><text class="legend" x="245" y="3">관측</text><line x1="300" y1="0" x2="332" y2="0" stroke="#c84d49" stroke-width="1.3" stroke-dasharray="2 3"/><text class="legend" x="340" y="3">오류</text></g>
+<g transform="translate(1015 654)"><line x1="0" y1="0" x2="32" y2="0" stroke="#e86c34" stroke-width="1.55"/><text class="legend" x="40" y="3">처리 흐름</text><line x1="110" y1="0" x2="142" y2="0" stroke="#3974aa" stroke-width="1.2" stroke-dasharray="8 3 2 3"/><text class="legend" x="150" y="3">제어</text><line x1="205" y1="0" x2="237" y2="0" stroke="#7c5aa6" stroke-width="1.2" stroke-dasharray="7 4"/><text class="legend" x="245" y="3">관측</text><line x1="300" y1="0" x2="332" y2="0" stroke="#c84d49" stroke-width="1.3" stroke-dasharray="2 3"/><text class="legend" x="340" y="3">오류</text></g>
 </svg>
 </main></body></html>

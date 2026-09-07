@@ -4,7 +4,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from core.events import parse_event_time, stable_event_id
+from core.events import stable_event_id
 from jobs.replay_to_kafka import order_events, replay_events
 from producers.kafka import DeliveryError, KafkaEventProducer
 from storage.jsonl import read_jsonl
@@ -51,7 +51,7 @@ class FakeProducerClient:
         return self.remaining
 
 
-def test_send_uses_event_id_key_and_event_time_timestamp() -> None:
+def test_send_uses_event_id_key_and_no_explicit_timestamp() -> None:
     client = FakeProducerClient()
     producer = KafkaEventProducer(client, topic="raw-text")
     event = make_event("event-1", "2026-08-20T01:02:03Z")
@@ -62,9 +62,12 @@ def test_send_uses_event_id_key_and_event_time_timestamp() -> None:
     topic, message = client.records[0]
     assert topic == "raw-text"
     assert message["key"] == stable_event_id("reddit", "event-1").encode()
-    assert message["timestamp"] == int(
-        parse_event_time("2026-08-20T01:02:03Z").timestamp() * 1000
-    )
+    # The Kafka record timestamp must NOT be pinned to the historical
+    # event_time: this pipeline replays archived events (e.g. 2012 dates),
+    # and topic retention.ms is evaluated against the record's CreateTime.
+    # Leaving `timestamp` unset lets the client use real produce time,
+    # so retention windows are measured from ingestion, not event history.
+    assert "timestamp" not in message
     assert json.loads(message["value"])["text"] == "event event-1"
     assert producer.delivered == 1
 

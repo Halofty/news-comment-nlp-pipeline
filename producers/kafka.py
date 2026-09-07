@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any, Protocol
 
-from core.events import parse_event_time, validate_event
+from core.events import validate_event
 
 
 class ProducerClient(Protocol):
@@ -60,17 +60,23 @@ class KafkaEventProducer:
 
     def send(self, event: dict[str, Any]) -> None:
         validate_event(event)
-        timestamp_ms = int(parse_event_time(event["event_time"]).timestamp() * 1000)
         payload = json.dumps(event, ensure_ascii=False, separators=(",", ":")).encode(
             "utf-8"
         )
         while True:
             try:
+                # Do not set the Kafka record timestamp from event["event_time"]:
+                # this pipeline replays historical events (e.g. 2012 archives), and
+                # topic retention.ms is evaluated against that CreateTime. A
+                # historical timestamp makes the broker treat the segment as
+                # already past retention the moment it's produced, deleting it
+                # within one retention-check cycle and breaking bounded Spark
+                # reads with OffsetOutOfRangeException. Omitting `timestamp` lets
+                # the client stamp real produce (ingestion) wall-clock time.
                 self.client.produce(
                     self.topic,
                     key=event["event_id"].encode("utf-8"),
                     value=payload,
-                    timestamp=timestamp_ms,
                     on_delivery=self._on_delivery,
                 )
                 break
