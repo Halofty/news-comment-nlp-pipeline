@@ -304,8 +304,10 @@ Batch는 1건 완료됐고 Schema·`custom_id`·usage 검증을 모두 통과했
 
 ## 8. Airflow 수집·처리·MinIO·LLM 요청 준비 흐름
 
-`reddit_spark_llm_pipeline`은 현재 다음 10개 task로 수집부터 저장 결과 재조회까지
-연결한다. Date 7 당시 9개 task에서 Date 8 서빙용 마지막 task가 추가됐다.
+아래 `reddit_spark_llm_pipeline`은 Kafka를 최종 DAG에 편입하기 전의 과거 10개 task
+구조다. Date 7 당시 9개 task에서 Date 8 서빙용 마지막 task가 추가됐다. 현재 구조는
+[Date 8](../date8/date8.md)과 [전체 실행 가이드](../../guides/end-to-end-execution.md)를
+기준으로 한다.
 
 ```text
 prepare_parameters

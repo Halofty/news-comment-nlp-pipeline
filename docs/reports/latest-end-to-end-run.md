@@ -1,5 +1,9 @@
 # 최신 end-to-end 실행 기록
 
+> 아래 92일 실데이터 Run은 Kafka를 최종 DAG에 편입하기 전에 실행한 성능·LLM 결과다.
+> 현재 Kafka 포함 14단계 DAG의 실행 검증은 뒤의 **Kafka 포함 현재 DAG 검증** 절에
+> 별도로 기록한다.
+
 ## 실행 식별자
 
 | 항목 | 값 |
@@ -12,8 +16,32 @@
 | OpenAI 제출 | 실제 제출 (`submit=true`) |
 | prompt | `group-daily-v3-emotional-tones-compact-source-balanced` |
 
-이 Run은 날짜별 mapped task 92개를 만들었다. 최종 상태는 `success`이며 10개 task
+이 Run은 날짜별 mapped task 92개를 만들었다. 최종 상태는 `success`이며 당시 10개 task
 종류의 모든 instance가 성공했다.
+
+## Kafka 포함 현재 DAG 검증
+
+2026-09-07에 `kafka-bounded-smoke-20260907` Run을 `submit=false`로 실행해 외부 유료
+요청 없이 현재 14단계를 검증했다. Reddit은 `limit=2`, 로컬 Google News는 제한 없이
+병합되어 총 151건이 Kafka에 들어갔다.
+
+| 지표 | 결과 |
+|---|---:|
+| DAG task | 14/14 success |
+| 수집·병합 / Kafka 발행 | 151 / 151건 |
+| Kafka offset span / Run 필터 일치 | 151 / 151건 |
+| Spark 입력 / 행 회계 / 고유 저장 | 151 / 151 / 151건 |
+| 계약 거부 / 중복 / DLQ | 0 / 0 / 0건 |
+| source | news 149 / comment 2건 |
+| Spark 처리 시간 | 3.943초 |
+| MinIO processed | 10객체 / 147,138 bytes |
+| LLM preflight | economy 1요청, `budget_status=ok` |
+| OpenAI 제출 | `dry_run` |
+| serving snapshot | `ready` |
+
+Spark는 ledger의 partition별 시작·종료 offset만 읽고, 그 안에서 Run ID와 날짜가 같은
+이벤트만 선택한다. 발행 건수, 선택 건수, Spark 입력 건수와 최종 행 회계가 모두 같지
+않으면 `verify_kafka_spark_accounting`에서 다음 단계 진행을 막는다.
 
 ## 단계별 결과
 
@@ -68,7 +96,8 @@ Airflow metadata의 최종 복구 구간은 2026-09-06 23:06:00~23:06:51 UTC로 
 
 ## 최종 결과 확인
 
-- Airflow: Grid의 10개 task 종류와 mapped instance 92개가 모두 `success`
+- Airflow: 과거 92일 Run의 10개 task 종류와 mapped instance 92개가 모두 `success`;
+  현재 Kafka 포함 smoke Run은 14개 task가 모두 `success`
 - MinIO: 날짜와 Run ID prefix 아래 object와 checksum 기록 확인
 - PostgreSQL: 이 Run 분석 92건, 전체 누적 187건 확인
 - Langfuse: 날짜별 generation token·비용 trace 확인

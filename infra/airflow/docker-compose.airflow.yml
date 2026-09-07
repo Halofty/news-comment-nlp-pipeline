@@ -19,6 +19,13 @@ services:
       PYTHONPATH: /opt/airflow/project
       AIRFLOW_USERNAME: "${AIRFLOW_USERNAME:-admin}"
       AIRFLOW_PASSWORD: "${AIRFLOW_PASSWORD:-news_pipeline_airflow_dev}"
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
+      KAFKA_RAW_TOPIC: "${KAFKA_RAW_TOPIC:-raw-text}"
+      KAFKA_DLQ_TOPIC: "${KAFKA_DLQ_TOPIC:-raw-text-dlq}"
+      # The runtime UID follows the host for bind-mount permissions and may not
+      # have a passwd entry inside the image. Hadoop needs a stable user name.
+      HADOOP_USER_NAME: airflow
+      SPARK_IVY_DIR: "/home/airflow/.ivy2"
       MINIO_ENDPOINT: "${MINIO_AIRFLOW_ENDPOINT:-http://host.docker.internal:9002}"
       MINIO_ROOT_USER: "${MINIO_ROOT_USER:-news_pipeline}"
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-news_pipeline_minio_dev}"
@@ -44,3 +51,8 @@ services:
       retries: 30
       start_period: 60s
     restart: unless-stopped
+
+networks:
+  default:
+    name: news-comment-nlp-pipeline_default
+    external: true

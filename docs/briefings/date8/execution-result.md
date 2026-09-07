@@ -1,5 +1,28 @@
 # Date 8 end-to-end·서빙 실행 결과
 
+## 현재 Kafka 포함 DAG smoke Run
+
+2026-09-07의 `kafka-bounded-smoke-20260907` Run은 현재
+`news_comment_end_to_end_pipeline`의 14개 task를 `submit=false`로 모두 실행했다.
+
+```text
+Reddit + Google News → TextEvent v1 → Kafka raw-text
+→ 명시적 offset 범위 Spark batch → MinIO → LLM preflight
+→ dry-run → serving snapshot
+```
+
+| 지표 | 결과 |
+|---|---:|
+| task | 14/14 success |
+| 수집·Kafka 발행·offset span | 151 / 151 / 151건 |
+| Spark 입력·회계·고유 저장 | 151 / 151 / 151건 |
+| 계약 거부·중복·DLQ | 0 / 0 / 0건 |
+| MinIO | 10객체, 147,138 bytes |
+| LLM | economy 1요청 preflight, 제출 없음 |
+| serving snapshot | `ready` |
+
+아래 절부터는 기능이 통합되어 온 과정을 보존하기 위한 과거 실행 기록이다.
+
 ## 실행 개요
 
 > 이 절은 최종 단일 DAG로 통합하기 전 `reddit_spark_llm_pipeline`의 과거 실행 기록이다.

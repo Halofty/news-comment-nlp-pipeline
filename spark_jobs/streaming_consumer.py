@@ -130,6 +130,9 @@ def create_streaming_spark_session(
     )
     if kafka_package:
         builder = builder.config("spark.jars.packages", kafka_package)
+        ivy_directory = os.getenv("SPARK_IVY_DIR")
+        if ivy_directory:
+            builder = builder.config("spark.jars.ivy", ivy_directory)
     if kafka_classpath:
         builder = builder.config(
             "spark.driver.extraClassPath", kafka_classpath

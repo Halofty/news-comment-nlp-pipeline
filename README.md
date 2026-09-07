@@ -6,6 +6,7 @@
 ## 무엇을 해결하는가
 
 - 서로 다른 뉴스·댓글 원본을 `TextEvent v1`으로 표준화합니다.
+- 날짜별 이벤트를 Kafka에 적재하고, 해당 실행의 정확한 offset 구간만 Spark로 읽습니다.
 - Spark로 계약 검사, 품질 판정, 중복 제거와 일별 Parquet 저장을 수행합니다.
 - MinIO에 raw·processed·LLM·report 산출물을 분리해 보존합니다.
 - OpenAI Batch로 대량 분석 비용을 줄이고 Langfuse로 token·비용을 관측합니다.
@@ -27,9 +28,9 @@
 
 ## 현재 파이프라인
 
-최종 Airflow 배치 경로와 별도로 Kafka·Spark Structured Streaming 재생 경로를 구현해
-검증했습니다. Kafka는 현재 최종 Airflow DAG의 직렬 단계가 아니라, 저장된 이벤트를
-재생하거나 향후 실시간 입력을 처리하는 독립 경로입니다.
+최종 Airflow DAG는 수집 결과를 Kafka `raw-text`에 먼저 발행한 뒤, 발행 전·후 offset을
+기록하고 그 구간만 Spark batch로 처리합니다. 같은 토픽에 다른 실행이 섞여도
+`pipeline_run_id`와 날짜로 다시 필터링하며 계약 오류는 `raw-text-dlq`로 보냅니다.
 
 ![전체 시스템 구성도](docs/architecture/system-architecture.png)
 
@@ -49,7 +50,7 @@ Streamlit은 PostgreSQL의 분석 결과를 읽으며 기본적으로 최신 v3 
 ## 빠른 실행
 
 ```bash
-docker compose up -d postgres minio spark-master spark-worker
+docker compose up -d postgres minio kafka
 docker compose --profile serving up -d dashboard
 export AIRFLOW_UID="$(id -u)"
 docker compose -f infra/airflow/docker-compose.airflow.yml up -d
@@ -77,9 +78,11 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 | 해당 Run PostgreSQL 분석 | 92건 |
 | 전체 누적 PostgreSQL 분석 | 187건 |
 | serving snapshot | 92개 |
-| 자동 테스트 | 149개 통과 |
+| 자동 테스트 | 152개 통과 |
 
-최신 Run은 세 건의 구조화 출력 오류를 검증 단계에서 탐지했고, 완료된 OpenAI Batch를
+위 92일 Run은 Kafka를 최종 DAG에 편입하기 전 실행 기록입니다. 현재 Kafka 포함 DAG는
+2012-02-01 smoke Run에서 14개 task가 모두 성공했고, Kafka 발행·Spark 입력·행 회계가
+각 151건으로 일치했습니다. 최신 92일 Run은 세 건의 구조화 출력 오류를 탐지했고, 완료된 OpenAI Batch를
 재사용해 해당 task부터 복구했습니다. 전체 수치와 복구 경계는
 [최신 실행 기록](docs/reports/latest-end-to-end-run.md)에 정리했습니다.
 
@@ -87,8 +90,9 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 
 | 영역 | 상태 |
 |---|---|
-| Collector, TextEvent 계약, Spark batch | 구현·실데이터 검증 완료 |
-| Kafka, Spark Structured Streaming, DLQ | 독립 재생 경로 구현·복구 검증 완료 |
+| Collector, TextEvent 계약 | 구현·실데이터 검증 완료 |
+| Kafka bounded batch, Spark batch, DLQ | 최종 DAG 편입·실행 검증 완료 |
+| Spark Structured Streaming | 독립 재생·checkpoint 복구 검증 완료 |
 | MinIO, PostgreSQL 멱등 저장 | 구현·재시작 검증 완료 |
 | OpenAI Batch, Langfuse, Slack | 구현·실제 Batch 검증 완료 |
 | Airflow 단일 DAG, Streamlit | 구현·end-to-end 검증 완료 |

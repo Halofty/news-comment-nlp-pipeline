@@ -130,6 +130,89 @@ def run_spark_batch(
     return str(config["report_path"])
 
 
+def prepare_kafka_run_config(
+    *,
+    project_root: Path,
+    params: Mapping[str, Any],
+    airflow_run_id: str,
+    kafka_ledger: Mapping[str, Any],
+) -> dict[str, Any]:
+    config = prepare_run_config(
+        project_root=project_root,
+        params=params,
+        airflow_run_id=airflow_run_id,
+    )
+    config["kafka"] = {
+        "bootstrap_servers": str(params["kafka_bootstrap_servers"]),
+        "topic": str(kafka_ledger["topic"]),
+        "dlq_topic": str(params["kafka_dlq_topic"]),
+        "pipeline_run_id": str(kafka_ledger["pipeline_run_id"]),
+        "analysis_date": str(kafka_ledger["analysis_date"]),
+        "starting_offsets": kafka_ledger["starting_offsets"],
+        "ending_offsets": kafka_ledger["ending_offsets"],
+        "expected_published_rows": int(kafka_ledger["published_rows"]),
+        "offset_span_rows": int(kafka_ledger["offset_span_rows"]),
+        "ledger_path": str(kafka_ledger["ledger_path"]),
+        "package": str(params["spark_kafka_package"]),
+    }
+    return config
+
+
+def build_kafka_spark_command(config: Mapping[str, Any]) -> list[str]:
+    kafka = config["kafka"]
+    return [
+        sys.executable,
+        "-m",
+        "spark_jobs.kafka_batch",
+        "--bootstrap-servers",
+        str(kafka["bootstrap_servers"]),
+        "--topic",
+        str(kafka["topic"]),
+        "--dlq-topic",
+        str(kafka["dlq_topic"]),
+        "--starting-offsets",
+        json.dumps(kafka["starting_offsets"], separators=(",", ":")),
+        "--ending-offsets",
+        json.dumps(kafka["ending_offsets"], separators=(",", ":")),
+        "--pipeline-run-id",
+        str(kafka["pipeline_run_id"]),
+        "--analysis-date",
+        str(kafka["analysis_date"]),
+        "--expected-rows",
+        str(kafka["expected_published_rows"]),
+        "--output",
+        str(config["output_path"]),
+        "--report",
+        str(config["report_path"]),
+        "--log",
+        str(config["log_path"]),
+        "--master",
+        str(config["spark_master"]),
+        "--partitions",
+        str(config["partitions"]),
+        "--format",
+        str(config["output_format"]),
+        "--kafka-package",
+        str(kafka["package"]),
+    ]
+
+
+def run_kafka_spark_batch(
+    config: Mapping[str, Any],
+    *,
+    runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> str:
+    project_root = Path(str(config["project_root"]))
+    report_path = project_root / str(config["report_path"])
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    command = build_kafka_spark_command(config)
+    print("Executing bounded Kafka Spark batch for", config["kafka"]["analysis_date"])
+    runner(command, cwd=project_root, check=True, text=True)
+    if not report_path.is_file():
+        raise RuntimeError(f"Kafka Spark completed without a report: {report_path}")
+    return str(config["report_path"])
+
+
 def verify_report(*, project_root: Path, report_path: str) -> dict[str, Any]:
     resolved = _resolve_within(project_root.resolve(), report_path, field="report_path")
     report = json.loads(resolved.read_text(encoding="utf-8"))
@@ -152,4 +235,24 @@ def verify_report(*, project_root: Path, report_path: str) -> dict[str, Any]:
         "duration_seconds": report["runtime"]["duration_seconds"],
     }
     print("Verified Spark report:", json.dumps(summary, ensure_ascii=False))
+    return summary
+
+
+def verify_kafka_report(*, project_root: Path, report_path: str) -> dict[str, Any]:
+    summary = verify_report(project_root=project_root, report_path=report_path)
+    resolved = _resolve_within(project_root.resolve(), report_path, field="report_path")
+    report = json.loads(resolved.read_text(encoding="utf-8"))
+    kafka = report.get("kafka")
+    if not isinstance(kafka, dict):
+        raise ValueError("Spark report has no bounded Kafka accounting")
+    expected = int(kafka["expected_published_rows"])
+    matched = int(kafka["matched_run_rows"])
+    if expected != matched or matched != summary["input_rows"]:
+        raise ValueError(
+            f"Kafka row mismatch: expected={expected}, matched={matched}, input={summary['input_rows']}"
+        )
+    if int(kafka["offset_range_rows"]) < matched:
+        raise ValueError("Kafka offset range contains fewer rows than the selected run")
+    summary["kafka"] = kafka
+    print("Verified bounded Kafka report:", json.dumps(kafka, ensure_ascii=False))
     return summary

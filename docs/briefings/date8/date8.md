@@ -22,9 +22,10 @@
 - 최종 저장: [PostgreSQL schema](../../architecture/storage-schema.md)
 - Object storage: [MinIO 설계](../../architecture/object-storage.md)
 
-현재 발표용 경로는 Collector → Spark Batch → MinIO → OpenAI Batch → v3 검증 →
-PostgreSQL → Streamlit/Slack이며 Airflow가 전 과정을 제어한다. Kafka·Structured
-Streaming은 저장 이벤트 replay와 향후 실시간 입력을 위한 별도 검증 경로다.
+현재 발표용 경로는 Collector → Kafka bounded batch → Spark Batch → MinIO → OpenAI
+Batch → v3 검증 → PostgreSQL → Streamlit/Slack이며 Airflow가 전 과정을 제어한다.
+Spark는 날짜별 발행 전·후 offset을 읽고 Run ID·날짜가 일치하는 이벤트만 처리한다.
+Structured Streaming은 checkpoint 복구 실험용 별도 실행 방식으로 유지한다.
 
 ## 3. 끝까지 이어진 실행 결과
 
@@ -43,6 +44,10 @@ Streaming은 저장 이벤트 replay와 향후 실시간 입력을 위한 별도
 전체 실행 방법은 [현재 end-to-end 실행 방법](../../guides/end-to-end-execution.md),
 task별 수치와 복구 기록은
 [최신 end-to-end 실행 기록](../../reports/latest-end-to-end-run.md)에 분리했다.
+
+위 92일 수치는 Kafka 편입 전 실데이터 Run이다. 현재 14단계 DAG는
+`kafka-bounded-smoke-20260907`에서 151건을 수집·Kafka 발행·Spark 처리했고 14/14 task가
+성공했다. 발행·offset 범위·Run 필터·Spark 입력·행 회계가 모두 151건으로 일치했다.
 
 ## 4. 부하·장애·복구에서 확인한 것
 
@@ -70,8 +75,8 @@ polarization, 주요 topic, positive/negative tones를 사람이 읽을 수 있�
 
 ## 6. 발표 시연 순서
 
-1. 최신 PNG 구성도에서 현재 배치 경로와 별도 Kafka 경로를 설명한다.
-2. Airflow에서 완료된 92일 Run과 10개 task 종류를 보여준다.
+1. 최신 PNG 구성도에서 Kafka가 포함된 bounded batch 경로를 설명한다.
+2. Airflow에서 현재 14단계 smoke Run과 과거 92일 실데이터 Run을 보여준다.
 3. MinIO에서 날짜·Run ID별 processed·LLM·report 객체를 확인한다.
 4. Langfuse에서 token·비용 trace 하나를 확인한다.
 5. Streamlit에서 v3 분석 결과와 최근 조회 건수를 바꿔 본다.
@@ -86,7 +91,7 @@ polarization, 주요 topic, positive/negative tones를 사람이 읽을 수 있�
 | 요구사항 | 상태 | 근거 |
 |---|:---:|---|
 | 저장 결과를 읽는 장면 | 캡처 대기 | Streamlit 구현·실조회 완료, `docs/streamlit_result.png`만 추가 예정 |
-| 입력→처리→저장→읽기 단일 실행 | 완료 | 92일 Run, 10개 task 종류 전체 success |
+| 입력→처리→저장→읽기 단일 실행 | 완료 | Kafka 포함 smoke Run 14/14 task success; 92일 실데이터 Run 별도 완료 |
 | README 실행 방법 | 완료 | README 요약 + 별도 실행 가이드 링크 |
 | 최신 구성도와 데이터 모델 | 완료 | HTML·PNG, TextEvent v1, PostgreSQL schema |
 | 실행 결과 표 | 완료 | 본 문서 3장과 최신 실행 기록 |

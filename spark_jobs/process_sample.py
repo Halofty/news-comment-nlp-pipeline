@@ -10,7 +10,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from pyspark.sql import DataFrame, SparkSession, functions as F
 
@@ -75,28 +75,30 @@ def _write_jsonl(dataframe: DataFrame, path: Path) -> None:
             file.write(line + "\n")
 
 
-def process_batch(
+def process_raw_events(
     spark: SparkSession,
     *,
-    input_path: Path,
+    raw: DataFrame,
+    input_path: str,
+    input_sha256: str,
+    input_bytes: int,
     output_path: Path,
     output_partitions: int | None = None,
     output_format: str = "parquet",
     run_logger: JsonlRunLogger | None = None,
+    contract_dlq_writer: Callable[[DataFrame], None] | None = None,
 ) -> dict[str, Any]:
     started = time.perf_counter()
     stage_started = time.perf_counter()
-    raw = read_events(spark, input_path)
     input_partitions = raw.rdd.getNumPartitions()
     input_rows = raw.count()
-    input_sha256 = _sha256(input_path)
     if run_logger:
         run_logger.emit(
             "input_loaded",
             stage_duration_seconds=round(time.perf_counter() - stage_started, 3),
             input_rows=input_rows,
             input_partitions=input_partitions,
-            input_bytes=input_path.stat().st_size,
+            input_bytes=input_bytes,
             input_sha256=input_sha256,
         )
 
@@ -123,6 +125,8 @@ def process_batch(
     unique_valid_rows = valid_unique.count()
     rejected_rows = rejected.count()
     duplicate_rows = contract_valid_rows - unique_valid_rows
+    if contract_dlq_writer is not None and contract_rejected_rows:
+        contract_dlq_writer(rejected)
     if run_logger:
         run_logger.emit(
             "deduplication_completed",
@@ -216,7 +220,7 @@ def process_batch(
         "report_version": 1,
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "input": {
-            "path": str(input_path.as_posix()),
+            "path": input_path,
             "sha256": input_sha256,
             "rows": input_rows,
             "partitions": input_partitions,
@@ -270,6 +274,28 @@ def process_batch(
     rejected.unpersist()
     transformed.unpersist()
     return report
+
+
+def process_batch(
+    spark: SparkSession,
+    *,
+    input_path: Path,
+    output_path: Path,
+    output_partitions: int | None = None,
+    output_format: str = "parquet",
+    run_logger: JsonlRunLogger | None = None,
+) -> dict[str, Any]:
+    return process_raw_events(
+        spark,
+        raw=read_events(spark, input_path),
+        input_path=str(input_path.as_posix()),
+        input_sha256=_sha256(input_path),
+        input_bytes=input_path.stat().st_size,
+        output_path=output_path,
+        output_partitions=output_partitions,
+        output_format=output_format,
+        run_logger=run_logger,
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:

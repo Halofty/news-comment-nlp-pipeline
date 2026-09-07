@@ -6,15 +6,16 @@
 
 ## 1. Kafka 실시간 경로의 운영 통합
 
-현재 Kafka Producer, DLQ와 Spark Structured Streaming은 독립적으로 구현·검증됐지만
-최종 Airflow 배치 DAG가 반드시 통과하는 단계는 아니다.
+Kafka Producer와 bounded Spark batch는 현재 최종 Airflow DAG의 필수 단계다. 반면
+Spark Structured Streaming은 checkpoint·재생 실험으로만 검증했으며 상시 운영 경로는
+아니다.
 
 운영 통합이 필요하면 다음을 추가 검증한다.
 
-- Collector가 로컬 staging과 Kafka 중 어떤 경로에 기록할지 실행 모드로 선택
-- Kafka consumer lag, replay 시작 offset과 처리 완료 offset 기록
+- bounded batch와 streaming consumer의 역할·topic·consumer group 분리
+- Kafka consumer lag와 checkpoint 처리 완료 offset 관측
 - broker·worker 중단 후 checkpoint와 PostgreSQL commit의 일치 검증
-- batch와 streaming이 같은 `event_id`를 처리할 때 중복 저장 방지
+- bounded batch와 streaming이 같은 `event_id`를 처리할 때 중복 저장 방지
 
 ## 2. MinIO에서 AWS S3로 전환
 

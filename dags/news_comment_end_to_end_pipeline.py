@@ -22,10 +22,20 @@ from observability import (
     reconcile_usage,
 )
 from observability.openai_batch import load_sample_batch, total_cost
+from orchestration.kafka_batch import (
+    capture_topic_offsets,
+    ensure_batch_topics,
+    publish_jsonl_batch,
+    write_kafka_ledger,
+)
 from orchestration.llm_batch import submit_or_dry_run
 from orchestration.object_storage import sync_spark_output
 from orchestration.reddit_daily import collect_daily_comments
-from orchestration.spark_batch import prepare_run_config, run_spark_batch, verify_report
+from orchestration.spark_batch import (
+    prepare_kafka_run_config,
+    run_kafka_spark_batch,
+    verify_kafka_report,
+)
 from orchestration.unified_daily import (
     collect_web_news,
     merge_daily_sources,
@@ -44,6 +54,10 @@ WEB_NEWS_SOURCE_MODE = "auto"
 OUTPUT_ROOT = "data/airflow-output/unified"
 SPARK_PARTITIONS = 2
 SPARK_MASTER = "local[2]"
+SPARK_KAFKA_PACKAGE = "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.7"
+KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
+KAFKA_RAW_TOPIC = os.environ.get("KAFKA_RAW_TOPIC", "raw-text")
+KAFKA_DLQ_TOPIC = os.environ.get("KAFKA_DLQ_TOPIC", "raw-text-dlq")
 MODEL = "gpt-5.6-luna"
 MAX_OUTPUT_TOKENS = 900
 DAILY_BUDGET_USD = Decimal("1.00")
@@ -78,13 +92,14 @@ def _release_batch_slot(handle) -> None:
 
 with DAG(
     dag_id="news_comment_end_to_end_pipeline",
-    description="Reddit + Google News -> Spark -> MinIO -> grouped LLM -> PostgreSQL/Slack",
+    description="Reddit + Google News -> Kafka -> Spark -> MinIO -> grouped LLM -> PostgreSQL/Slack",
     schedule=None,
     # Keep the DAG start date safely in the past. Airflow evaluates this in UTC;
     # using the project completion date here made early-KST manual runs precede
     # the DAG start date and finish immediately without creating task instances.
     start_date=datetime(2012, 1, 1, tzinfo=timezone.utc),
     catchup=False,
+    max_active_runs=1,
     max_active_tasks=32,
     default_args={
         "owner": "news-comment-nlp-pipeline",
@@ -111,7 +126,7 @@ with DAG(
         ),
         "submit": Param(False, type="boolean"),
     },
-    tags=["final", "reddit", "web-news", "spark", "minio", "openai", "langfuse", "slack"],
+    tags=["final", "reddit", "web-news", "kafka", "spark", "minio", "openai", "langfuse", "slack"],
 ) as dag:
 
     @task(task_id="prepare_parameters")
@@ -144,6 +159,13 @@ with DAG(
         )
         return True
 
+    @task(task_id="prepare_kafka_topics")
+    def prepare_kafka_topics() -> dict:
+        return ensure_batch_topics(
+            bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+            partitions=3,
+        )
+
     @task(
         task_id="collect_and_merge_sources",
         max_active_tis_per_dag=DAILY_PROCESSING_SLOTS,
@@ -157,11 +179,53 @@ with DAG(
             "merged": merged,
         }
 
-    @task(task_id="prepare_spark", max_active_tis_per_dag=DAILY_PROCESSING_SLOTS)
+    @task(
+        task_id="capture_kafka_start_offsets",
+        max_active_tis_per_dag=DAILY_PROCESSING_SLOTS,
+    )
+    def capture_kafka_start(payload: dict) -> dict:
+        offsets = capture_topic_offsets(KAFKA_BOOTSTRAP_SERVERS, KAFKA_RAW_TOPIC)
+        return {**payload, "kafka_starting_offsets": offsets}
+
+    @task(
+        task_id="publish_to_kafka",
+        max_active_tis_per_dag=DAILY_PROCESSING_SLOTS,
+    )
+    def publish_kafka(payload: dict) -> dict:
+        context = get_current_context()
+        config = payload["daily_config"]
+        publication = publish_jsonl_batch(
+            project_root=PROJECT_ROOT,
+            input_file=payload["merged"]["input_file"],
+            bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+            topic=KAFKA_RAW_TOPIC,
+            pipeline_run_id=str(context["run_id"]),
+            analysis_date=str(config["collection"]["start_date"]),
+        )
+        if int(publication["published_rows"]) != int(payload["merged"]["unique_rows"]):
+            raise RuntimeError("Kafka publication count differs from merged unique rows")
+        return {**payload, "kafka_publication": publication}
+
+    @task(
+        task_id="capture_kafka_end_offsets",
+        max_active_tis_per_dag=DAILY_PROCESSING_SLOTS,
+    )
+    def capture_kafka_end(payload: dict) -> dict:
+        ending_offsets = capture_topic_offsets(KAFKA_BOOTSTRAP_SERVERS, KAFKA_RAW_TOPIC)
+        ledger = write_kafka_ledger(
+            project_root=PROJECT_ROOT,
+            run_directory=str(payload["daily_config"]["run_directory"]),
+            publication=payload["kafka_publication"],
+            starting_offsets=payload["kafka_starting_offsets"],
+            ending_offsets=ending_offsets,
+        )
+        return {**payload, "kafka_ledger": ledger}
+
+    @task(task_id="prepare_kafka_spark", max_active_tis_per_dag=DAILY_PROCESSING_SLOTS)
     def prepare_spark(payload: dict) -> dict:
         context = get_current_context()
         config = payload["daily_config"]
-        spark_config = prepare_run_config(
+        spark_config = prepare_kafka_run_config(
             project_root=PROJECT_ROOT,
             params={
                 "input_file": payload["merged"]["input_file"],
@@ -170,19 +234,23 @@ with DAG(
                 "output_format": "parquet",
                 "partitions": SPARK_PARTITIONS,
                 "spark_master": SPARK_MASTER,
+                "kafka_bootstrap_servers": KAFKA_BOOTSTRAP_SERVERS,
+                "kafka_dlq_topic": KAFKA_DLQ_TOPIC,
+                "spark_kafka_package": SPARK_KAFKA_PACKAGE,
             },
             airflow_run_id=context["run_id"],
+            kafka_ledger=payload["kafka_ledger"],
         )
         return {**payload, "spark_config": spark_config}
 
-    @task(task_id="run_spark", max_active_tis_per_dag=DAILY_PROCESSING_SLOTS)
+    @task(task_id="run_kafka_spark_batch", max_active_tis_per_dag=DAILY_PROCESSING_SLOTS)
     def run_spark(payload: dict) -> dict:
-        report_path = run_spark_batch(payload["spark_config"])
+        report_path = run_kafka_spark_batch(payload["spark_config"])
         return {**payload, "spark_report_path": report_path}
 
-    @task(task_id="verify_spark", max_active_tis_per_dag=DAILY_PROCESSING_SLOTS)
+    @task(task_id="verify_kafka_spark_accounting", max_active_tis_per_dag=DAILY_PROCESSING_SLOTS)
     def verify_spark(payload: dict) -> dict:
-        verification = verify_report(
+        verification = verify_kafka_report(
             project_root=PROJECT_ROOT,
             report_path=payload["spark_report_path"],
         )
@@ -401,9 +469,14 @@ with DAG(
         )
 
     daily_configs = prepare_parameters()
+    kafka_topics_ready = prepare_kafka_topics()
     llm_storage_ready = prepare_llm_storage()
     collected = collect_and_merge_sources.expand(config=daily_configs)
-    spark_configured = prepare_spark.expand(payload=collected)
+    kafka_started = capture_kafka_start.expand(payload=collected)
+    kafka_topics_ready >> kafka_started
+    kafka_published = publish_kafka.expand(payload=kafka_started)
+    kafka_bounded = capture_kafka_end.expand(payload=kafka_published)
+    spark_configured = prepare_spark.expand(payload=kafka_bounded)
     spark_ran = run_spark.expand(payload=spark_configured)
     spark_verified = verify_spark.expand(payload=spark_ran)
     stored = store_minio.expand(payload=spark_verified)
