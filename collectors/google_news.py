@@ -79,7 +79,12 @@ def collect_month(
     output_root: Path,
     report_path: Path,
     request_delay: float,
+    topic_groups: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
+    selected_groups = topic_groups or tuple(TOPIC_GROUPS)
+    unknown_groups = set(selected_groups) - set(TOPIC_GROUPS)
+    if unknown_groups:
+        raise ValueError(f"unknown Google News topic groups: {sorted(unknown_groups)}")
     session = requests.Session()
     session.headers["User-Agent"] = (
         "news-comment-nlp-pipeline/0.1 (educational research collector)"
@@ -89,7 +94,8 @@ def collect_month(
     request_rows = []
 
     for day in dates(start_date, end_date):
-        for group, keywords in TOPIC_GROUPS.items():
+        for group in selected_groups:
+            keywords = TOPIC_GROUPS[group]
             query = build_query(keywords, day)
             response = session.get(
                 RSS_URL,
@@ -146,7 +152,7 @@ def collect_month(
         "source": "Google News RSS search index",
         "start_date": start_date.isoformat(),
         "end_date": end_date.isoformat(),
-        "topic_groups": TOPIC_GROUPS,
+        "topic_groups": {group: TOPIC_GROUPS[group] for group in selected_groups},
         "requests": len(request_rows),
         "requests_hitting_100_result_cap": sum(
             int(row["hit_100_result_cap"]) for row in request_rows

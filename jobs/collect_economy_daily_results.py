@@ -12,15 +12,13 @@ from llm_analysis import OpenAIBatchClient, validate_batch_results
 from observability import (
     FailSafeObservabilitySink,
     LangfuseSink,
-    PriceSchedule,
+    LONG_CONTEXT_THRESHOLD,
     StageObservation,
     StructuredLogSink,
+    gpt_5_6_luna_batch_pricing,
     reconcile_usage,
 )
 from observability.openai_batch import load_sample_batch, total_cost
-
-
-LONG_CONTEXT_THRESHOLD = 272_000
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -54,21 +52,6 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
         for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-
-
-def _pricing(input_tokens: int) -> PriceSchedule:
-    long_context = input_tokens > LONG_CONTEXT_THRESHOLD
-    return PriceSchedule(
-        version=(
-            "gpt-5.6-luna-batch-long-context-2026-09-03"
-            if long_context
-            else "gpt-5.6-luna-batch-2026-09-03"
-        ),
-        effective_date="2026-09-03",
-        input_per_million=Decimal("0.20" if long_context else "0.10"),
-        cached_input_per_million=Decimal("0.02" if long_context else "0.01"),
-        output_per_million=Decimal("0.90" if long_context else "0.60"),
-    )
 
 
 def _observability_sink(response_root: Path):
@@ -119,7 +102,7 @@ def collect(args: argparse.Namespace, client: OpenAIBatchClient | None = None) -
 
         usage = batch.get("usage") or {}
         input_tokens = int(usage.get("input_tokens", 0))
-        pricing = _pricing(input_tokens)
+        pricing = gpt_5_6_luna_batch_pricing(input_tokens)
         sample = load_sample_batch(
             batch_path=state_path,
             manifest_path=artifact / "manifest.jsonl",
@@ -172,8 +155,15 @@ def collect(args: argparse.Namespace, client: OpenAIBatchClient | None = None) -
                 "reasoning_output_tokens": int((usage.get("output_tokens_details") or {}).get("reasoning_tokens", 0)),
                 "long_context_pricing": input_tokens > LONG_CONTEXT_THRESHOLD,
                 "cost_usd": str(cost),
-                "sentiment": result.get("sentiment"),
+                "dominant_sentiment": result.get("dominant_sentiment") or result.get("sentiment"),
                 "sentiment_score": result.get("sentiment_score"),
+                "estimated_sentiment_distribution": result.get(
+                    "estimated_sentiment_distribution"
+                ),
+                "polarization": result.get("polarization"),
+                "polarization_score": result.get("polarization_score"),
+                "positive_tones": result.get("positive_tones", []),
+                "negative_tones": result.get("negative_tones", []),
                 "topics": result.get("topics", []),
                 "keywords": result.get("keywords", []),
                 "summary": result.get("summary"),

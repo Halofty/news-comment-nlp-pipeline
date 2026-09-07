@@ -20,6 +20,10 @@ from observability import (
     calculate_cost,
     reconcile_usage,
 )
+from observability.pricing import (
+    LONG_CONTEXT_THRESHOLD,
+    gpt_5_6_luna_batch_pricing,
+)
 from observability.openai_batch import load_sample_batch, token_usage_from_openai
 
 
@@ -36,6 +40,21 @@ def _pricing() -> PriceSchedule:
         cached_input_per_million=Decimal("0.25"),
         output_per_million=Decimal("2.00"),
     )
+
+
+def test_gpt_5_6_luna_batch_pricing_selects_context_tier() -> None:
+    standard = gpt_5_6_luna_batch_pricing(LONG_CONTEXT_THRESHOLD)
+    long_context = gpt_5_6_luna_batch_pricing(LONG_CONTEXT_THRESHOLD + 1)
+
+    assert standard.input_per_million == Decimal("0.10")
+    assert standard.output_per_million == Decimal("0.60")
+    assert long_context.input_per_million == Decimal("0.20")
+    assert long_context.output_per_million == Decimal("0.90")
+
+
+def test_gpt_5_6_luna_batch_pricing_rejects_negative_tokens() -> None:
+    with pytest.raises(ValueError, match="input_tokens"):
+        gpt_5_6_luna_batch_pricing(-1)
 
 
 def _sample():

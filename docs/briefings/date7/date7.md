@@ -304,7 +304,8 @@ Batch는 1건 완료됐고 Schema·`custom_id`·usage 검증을 모두 통과했
 
 ## 8. Airflow 수집·처리·MinIO·LLM 요청 준비 흐름
 
-`reddit_spark_llm_pipeline`은 다음 9개 task로 수집부터 LLM 요청 검증까지 연결한다.
+`reddit_spark_llm_pipeline`은 현재 다음 10개 task로 수집부터 저장 결과 재조회까지
+연결한다. Date 7 당시 9개 task에서 Date 8 서빙용 마지막 task가 추가됐다.
 
 ```text
 prepare_parameters
@@ -316,6 +317,7 @@ prepare_parameters
 → build_and_budget_check
 → submit_or_dry_run
 → verify_pipeline
+→ read_saved_result
 ```
 
 기존 Run은 Reddit 2016-01-01 100건을 수집해 Spark에서 고유 100건으로 처리하고 그

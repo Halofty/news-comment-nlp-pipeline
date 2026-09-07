@@ -14,6 +14,7 @@ from orchestration.reddit_daily import (
     prepare_daily_config,
 )
 from orchestration.spark_batch import run_spark_batch, verify_report
+from serving.snapshot import build_serving_snapshot
 
 PROJECT_ROOT = Path("/opt/airflow/project")
 
@@ -31,7 +32,27 @@ with DAG(
     params={
         "start_date": Param("2016-01-01", type="string", pattern="^\\d{4}-\\d{2}-\\d{2}$"),
         "end_date": Param("2016-01-01", type="string", pattern="^\\d{4}-\\d{2}-\\d{2}$"),
-        "limit": Param(1000, type="integer", minimum=100, maximum=10_000),
+        "limit": Param(0, type="integer", minimum=0),
+        "selected_groups": Param(
+            ["politics", "economy", "technology", "environment"],
+            type="array",
+            items={
+                "type": "string",
+                "enum": ["politics", "economy", "technology", "environment"],
+            },
+            minItems=1,
+            maxItems=4,
+            uniqueItems=True,
+        ),
+        "analysis_groups_config": Param(
+            "config/analysis-groups.yaml", type="string", pattern="^config/.+"
+        ),
+        "reddit_archive_root": Param(
+            "data/raw/reddit-archive/data", type="string", pattern="^data/.+"
+        ),
+        "reddit_source_mode": Param(
+            "auto", type="string", enum=["auto", "local", "remote"]
+        ),
         "output_root": Param("data/airflow-output", type="string", pattern="^data/.+"),
         "output_format": Param("parquet", type="string", enum=["parquet", "jsonl"]),
         "partitions": Param(2, type="integer", minimum=1, maximum=64),
@@ -116,6 +137,26 @@ with DAG(
             "status": "completed",
         }
 
+    @task(task_id="read_saved_result")
+    def read_saved_result(
+        spark_run: dict,
+        minio_result: dict,
+        pipeline_result: dict,
+    ) -> dict:
+        snapshot_path = (
+            Path(str(spark_run["config"]["run_directory"]))
+            / "serving-snapshot.json"
+        )
+        result = build_serving_snapshot(
+            project_root=PROJECT_ROOT,
+            spark_report_path=spark_run["report_path"],
+            minio_result=minio_result,
+            llm_result=pipeline_result["llm"],
+            output_path=snapshot_path,
+        )
+        print("Serving snapshot:", result)
+        return result
+
     pipeline_config = prepare_parameters()
     collected = collect_reddit_day(pipeline_config)
     spark_run = run_spark(pipeline_config, collected)
@@ -126,4 +167,7 @@ with DAG(
     )
     preflight = build_requests(llm_config)
     submission = submit(llm_config, preflight)
-    verify_pipeline(spark_result, minio_result, preflight, submission)
+    pipeline_result = verify_pipeline(
+        spark_result, minio_result, preflight, submission
+    )
+    read_saved_result(spark_run, minio_result, pipeline_result)

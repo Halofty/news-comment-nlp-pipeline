@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from llm_analysis import OpenAIBatchClient, build_batch_file
+from llm_analysis.contract import PROMPT_VERSION
 
 
 def prepare_config(
@@ -63,7 +64,7 @@ def submit_or_dry_run(config: dict[str, Any], preflight: dict[str, Any]) -> dict
         metadata={
             "llm_batch_id": config["internal_batch_id"],
             "model": config["model"],
-            "prompt_version": "news-comment-analysis-v1",
+            "prompt_version": str(config.get("prompt_version", PROMPT_VERSION)),
         },
     )
     state_path = Path(config["state_path"])

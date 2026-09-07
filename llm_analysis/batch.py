@@ -14,8 +14,12 @@ from jsonschema.exceptions import ValidationError
 
 from llm_analysis.contract import (
     ANALYSIS_SCHEMA,
+    ANALYSIS_SCHEMA_V1,
+    ANALYSIS_SCHEMA_V2,
     PROMPT_VERSION,
     RESULT_SCHEMA_VERSION,
+    normalize_tone_shares,
+    validate_sentiment_semantics,
     SYSTEM_INSTRUCTIONS,
 )
 
@@ -301,7 +305,6 @@ def validate_batch_results(
     *, result_path: str | Path, manifest_path: str | Path, output_path: str | Path
 ) -> dict[str, int]:
     manifest = {row["custom_id"]: row for row in _iter_jsonl(Path(manifest_path))}
-    validator = Draft202012Validator(ANALYSIS_SCHEMA)
     output: list[dict[str, Any]] = []
     failed = 0
     seen: set[str] = set()
@@ -317,7 +320,20 @@ def validate_batch_results(
             continue
         try:
             analysis = json.loads(_response_output_text(response["body"]))
+            schema_version = int(manifest[custom_id].get("schema_version", 1))
+            schema = (
+                ANALYSIS_SCHEMA
+                if schema_version >= 3
+                else ANALYSIS_SCHEMA_V2
+                if schema_version == 2
+                else ANALYSIS_SCHEMA_V1
+            )
+            validator = Draft202012Validator(schema)
             validator.validate(analysis)
+            if schema_version >= 2:
+                if schema_version >= 3:
+                    analysis = normalize_tone_shares(analysis)
+                validate_sentiment_semantics(analysis)
         except (KeyError, TypeError, ValueError, json.JSONDecodeError, ValidationError):
             failed += 1
             continue

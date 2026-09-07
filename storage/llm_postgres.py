@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 
@@ -59,17 +61,25 @@ ON CONFLICT (custom_id) DO UPDATE SET
 
 DOCUMENT_ANALYSIS_UPSERT = """
 INSERT INTO document_analyses (
-    event_id, prompt_version, model, sentiment, sentiment_score, topics,
-    keywords, summary, custom_id
+    event_id, prompt_version, model, sentiment, sentiment_score,
+    sentiment_distribution, polarization, polarization_score, positive_tones,
+    negative_tones, topics, keywords, summary, custom_id
 ) VALUES (
     %(event_id)s, %(prompt_version)s, %(model)s, %(sentiment)s,
-    %(sentiment_score)s, %(topics)s, %(keywords)s, %(summary)s,
+    %(sentiment_score)s, %(sentiment_distribution)s::jsonb, %(polarization)s,
+    %(polarization_score)s, %(positive_tones)s::jsonb,
+    %(negative_tones)s::jsonb, %(topics)s, %(keywords)s, %(summary)s,
     %(custom_id)s
 )
 ON CONFLICT (event_id, prompt_version) DO UPDATE SET
     model = EXCLUDED.model,
     sentiment = EXCLUDED.sentiment,
     sentiment_score = EXCLUDED.sentiment_score,
+    sentiment_distribution = EXCLUDED.sentiment_distribution,
+    polarization = EXCLUDED.polarization,
+    polarization_score = EXCLUDED.polarization_score,
+    positive_tones = EXCLUDED.positive_tones,
+    negative_tones = EXCLUDED.negative_tones,
     topics = EXCLUDED.topics,
     keywords = EXCLUDED.keywords,
     summary = EXCLUDED.summary,
@@ -208,9 +218,39 @@ def build_llm_postgres_records(
                 ),
                 "model": _required_text(result.get("model") or model, field="model"),
                 "sentiment": _required_text(
-                    result.get("sentiment"), field="sentiment"
+                    result.get("dominant_sentiment") or result.get("sentiment"),
+                    field="dominant_sentiment",
                 ),
                 "sentiment_score": float(result["sentiment_score"]),
+                "sentiment_distribution": (
+                    json.dumps(
+                        result["estimated_sentiment_distribution"],
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                    if result.get("estimated_sentiment_distribution") is not None
+                    else None
+                ),
+                "polarization": result.get("polarization"),
+                "polarization_score": result.get("polarization_score"),
+                "positive_tones": (
+                    json.dumps(
+                        result["positive_tones"],
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                    if result.get("positive_tones") is not None
+                    else None
+                ),
+                "negative_tones": (
+                    json.dumps(
+                        result["negative_tones"],
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                    if result.get("negative_tones") is not None
+                    else None
+                ),
                 "topics": list(result.get("topics") or []),
                 "keywords": list(result.get("keywords") or []),
                 "summary": _required_text(result.get("summary"), field="summary"),
@@ -287,6 +327,25 @@ def write_llm_batch_to_postgres(
         analysis_rows=len(analyses),
         failed_rows=len(requests) - len(analyses),
     )
+
+
+def apply_llm_analysis_migrations(*, dsn: str, migrations_root: str | Path) -> None:
+    if not dsn.strip():
+        raise ValueError("PostgreSQL DSN must not be empty")
+    try:
+        import psycopg
+    except ImportError as error:
+        raise RuntimeError("LLM migrations require psycopg") from error
+    root = Path(migrations_root)
+    paths = [
+        root / "004_llm_analysis.sql",
+        root / "005_polarization_analysis.sql",
+        root / "006_emotional_tones.sql",
+    ]
+    with psycopg.connect(dsn) as connection:
+        with connection.cursor() as cursor:
+            for path in paths:
+                cursor.execute(path.read_text(encoding="utf-8"))
 
 
 def summarize_llm_storage(*, dsn: str, llm_batch_ids: Sequence[str]) -> dict[str, int]:

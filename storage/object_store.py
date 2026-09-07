@@ -19,7 +19,7 @@ class ObjectStoreConfig:
 
     @classmethod
     def from_env(cls) -> "ObjectStoreConfig":
-        endpoint = os.getenv("MINIO_ENDPOINT", "http://localhost:9000").rstrip("/")
+        endpoint = os.getenv("MINIO_ENDPOINT", "http://localhost:9002").rstrip("/")
         access_key = os.getenv("MINIO_ROOT_USER", "news_pipeline")
         secret_key = os.getenv("MINIO_ROOT_PASSWORD", "news_pipeline_minio_dev")
         if not endpoint.startswith(("http://", "https://")):

@@ -59,6 +59,18 @@ python -m pytest -q
 
 ## 4. 로컬 서비스 시작
 
+먼저 `.env.example`을 `.env`로 복사하고 로컬 서비스 자격 증명을 설정한다.
+
+| 서비스 | ID 변수 | 비밀번호 변수 |
+|---|---|---|
+| Airflow | `AIRFLOW_USERNAME` | `AIRFLOW_PASSWORD` |
+| MinIO | `MINIO_ROOT_USER` | `MINIO_ROOT_PASSWORD` |
+| PostgreSQL | `POSTGRES_USER` | `POSTGRES_PASSWORD` |
+
+`.env`는 Git에서 제외된다. Airflow 시작 스크립트는 두 Airflow 변수를 Simple Auth
+Manager의 `0600` 비밀번호 파일로 반영하며, MinIO와 PostgreSQL은 Compose가 환경변수를
+직접 사용한다. 공개·공유 환경에서는 `.env.example`의 개발 기본값을 반드시 변경한다.
+
 Spark 제출 이미지에는 PostgreSQL client가 포함되므로 최초 실행 또는 Dockerfile 변경 후 이미지를 빌드합니다.
 
 ```bash

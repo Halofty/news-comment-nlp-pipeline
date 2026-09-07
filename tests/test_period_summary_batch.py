@@ -58,6 +58,14 @@ def test_builds_31_daily_and_one_monthly_request(tmp_path) -> None:
     assert manifests[-1]["period"] == "2012-01"
     assert manifests[-1]["total_rows"] == 62
     assert all(row["body"]["reasoning"]["effort"] == "low" for row in requests)
+    assert all(
+        "mixed" not in row["body"]["text"]["format"]["schema"]["properties"]
+        for row in requests
+    )
+    assert all(
+        "polarization_score" in row["body"]["text"]["format"]["schema"]["properties"]
+        for row in requests
+    )
     assert json.loads(report.read_text())["complete_source_rows"] == {
         "reddit": 31,
         "web_news": 31,

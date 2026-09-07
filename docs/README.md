@@ -12,6 +12,11 @@
 
 실행 결과와 공개 가능한 수치 검증은 저장소 최상위의 [`analysis/reports/`](../analysis/reports/)에서 관리합니다.
 
+현재 단일 Airflow DAG의 실행 절차는
+[`guides/end-to-end-execution.md`](guides/end-to-end-execution.md), 92일 실제 Batch의
+단계별 수치와 복구 기록은
+[`reports/latest-end-to-end-run.md`](reports/latest-end-to-end-run.md)에 있습니다.
+
 웹 뉴스 수집은 [`guides/web-news-collection.md`](guides/web-news-collection.md), 현재
 2012년 수집·부하·복구 결과는 [`briefings/date6/date6.md`](briefings/date6/date6.md)에서
 확인할 수 있습니다.
@@ -21,6 +26,15 @@
 경제·사회 1월 일별 31건, quality gate와 월간 통합 분석의 실제 결과는
 [`briefings/date7/economy-social-results-01-31.md`](briefings/date7/economy-social-results-01-31.md)에
 정리했습니다.
+
+최종 발표의 최신 흐름, 핵심 수치와 시연 순서는
+[`briefings/date8/date8.md`](briefings/date8/date8.md)에 정리했습니다. 현재 실행 방법은
+[`guides/end-to-end-execution.md`](guides/end-to-end-execution.md), 최신 92일 실제 Run은
+[`reports/latest-end-to-end-run.md`](reports/latest-end-to-end-run.md)를 기준으로 합니다.
+`date8/demo-runbook.md`와 `date8/execution-result.md`는 최종 통합 전 소규모 실행의
+과거 기록으로 보존합니다.
+Streamlit 서빙과 Batch 완료 Slack 알림의 실행·설정은
+[`guides/serving-and-slack.md`](guides/serving-and-slack.md)에 정리했습니다.
 
 OpenAI API 프로젝트·환경변수와 Langfuse Cloud Japan의 실제 구성·검증 기록은
 [`briefings/date7/openai-langfuse-setup.md`](briefings/date7/openai-langfuse-setup.md)에

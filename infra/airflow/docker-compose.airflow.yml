@@ -6,22 +6,20 @@ services:
     image: news-pipeline-airflow:3.3.1
     container_name: news-pipeline-airflow
     user: "${AIRFLOW_UID:-1000}:0"
-    command: standalone
+    command: python /opt/airflow/project/infra/airflow/start_standalone.py
     working_dir: /opt/airflow/project
+    env_file:
+      - path: ../../.env
+        required: false
     environment:
       AIRFLOW_HOME: /home/airflow/.airflow
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/project/dags
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAG_RUN_CONF_OVERRIDES_PARAMS: "true"
       PYTHONPATH: /opt/airflow/project
-      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
-      LANGFUSE_ENABLED: "${LANGFUSE_ENABLED:-false}"
-      LANGFUSE_PUBLIC_KEY: "${LANGFUSE_PUBLIC_KEY:-}"
-      LANGFUSE_SECRET_KEY: "${LANGFUSE_SECRET_KEY:-}"
-      LANGFUSE_BASE_URL: "${LANGFUSE_BASE_URL:-https://jp.cloud.langfuse.com}"
-      LANGFUSE_TRACING_ENVIRONMENT: "${LANGFUSE_TRACING_ENVIRONMENT:-development}"
-      LANGFUSE_TIMEOUT_SECONDS: "${LANGFUSE_TIMEOUT_SECONDS:-5}"
-      MINIO_ENDPOINT: "${MINIO_AIRFLOW_ENDPOINT:-http://host.docker.internal:9000}"
+      AIRFLOW_USERNAME: "${AIRFLOW_USERNAME:-admin}"
+      AIRFLOW_PASSWORD: "${AIRFLOW_PASSWORD:-news_pipeline_airflow_dev}"
+      MINIO_ENDPOINT: "${MINIO_AIRFLOW_ENDPOINT:-http://host.docker.internal:9002}"
       MINIO_ROOT_USER: "${MINIO_ROOT_USER:-news_pipeline}"
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-news_pipeline_minio_dev}"
       MINIO_RAW_BUCKET: "${MINIO_RAW_BUCKET:-news-raw}"
@@ -29,12 +27,14 @@ services:
       MINIO_LLM_BUCKET: "${MINIO_LLM_BUCKET:-news-llm}"
       MINIO_REPORTS_BUCKET: "${MINIO_REPORTS_BUCKET:-news-reports}"
       MINIO_CHECKPOINT_BUCKET: "${MINIO_CHECKPOINT_BUCKET:-news-checkpoints}"
+      POSTGRES_DSN: "${POSTGRES_AIRFLOW_DSN:-postgresql://news_pipeline:news_pipeline_dev@host.docker.internal:5432/news_pipeline}"
       PIPELINE_STORAGE_BACKEND: minio
       PIPELINE_DATA_ROOT: /opt/airflow/project/data
     ports:
       - "8082:8080"
     volumes:
       - ../..:/opt/airflow/project
+      - ../../data/airflow-home:/home/airflow/.airflow
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:

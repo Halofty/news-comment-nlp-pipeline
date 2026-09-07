@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from decimal import Decimal
 from types import SimpleNamespace
@@ -46,6 +47,12 @@ def _fixture() -> tuple[dict, list[dict], list[dict]]:
             "prompt_version": "prompt-v1",
             "sentiment": "mixed",
             "sentiment_score": 0.1,
+            "positive_tones": [
+                {"tone": "hope", "share": 1.0, "drivers": ["wages"]}
+            ],
+            "negative_tones": [
+                {"tone": "anxiety", "share": 1.0, "drivers": ["prices"]}
+            ],
             "topics": ["economy"],
             "keywords": ["wages"],
             "summary": "A synthetic summary.",
@@ -69,6 +76,9 @@ def test_build_llm_postgres_records_accounts_for_validated_result() -> None:
     assert requests[0]["status"] == "completed"
     assert requests[0]["validation_result"] == "validated"
     assert analyses[0]["topics"] == ["economy"]
+    assert analyses[0]["polarization"] is None
+    assert json.loads(analyses[0]["positive_tones"])[0]["tone"] == "hope"
+    assert json.loads(analyses[0]["negative_tones"])[0]["tone"] == "anxiety"
 
 
 class _Cursor:

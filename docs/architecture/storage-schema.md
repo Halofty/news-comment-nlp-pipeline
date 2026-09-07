@@ -45,7 +45,7 @@ PostgreSQL
 | 원본 | `raw_text_events` | `TextEvent v1`, Kafka 위치, 수신 시각 |
 | 정제 | `text_documents_clean` | 정규화 텍스트, 언어, 품질 상태 |
 | 품질 | `text_data_quality` | 실행별 결측·중복·지연·길이 통계 |
-| 분석 | `document_analyses` | LLM 검증 완료 감정·토픽·키워드·요약 |
+| 분석 | `document_analyses` | LLM 검증 완료 감정·양극화·긍정/부정 세부 정서·원인·토픽·요약 |
 | 집계 | `sentiment_window_metrics`, `topic_window_metrics` | 출처·시간 window별 지표 |
 | 운영 | `stream_batch_commits`, `pipeline_run_history` | 재시작·멱등성·실행 이력 |
 | LLM 작업 | `llm_batch_jobs`, `llm_batch_requests` | Batch ID, custom ID, 상태와 재시도 |
@@ -78,6 +78,7 @@ Spark foreachBatch
 - LLM Batch·요청·문서 분석 migration
 - 검증된 LLM 결과의 PostgreSQL transaction upsert adapter
 - 실제 일별 31건·월간 1건 적재와 동일 입력 재실행 멱등성 검증
+- 감정 v3의 `positive_tones`·`negative_tones` JSONB migration 및 dashboard 조회
 
 과제 이후 확장 범위:
 

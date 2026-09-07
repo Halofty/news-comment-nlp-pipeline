@@ -34,9 +34,9 @@ services:
     image: postgres:16.10
     container_name: news-pipeline-postgres
     environment:
-      POSTGRES_DB: news_pipeline
-      POSTGRES_USER: news_pipeline
-      POSTGRES_PASSWORD: news_pipeline_dev
+      POSTGRES_DB: ${POSTGRES_DB:-news_pipeline}
+      POSTGRES_USER: ${POSTGRES_USER:-news_pipeline}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-news_pipeline_dev}
     ports:
       - "5432:5432"
     volumes:
@@ -58,7 +58,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-news_pipeline}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-news_pipeline_minio_dev}
     ports:
-      - "9000:9000"
+      - "${MINIO_API_PORT:-9002}:9000"
       - "9101:9001"
     volumes:
       - minio-data:/data
@@ -200,6 +200,27 @@ services:
         condition: service_healthy
     entrypoint: ["/opt/spark/bin/spark-submit"]
     command: ["--version"]
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: infra/serving/Dockerfile
+    image: news-pipeline-dashboard:local
+    container_name: news-pipeline-dashboard
+    profiles: ["serving"]
+    working_dir: /app
+    environment:
+      PYTHONPATH: /app
+      POSTGRES_DSN: postgresql://news_pipeline:news_pipeline_dev@postgres:5432/news_pipeline
+      SERVING_SNAPSHOT_ROOT: /app/data/airflow-output
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   kafka-data:

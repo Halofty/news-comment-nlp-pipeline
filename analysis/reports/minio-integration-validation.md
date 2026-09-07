@@ -94,7 +94,7 @@ docker compose run --rm --no-deps --use-aliases spark-runner \
   --report data/minio-validation/spark-s3a-standalone.json
 ```
 
-Airflow 컨테이너는 Linux Docker host gateway를 통해 `localhost:9000`의 MinIO에
+Airflow 컨테이너는 Linux Docker host gateway를 통해 `localhost:9002`의 MinIO에
 접근한다. DAG의 `minio_enabled=false`를 지정하면 object storage task를 명시적으로
 건너뛸 수 있다.
 

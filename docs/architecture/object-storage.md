@@ -25,7 +25,7 @@ MinIO는 로컬 개발·교육 환경용이며 AWS S3의 가용성, IAM, 암호�
 ## 현재 구현 범위
 
 - Compose의 단일 노드·단일 드라이브 MinIO
-- S3 API `localhost:9000`, Console `localhost:9101`
+- S3 API `localhost:9002`, Console `localhost:9101` (`9000`은 Portainer와 충돌해 변경)
 - `minio-init`을 통한 bucket 5개 멱등 생성
 - Docker volume을 통한 컨테이너 재시작 후 데이터 유지
 - `.env` 기반 로컬 자격 증명

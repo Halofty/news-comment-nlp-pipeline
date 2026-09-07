@@ -10,9 +10,11 @@
 | PostgreSQL | 원본·정제 이벤트, 계약 오류와 batch commit 저장 | transaction, unique constraint와 조회 편의성 |
 | Docker Compose | Kafka·Spark Standalone·PostgreSQL·MinIO 로컬 실행 | 재현 가능한 단일 개발 환경 |
 | MinIO | raw·processed·checkpoint용 로컬 S3 호환 저장소 | S3 비용 없이 object storage 경계 검증 |
-| OpenAI Batch API | GPT-5.6 Luna 감정·토픽·키워드·요약 분석 | 요청 생성·API 작업·검증 CLI 구현, 실제 제출은 key 대기 |
+| OpenAI Batch API | GPT-5.6 Luna 감정·토픽·키워드·요약 분석 | 일별 31건·월간 1건 실제 완료와 Schema·usage 검증 |
 | Langfuse | LLM trace·토큰·비용·지연 관측 | metadata-only adapter와 구조화 로그 fallback 검증 |
 | Apache Airflow | 수집·Spark와 LLM Batch dry-run·제출 제어 | 날짜·입력·예산·실제 제출 여부를 Param으로 관리 |
+| Streamlit | PostgreSQL LLM 결과와 Airflow 실행 snapshot 조회 | 1~2분 발표에서 최종 저장 결과를 읽는 간단한 서빙 화면 |
+| Slack Incoming Webhook | Batch terminal 상태와 자동 집계 topic 알림 | 최대 24시간 비동기 작업을 계속 화면에서 확인하지 않아도 됨 |
 
 ## 현재 실행 구조
 
@@ -29,6 +31,8 @@ Spark Standalone
 Parquet + PostgreSQL + MinIO
         ↓
 GPT-5.6 Luna Batch + Langfuse
+        ↓
+Streamlit dashboard + Slack notification
 ```
 
 Spark는 현재 한 컴퓨터의 Master 1대·Worker 1대 구성입니다. 프로세스와 네트워크 경계는 분리했지만 물리적 분산 환경은 아닙니다.

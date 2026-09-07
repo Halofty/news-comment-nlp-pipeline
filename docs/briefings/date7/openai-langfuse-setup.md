@@ -85,6 +85,27 @@ credentials-configured
 검증했다. 실제 경제·사회 일별 31개와 월간 1개 Batch는 CLI에서 완료했으며 Airflow
 dry-run은 실제 분석 건수와 비용에 포함하지 않는다.
 
+2026-09-06의 2012년 3월 Airflow 실데이터 실행에서는 Airflow 전용 이미지에 Langfuse
+SDK가 빠져 있어 primary 초기화가 실패했고, 31일의 관측 정보는 구조화 로그 fallback에
+보존됐다. `infra/airflow/requirements.txt`에 `langfuse>=4,<5`를 추가하고 이미지를
+재빌드한 뒤 다음을 다시 검증했다.
+
+| 재검증 항목 | 결과 |
+|---|---|
+| Airflow 이미지 Langfuse SDK | 4.15.1 |
+| 환경변수 전달 | enabled·public key·secret key·base URL 모두 확인 |
+| Cloud 인증 | `auth_check=True` |
+| metadata-only test trace | 전송 및 flush 완료 |
+| 프로젝트 adapter 검증 | Batch 1건·generation 3건·usage reconciliation 전송 성공 |
+| sample usage 대조 | 입력 300 / 출력 60 / 전체 360, `matched` |
+| Airflow 상태 | healthy, DAG import 오류 0건 |
+
+통합 DAG의 완료 단계도 Batch 상태뿐 아니라 요청별 generation의 입력·출력·cached·
+reasoning token, 계산 비용과 Batch 합계 대조 결과를 전송하도록 보완했다. 같은 완료
+결과를 재실행할 때는 `usage-observed.json` marker를 확인해 관측치를 중복 생성하지
+않는다. 이 수정 이후 시작하는 Airflow Run부터 Langfuse primary가 사용된다. 이미 끝난
+3월 Run의 fallback 기록은 자동으로 소급 전송되지 않는다.
+
 ## 5. 데이터·자격 증명 경계
 
 - `.env`와 원본·응답 파일은 Git에 포함하지 않는다.

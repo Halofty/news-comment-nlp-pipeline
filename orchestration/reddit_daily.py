@@ -8,9 +8,12 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+import yaml
+
 from orchestration.spark_batch import prepare_run_config
 
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+ALLOWED_GROUPS = {"politics", "economy", "technology", "environment"}
 
 
 def _parse_date(value: Any, *, field: str) -> date:
@@ -32,17 +35,77 @@ def prepare_daily_config(
         raise ValueError("start_date and end_date must define exactly 1 calendar day")
 
     limit = int(params["limit"])
-    if limit != 0 and not 100 <= limit <= 10_000:
-        raise ValueError("limit must be 0 (unlimited) or between 100 and 10000")
+    if limit < 0:
+        raise ValueError("limit must be 0 (unlimited) or a positive integer")
+
+    selected_groups = [str(value) for value in params.get("selected_groups", [])]
+    if selected_groups:
+        if not 1 <= len(selected_groups) <= 4:
+            raise ValueError("selected_groups must contain between 1 and 4 groups")
+        if len(selected_groups) != len(set(selected_groups)):
+            raise ValueError("selected_groups must not contain duplicates")
+        unknown_groups = set(selected_groups) - ALLOWED_GROUPS
+        if unknown_groups:
+            raise ValueError(f"unknown analysis groups: {sorted(unknown_groups)}")
+        groups_config = str(
+            params.get("analysis_groups_config", "config/analysis-groups.yaml")
+        )
+        groups_path = (project_root / groups_config).resolve()
+        try:
+            groups_path.relative_to(project_root.resolve())
+        except ValueError as error:
+            raise ValueError("analysis_groups_config must stay inside project") from error
+        if not groups_path.is_file():
+            raise FileNotFoundError(groups_path)
+        group_definitions = yaml.safe_load(groups_path.read_text(encoding="utf-8"))[
+            "groups"
+        ]
+        selected_subreddits = sorted(
+            {
+                str(subreddit)
+                for group in selected_groups
+                for subreddit in group_definitions[group]["subreddits"]
+            },
+            key=str.casefold,
+        )
+        selected_group_labels = [
+            str(group_definitions[group]["label"]) for group in selected_groups
+        ]
+    else:
+        selected_subreddits = []
+        selected_group_labels = []
 
     selected_date = start_date.isoformat()
     input_file = f"data/airflow-input/reddit-{selected_date}.jsonl"
+    archive_root = str(
+        params.get("reddit_archive_root", "data/raw/reddit-archive/data")
+    )
+    archive_path = (project_root / archive_root / f"RC_{start_date:%Y-%m}.parquet").resolve()
+    try:
+        archive_path.relative_to(project_root.resolve())
+    except ValueError as error:
+        raise ValueError("reddit_archive_root must stay inside project") from error
+    source_mode = str(params.get("reddit_source_mode", "auto"))
+    if source_mode not in {"auto", "local", "remote"}:
+        raise ValueError("reddit_source_mode must be auto, local, or remote")
+    if source_mode == "local" and not archive_path.is_file():
+        raise FileNotFoundError(archive_path)
+    use_local_archive = source_mode != "remote" and archive_path.is_file()
     collection = {
         "month": start_date.strftime("%Y-%m"),
         "start_date": selected_date,
         "end_date": selected_date,
         "limit": limit,
         "input_file": input_file,
+        "input_parquet": (
+            str(archive_path.relative_to(project_root.resolve()))
+            if use_local_archive
+            else None
+        ),
+        "source_mode": "local" if use_local_archive else "remote",
+        "selected_groups": selected_groups,
+        "selected_group_labels": selected_group_labels,
+        "subreddits": selected_subreddits,
     }
     return {
         "project_root": str(project_root.resolve()),
@@ -61,7 +124,7 @@ def prepare_daily_config(
 
 def build_collection_command(config: Mapping[str, Any]) -> list[str]:
     collection = config["collection"]
-    return [
+    command = [
         sys.executable,
         "-m",
         "collectors.reddit",
@@ -76,6 +139,11 @@ def build_collection_command(config: Mapping[str, Any]) -> list[str]:
         "--output",
         str(collection["input_file"]),
     ]
+    if collection.get("input_parquet"):
+        command.extend(["--input-parquet", str(collection["input_parquet"])])
+    for subreddit in collection.get("subreddits") or []:
+        command.extend(["--subreddit", str(subreddit)])
+    return command
 
 
 def collect_daily_comments(
@@ -110,9 +178,13 @@ def collect_daily_comments(
                     f"event outside requested date at line {line_number}"
                 )
             row_count += 1
-    if row_count < 100:
+    minimum_rows = 100 if int(collection["limit"]) == 0 else min(
+        100, int(collection["limit"])
+    )
+    if row_count < minimum_rows:
         raise ValueError(
-            f"Reddit collection returned {row_count} usable events; at least 100 are required"
+            f"Reddit collection returned {row_count} usable events; "
+            f"at least {minimum_rows} are required"
         )
     return_code = getattr(completed, "returncode", 0) or 0
     if return_code != 0:
