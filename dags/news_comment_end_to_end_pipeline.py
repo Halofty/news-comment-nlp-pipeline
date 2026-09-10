@@ -22,6 +22,7 @@ from observability import (
     reconcile_usage,
 )
 from observability.openai_batch import load_sample_batch, total_cost
+from orchestration.error_notifications import notify_task_failure
 from orchestration.kafka_batch import (
     capture_topic_offsets,
     ensure_batch_topics,
@@ -105,6 +106,12 @@ with DAG(
         "owner": "news-comment-nlp-pipeline",
         "retries": 1,
         "retry_delay": timedelta(minutes=1),
+        # Fires once per task instance (per mapped date included) after
+        # retries are exhausted. Uses a separate Slack app/channel from the
+        # OpenAI Batch completion notifier so failures don't get lost among
+        # routine completion messages. Never raises: see
+        # orchestration/error_notifications.py.
+        "on_failure_callback": notify_task_failure,
     },
     params={
         "start_date": Param("2012-02-01", type="string", pattern="^\\d{4}-\\d{2}-\\d{2}$"),

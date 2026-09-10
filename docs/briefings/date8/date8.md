@@ -26,6 +26,9 @@
 Batch → v3 검증 → PostgreSQL → Streamlit/Slack이며 Airflow가 전 과정을 제어한다.
 Spark는 날짜별 발행 전·후 offset을 읽고 Run ID·날짜가 일치하는 이벤트만 처리한다.
 Structured Streaming은 checkpoint 복구 실험용 별도 실행 방식으로 유지한다.
+모든 Airflow task에는 최종 실패 callback을 연결해 재시도 소진 후 DAG·task·mapped
+index·예외·로그 링크를 Slack으로 전송한다. 에러 전용 Webhook이 없으면 기존 완료
+알림 Webhook을 사용하며, 알림 전송 실패는 원래 task 상태를 가리지 않는다.
 
 ## 3. 끝까지 이어진 실행 결과
 

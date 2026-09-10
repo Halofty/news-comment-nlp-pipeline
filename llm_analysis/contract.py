@@ -112,26 +112,39 @@ def _tone_schema(labels: tuple[str, ...]) -> dict[str, object]:
 
 
 ANALYSIS_SCHEMA: dict[str, object] = {
-    **ANALYSIS_SCHEMA_V2,
+    "type": "object",
+    "additionalProperties": False,
     "properties": {
-        **ANALYSIS_SCHEMA_V2["properties"],
+        "estimated_sentiment_distribution": ANALYSIS_SCHEMA_V2["properties"][
+            "estimated_sentiment_distribution"
+        ],
+        "polarization": ANALYSIS_SCHEMA_V2["properties"]["polarization"],
+        "polarization_score": ANALYSIS_SCHEMA_V2["properties"]["polarization_score"],
+        "topics": ANALYSIS_SCHEMA_V1["properties"]["topics"],
+        "keywords": ANALYSIS_SCHEMA_V1["properties"]["keywords"],
+        "summary": ANALYSIS_SCHEMA_V1["properties"]["summary"],
         "positive_tones": _tone_schema(POSITIVE_TONES),
         "negative_tones": _tone_schema(NEGATIVE_TONES),
     },
     "required": [
-        *ANALYSIS_SCHEMA_V2["required"],
+        "estimated_sentiment_distribution",
+        "polarization",
+        "polarization_score",
+        "topics",
+        "keywords",
+        "summary",
         "positive_tones",
         "negative_tones",
     ],
 }
 
-SENTIMENT_RUBRIC = """Choose exactly one dominant_sentiment: positive, neutral, or
-negative. Do not call the overall sentiment mixed merely because opposing opinions are
-present. Estimate the positive, neutral, and negative shares across all supplied records;
-they must sum to 1.0. Use polarization to describe disagreement separately: low means
-one direction clearly dominates, medium means a meaningful minority differs, and high
-means opposing directions are both strong. polarization_score ranges from 0 (one-sided)
-to 1 (strongly divided). Keep sentiment_score consistent with dominant_sentiment.
+SENTIMENT_RUBRIC = """Estimate the positive, neutral, and negative shares across all
+supplied records; they must sum to 1.0. Use polarization to describe disagreement
+separately: low means one direction clearly dominates, medium means a meaningful
+minority differs, and high means opposing directions are both strong.
+polarization_score ranges from 0 (one-sided) to 1 (strongly divided). Do not report a
+dominant sentiment label or an overall sentiment score directly; both are derived from
+the distribution you report.
 
 Decompose both positive and negative language into fixed tone categories. For positive
 tones use only optimism, hope, satisfaction, trust, enthusiasm, gratitude, and relief.
@@ -201,6 +214,27 @@ def normalize_dominant_sentiment(result: dict[str, object]) -> dict[str, object]
     normalized = dict(result)
     normalized["dominant_sentiment"] = largest_label
     return normalized
+
+
+def derive_sentiment_fields(result: dict[str, object]) -> dict[str, object]:
+    """Derive dominant_sentiment and sentiment_score from the reported distribution.
+
+    The current schema asks the model for estimated_sentiment_distribution only, so
+    dominant_sentiment (the largest share) and sentiment_score (positive minus
+    negative) are computed here instead of trusting a second, redundant model output
+    that could disagree with the distribution.
+    """
+    distribution = result.get("estimated_sentiment_distribution")
+    if not isinstance(distribution, dict) or not distribution:
+        raise ValueError("estimated_sentiment_distribution must be a non-empty object")
+    derived = dict(result)
+    derived["dominant_sentiment"] = max(
+        distribution, key=lambda label: float(distribution[label])
+    )
+    derived["sentiment_score"] = round(
+        float(distribution["positive"]) - float(distribution["negative"]), 6
+    )
+    return derived
 
 
 def validate_sentiment_semantics(result: dict[str, object]) -> None:

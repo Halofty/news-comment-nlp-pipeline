@@ -30,9 +30,9 @@ cross-source weight merely because it contains more rows. Within each source, co
 records evenly and do not let a few long or highly emotional records dominate. If only
 one source is present, use that available source rather than inventing missing evidence.
 
-Apply this source-balanced rule to sentiment distribution, sentiment score,
-polarization, tones, topics, keywords, and summary. Return only the requested JSON. Use
-short English labels and one sentence for the summary.
+Apply this source-balanced rule to sentiment distribution, polarization, tones, topics,
+keywords, and summary. Return only the requested JSON. Use short English labels and one
+sentence for the summary.
 
 """ + SENTIMENT_RUBRIC
 

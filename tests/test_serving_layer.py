@@ -118,6 +118,26 @@ def test_dashboard_analysis_limit_does_not_change_batch_limit(monkeypatch) -> No
     assert connection.cursor_value.executions[5][1][-1] == 120
 
 
+def test_dashboard_ui_scopes_batch_metrics_to_selected_row_limit(monkeypatch) -> None:
+    import pytest
+
+    pytest.importorskip("streamlit")
+    from serving.dashboard import _load_database
+
+    connection = _Connection()
+    monkeypatch.setitem(
+        sys.modules,
+        "psycopg",
+        SimpleNamespace(connect=lambda _dsn: connection),
+    )
+
+    _load_database.clear()
+    _load_database("postgresql://test", "v3", 120)
+
+    assert connection.cursor_value.executions[4][1][-1] == 120
+    assert connection.cursor_value.executions[5][1][-1] == 120
+
+
 def test_dashboard_can_include_all_analysis_versions(monkeypatch) -> None:
     connection = _Connection()
     monkeypatch.setitem(

@@ -10,7 +10,7 @@
 - Spark로 계약 검사, 품질 판정, 중복 제거와 일별 Parquet 저장을 수행합니다.
 - MinIO에 raw·processed·LLM·report 산출물을 분리해 보존합니다.
 - OpenAI Batch로 대량 분석 비용을 줄이고 Langfuse로 token·비용을 관측합니다.
-- Airflow 한 번의 실행으로 수집부터 PostgreSQL 저장·Slack 알림·최종 읽기까지 연결합니다.
+- Airflow 한 번의 실행으로 수집부터 PostgreSQL 저장·Slack 완료/최종 실패 알림·최종 읽기까지 연결합니다.
 - Streamlit에서 PostgreSQL의 최종 분석 결과를 조회합니다.
 
 ## 데이터
@@ -124,14 +124,14 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 | Kafka bounded batch, Spark batch, DLQ | 최종 DAG 편입·실행 검증 완료 |
 | Spark Structured Streaming | 독립 재생·checkpoint 복구 검증 완료 |
 | MinIO, PostgreSQL 멱등 저장 | 구현·재시작 검증 완료 |
-| OpenAI Batch, Langfuse, Slack | 구현·실제 Batch 검증 완료 |
+| OpenAI Batch, Langfuse, Slack | Batch 완료 알림·Airflow 최종 실패 알림 구현 및 테스트 완료 |
 | Airflow 단일 DAG, Streamlit | 구현·end-to-end 검증 완료 |
 
 ## 남은 문제와 다음 단계
 
 - Python 실행환경 고정: 이 저장소는 Python 3.11을 기준으로 하지만 그 버전을 강제하는
   파일이 없어, 3.14 환경에서는 PySpark cloudpickle 비호환으로 Spark 관련 자동 테스트
-  3개가 깨집니다(3.11에서는 154개 전부 통과).
+  3개가 깨집니다(3.11에서는 166개 통과, 1개 선택적 테스트 제외).
 - [장애·부하 테스트 계획](docs/planning/failure-and-load-test-plan.md)에 남은 항목:
   Streaming 중 Driver·Worker 강제 종료, DB 적재 도중 연결 끊김,
   LLM API 오류 재현.

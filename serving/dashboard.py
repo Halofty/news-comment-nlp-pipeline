@@ -19,6 +19,7 @@ def _load_database(dsn: str, analysis_version: str, row_limit: int) -> dict:
         dsn=dsn,
         analysis_version=analysis_version,
         row_limit=row_limit,
+        batch_limit=row_limit,
     )
 
 
@@ -54,7 +55,7 @@ def main() -> None:
             max_value=500,
             value=DEFAULT_ANALYSIS_ROW_LIMIT,
             step=10,
-            help="최근 분석 결과 표에서 불러올 행 수입니다.",
+            help="최근 분석 결과 표와 Batch 요약 지표(완료 Batch·기록된 비용)가 함께 참조하는 건수입니다.",
         )
     )
     if st.button("데이터 새로고침"):
@@ -71,7 +72,9 @@ def main() -> None:
         summary = data["summary"]
         columns = st.columns(5)
         columns[0].metric("분석 결과", f"{int(summary['analysis_rows']):,}건")
-        columns[1].metric("완료 Batch", f"{len(data['batches']):,}건")
+        columns[1].metric(
+            f"완료 Batch (최근 {analysis_row_limit}건 기준)", f"{len(data['batches']):,}건"
+        )
         columns[2].metric(
             "평균 감정 점수", f"{float(summary['average_sentiment_score']):.3f}"
         )
@@ -81,7 +84,9 @@ def main() -> None:
         total_cost = sum(
             float(row["total_cost_usd"] or 0) for row in data["batches"]
         )
-        columns[4].metric("기록된 비용", f"${total_cost:.6f}")
+        columns[4].metric(
+            f"기록된 비용 (최근 {analysis_row_limit}건 기준)", f"${total_cost:.6f}"
+        )
 
         left, right = st.columns(2)
         with left:
