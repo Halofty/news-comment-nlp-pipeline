@@ -25,7 +25,9 @@ def read_jsonl(path: Path) -> Iterator[dict[str, Any]]:
             yield validate_event(event, line_number=line_number)
 
 
-def write_jsonl(events: Iterable[dict[str, Any]], output: Path) -> int:
+def write_jsonl(
+    events: Iterable[dict[str, Any]], output: Path, *, publish: bool = True
+) -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_suffix(output.suffix + ".tmp")
     count = 0
@@ -39,7 +41,8 @@ def write_jsonl(events: Iterable[dict[str, Any]], output: Path) -> int:
     except Exception:
         temporary.unlink(missing_ok=True)
         raise
-    from storage.data_lake import publish_artifact_if_enabled
+    if publish:
+        from storage.data_lake import publish_artifact_if_enabled
 
-    publish_artifact_if_enabled(output)
+        publish_artifact_if_enabled(output)
     return count

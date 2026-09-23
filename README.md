@@ -3,6 +3,15 @@
 영어 뉴스 제목과 Reddit 댓글을 같은 데이터 계약으로 수집·정제하고, 날짜와 대주제별로
 감정·양극화·세부 정서·토픽을 분석해 조회 가능한 결과로 제공하는 데이터 파이프라인입니다.
 
+> 현재 `feature/current-data-2026` 브랜치에서는 2012 archive 기반 v1을 보존한 채,
+> 2026년 종료 날짜의 Google News와 직접 수집 커뮤니티 데이터를 처리하는 v2로
+> 전환 중입니다. 아래 검증 수치는 아직 [2012 historical 기준선](docs/historical/README.md)이며,
+> 전환 범위와 완료 조건은 [2026 전환 계획](docs/planning/current-data-2026-migration.md)을 따릅니다.
+> current MVP는 Google News `economy`와 경제·사회 Reddit 4개만 대상으로 하며,
+> 안정화 후 기존 계획의 21개 subreddit 범위로 단계적으로 확장합니다.
+> 현재 raw 반복 수집과 D-1 completeness/finalization 코드는 구현됐으며, Reddit
+> 실인증·하루 shadow run과 기존 Kafka 이후 경로 연결은 남아 있습니다.
+
 ## 무엇을 해결하는가
 
 - 서로 다른 뉴스·댓글 원본을 `TextEvent v1`으로 표준화합니다.
@@ -36,15 +45,16 @@
 
 - [구성도 HTML](docs/architecture/system-architecture.html)
 - [현재 전체 실행 방법](docs/guides/end-to-end-execution.md)
-- [최신 end-to-end 실행 기록](docs/reports/latest-end-to-end-run.md)
+- [2012 historical end-to-end 실행 기록](docs/historical/2012-end-to-end-run.md)
+- [2026 current 데이터 전환 계획](docs/planning/current-data-2026-migration.md)
 
 ## 저장 결과 읽기
 
 Streamlit은 PostgreSQL의 분석 결과를 읽으며 기본적으로 최신 v3 schema만 보여줍니다.
 분석 버전과 최근 조회 건수는 화면에서 변경할 수 있습니다.
 
-![Streamlit 요약 지표와 분포](docs/streamlit_result1.png)
-![Streamlit 상위 토픽과 최근 분석 결과](docs/streamlit_result2.png)
+![Streamlit 요약 지표와 분포](docs/briefings/date8/assets/streamlit-result-summary.png)
+![Streamlit 상위 토픽과 최근 분석 결과](docs/briefings/date8/assets/streamlit-result-details.png)
 
 
 ## 빠른 실행
@@ -84,7 +94,7 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 | 자동 테스트 | 154개 통과 |
 
 이전 92일 pre-Kafka baseline을 포함한 전체 수치, 장애·복구 기록은
-[최신 실행 기록](docs/reports/latest-end-to-end-run.md)에 정리했습니다.
+[2012 historical 실행 기록](docs/historical/2012-end-to-end-run.md)에 정리했습니다.
 
 ## 부하·장애·복구에서 확인한 것과 아직 보장하지 못하는 것
 
@@ -97,9 +107,10 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 | Kafka→Spark Structured Streaming | 같은 checkpoint로 3회 재시작 | 무입력 재시작 0건 처리, 추가 입력만 정확히 반영, Spark·MinIO 컨테이너 재시작 포함 누락·중복 0건 |
 | Kafka 데이터 손실 (이번 30일 실행) | 과거 이벤트 replay 시 Kafka 레코드 timestamp를 원본 사건 시각으로 지정 | topic의 7일 retention이 발행 직후 이미 지난 것으로 판정해 16/30일치 offset이 삭제됨. 원인 수정 후 해당 날짜만 재발행해 30/30 복구 |
 | LLM 구조화 출력 모순 (2012-12-03, 31일 Run) | `dominant_sentiment`가 `estimated_sentiment_distribution` 최댓값과 불일치 | 검증 게이트가 4회 재시도 모두 감지해 task 실패, 분포 최댓값으로 보정하는 규칙을 추가해 재발행 없이 31/31 통과 |
+| LLM positive/negative 정확한 동률 (2013-01-01) | `positive == negative`일 때 `sentiment_score`가 정확히 0이 되어 "dominant가 positive/negative면 방향과 부호가 일치해야 한다"는 검증과 충돌 | **Error-Alert 연동 이후 처음으로 실제 운영 실패를 Slack으로 수신** → 원인 파악 후 동률이면 `dominant_sentiment=neutral`로 판정하도록 수정, 검증 로직도 이 경우를 예외로 반영. 같은 Batch 결과를 재발행 없이 재검증해 통과, task를 clear해 실제 Run도 success로 종료 |
 
 전체 수치와 재현 명령은 [Date 6 결과](docs/briefings/date6/date6.md), 이번 실행의
-원인·수정·복구 절차는 [최신 실행 기록](docs/reports/latest-end-to-end-run.md)에
+원인·수정·복구 절차는 [2012 historical 실행 기록](docs/historical/2012-end-to-end-run.md)에
 있습니다.
 
 아직 보장하지 못하는 것:
@@ -129,9 +140,11 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 열고 날짜, 대주제, �
 
 ## 남은 문제와 다음 단계
 
-- Python 실행환경 고정: 이 저장소는 Python 3.11을 기준으로 하지만 그 버전을 강제하는
-  파일이 없어, 3.14 환경에서는 PySpark cloudpickle 비호환으로 Spark 관련 자동 테스트
-  3개가 깨집니다(3.11에서는 166개 통과, 1개 선택적 테스트 제외).
+- Python 실행환경 고정: `.python-version`(3.11)을 추가해 pyenv·uv·asdf나
+  GitHub Actions `setup-python`은 이 값을 자동으로 읽습니다. 다만 이 파일을 읽지
+  않는 도구로 직접 다른 버전의 venv를 만들면 여전히 강제되지 않으며, 3.14
+  환경에서는 PySpark cloudpickle 비호환으로 Spark 관련 자동 테스트 3개가
+  깨집니다(3.11에서는 166개 통과, 1개 선택적 테스트 제외).
 - [장애·부하 테스트 계획](docs/planning/failure-and-load-test-plan.md)에 남은 항목:
   Streaming 중 Driver·Worker 강제 종료, DB 적재 도중 연결 끊김,
   LLM API 오류 재현.

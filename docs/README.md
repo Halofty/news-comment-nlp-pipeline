@@ -9,6 +9,8 @@
 | [`security/`](security/) | 데이터·개인정보·비밀정보 처리 원칙 |
 | [`reports/`](reports/) | 수집 데이터 검증 문서 |
 | [`adr/`](adr/) | 주요 기술 결정과 근거 |
+| [`historical/`](historical/) | 2012 archive 기반 v1 실행 기록과 기준선 |
+| [`current/`](current/) | 2026 current 데이터 전환 상태와 실행 결과 |
 
 실행 결과와 공개 가능한 수치 검증은 저장소 최상위의 [`analysis/reports/`](../analysis/reports/)에서 관리합니다.
 
@@ -16,7 +18,7 @@
 [`guides/end-to-end-execution.md`](guides/end-to-end-execution.md), Kafka 포함 31일
 실제 Batch의 단계별 수치·LLM 구조화 출력 불일치 기록과 이전 30일 Run(Kafka 데이터
 손실 장애 복구 포함)·92일 pre-Kafka baseline은
-[`reports/latest-end-to-end-run.md`](reports/latest-end-to-end-run.md)에 있습니다.
+[`historical/2012-end-to-end-run.md`](historical/2012-end-to-end-run.md)에 있습니다.
 아직 구현하지 않은 S3 전환·기사 전문·저장 확장은
 [`planning/future-expansions.md`](planning/future-expansions.md)에서 현재 구조와 분리해
 관리합니다.
@@ -35,12 +37,21 @@
 [`briefings/date8/date8.md`](briefings/date8/date8.md)에 정리했습니다(당시 기준
 92일 Run). 현재 실행 방법은
 [`guides/end-to-end-execution.md`](guides/end-to-end-execution.md), 최신 Kafka 포함
-31일 실제 Run은 [`reports/latest-end-to-end-run.md`](reports/latest-end-to-end-run.md)를
+31일 실제 Run은 [`historical/2012-end-to-end-run.md`](historical/2012-end-to-end-run.md)를
 기준으로 합니다.
 `date8/demo-runbook.md`와 `date8/execution-result.md`는 최종 통합 전 소규모 실행의
 과거 기록으로 보존합니다.
 Streamlit 서빙과 Batch 완료 Slack 알림의 실행·설정은
 [`guides/serving-and-slack.md`](guides/serving-and-slack.md)에 정리했습니다.
+
+2026년 Google News와 직접 수집 커뮤니티 데이터로 전환하는 v2는
+[`planning/current-data-2026-migration.md`](planning/current-data-2026-migration.md)를
+기준으로 진행하며, 현재 상태와 실제 결과는 [`current/`](current/)에 기록합니다.
+당일 반복 수집과 다음 날 D-1 확정 실행의 경계는
+[`current/raw-ingestion-design.md`](current/raw-ingestion-design.md)에 있습니다.
+감정 비율 판단을 Jev로 분리하고 Luna의 생성 부담을 낮추는 안은 현재 기능이 아니라
+[`planning/jev-llm-cost-optimization.md`](planning/jev-llm-cost-optimization.md)에
+후속 검증 계획으로만 기록합니다.
 
 OpenAI API 프로젝트·환경변수와 Langfuse Cloud Japan의 실제 구성·검증 기록은
 [`briefings/date7/openai-langfuse-setup.md`](briefings/date7/openai-langfuse-setup.md)에

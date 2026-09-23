@@ -96,3 +96,14 @@ def test_jsonl_writer_publishes_when_minio_backend_is_enabled(
 
     assert write_jsonl([event], output) == 1
     assert published == [output]
+
+
+def test_finalized_current_data_routes_to_processed_bucket(tmp_path: Path) -> None:
+    output = tmp_path / "data/finalized/current/date=2026-09-23/events.jsonl"
+    output.parent.mkdir(parents=True)
+    output.write_text("", encoding="utf-8")
+
+    routed = route_artifact(output, data_root=tmp_path / "data")
+
+    assert routed.bucket == "news-processed"
+    assert routed.key == "finalized/current/date=2026-09-23/events.jsonl"

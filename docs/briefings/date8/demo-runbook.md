@@ -2,7 +2,7 @@
 
 > 이 문서는 최종 통합 전 소규모 dry-run의 과거 시연 기록이다. 현재 실행은
 > [`../../guides/end-to-end-execution.md`](../../guides/end-to-end-execution.md), 최신 실제
-> 결과는 [`../../reports/latest-end-to-end-run.md`](../../reports/latest-end-to-end-run.md)를
+> 결과는 [`../../historical/2012-end-to-end-run.md`](../../historical/2012-end-to-end-run.md)를
 > 기준으로 한다.
 
 ## 1. 안전 원칙

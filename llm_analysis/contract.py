@@ -223,17 +223,25 @@ def derive_sentiment_fields(result: dict[str, object]) -> dict[str, object]:
     dominant_sentiment (the largest share) and sentiment_score (positive minus
     negative) are computed here instead of trusting a second, redundant model output
     that could disagree with the distribution.
+
+    positive and negative tied exactly makes sentiment_score = 0, which cannot
+    honestly point toward either as dominant (validate_sentiment_semantics requires
+    a positive/negative dominant's score to actually lean that way). Call that tie
+    neutral instead of picking a side by dict order -- max()'s only tie-break.
     """
     distribution = result.get("estimated_sentiment_distribution")
     if not isinstance(distribution, dict) or not distribution:
         raise ValueError("estimated_sentiment_distribution must be a non-empty object")
     derived = dict(result)
-    derived["dominant_sentiment"] = max(
-        distribution, key=lambda label: float(distribution[label])
-    )
-    derived["sentiment_score"] = round(
-        float(distribution["positive"]) - float(distribution["negative"]), 6
-    )
+    positive = float(distribution["positive"])
+    negative = float(distribution["negative"])
+    if positive == negative:
+        derived["dominant_sentiment"] = "neutral"
+    else:
+        derived["dominant_sentiment"] = max(
+            distribution, key=lambda label: float(distribution[label])
+        )
+    derived["sentiment_score"] = round(positive - negative, 6)
     return derived
 
 
@@ -246,7 +254,9 @@ def validate_sentiment_semantics(result: dict[str, object]) -> None:
         raise ValueError("estimated sentiment distribution must sum to 1.0")
     dominant = str(result["dominant_sentiment"])
     largest_share = max(float(value) for value in distribution.values())
-    if abs(float(distribution[dominant]) - largest_share) > 0.001:
+    positive_negative_tied = float(distribution["positive"]) == float(distribution["negative"])
+    is_declared_tie = dominant == "neutral" and positive_negative_tied
+    if not is_declared_tie and abs(float(distribution[dominant]) - largest_share) > 0.001:
         raise ValueError("dominant_sentiment must match the largest estimated share")
     score = float(result["sentiment_score"])
     if (dominant == "positive" and score <= 0) or (dominant == "negative" and score >= 0):

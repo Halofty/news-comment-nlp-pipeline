@@ -96,7 +96,7 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 선택한 뒤 Trigger 화면
    해당 날짜의 `capture_kafka_start_offsets`부터 다시 clear해 새 offset으로 재발행해야
    한다. 여러 날짜가 실패했다면 이미 성공한 날짜(map_index)는 건드리지 않도록
    `(task_id, map_index)` 단위로 clear 범위를 좁힌다. 원인과 복구 절차는
-   [최신 실행 기록의 Kafka 데이터 손실 장애와 복구](../reports/latest-end-to-end-run.md#kafka-데이터-손실-장애와-복구)에
+   [2012 실행 기록의 Kafka 데이터 손실 장애와 복구](../historical/2012-end-to-end-run.md#kafka-데이터-손실-장애와-복구)에
    정리했다.
 3. Kafka ledger에서 시작·종료 offset과 `published_rows`를 확인하고 Spark report의
    `matched_run_rows`, `input_rows`, `accounted_rows`가 같은지 확인한다.
@@ -104,9 +104,10 @@ Airflow에서 `news_comment_end_to_end_pipeline`을 선택한 뒤 Trigger 화면
 5. Slack에서 날짜·대주제·완료 상태·시작/종료/소요시간·감정·topic 알림을 확인한다.
 6. Streamlit에서 schema 버전을 v3로 두고 분석 결과와 세부 정서를 조회한다.
 
-발표용 저장 결과 화면은 `docs/streamlit_result1.png`와 `docs/streamlit_result2.png`를
+발표용 저장 결과 화면은 `docs/briefings/date8/assets/streamlit-result-summary.png`와
+`docs/briefings/date8/assets/streamlit-result-details.png`를
 상·하단 순서로 연결해 기록했다. 최신 실제 실행 수치는
-[최신 end-to-end 실행 기록](../reports/latest-end-to-end-run.md)에 있다.
+[2012 historical end-to-end 실행 기록](../historical/2012-end-to-end-run.md)에 있다.
 
 ## 6. Kafka→Spark 단계만 점검
 
