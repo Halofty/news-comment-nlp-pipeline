@@ -2,7 +2,63 @@
 
 > 아래 31일 Run이 현재 기준이다. 이전 30일 Run(Kafka 데이터 손실 장애·복구 포함)은
 > **30일 Run (이전 기록)** 절에, 92일 Run은 **92일 pre-Kafka baseline** 절에 그대로
-> 보존한다.
+> 보존한다. 가장 최근 발견은 **LLM sentiment 동률 처리 누락과 Error-Alert 실전
+> 검증** 절 참고.
+
+## LLM sentiment 동률 처리 누락과 Error-Alert 실전 검증 (2013-01-01)
+
+31일 Run 이후 Error-Alert(`/ingest`) 연동을 검증하려고 2013-01-01 단일 날짜로 새
+Run(`manual__2026-09-10T04:48:13.924443+00:00`, `submit=true`)을 트리거했다. 의도한
+강제종료 테스트(2013-01-02, 아래 별도 기록)와 무관하게, 이 2013-01-01 Run 자체에서
+`submit_wait_validate_store_notify`가 실제로 최종 실패했고 **Error-Alert를 통해 처음
+으로 실제 Slack 알림이 도착했다**.
+
+### 증상
+
+```
+RuntimeError: Batch result validation failed: validated=0/1, failed=1, missing=0
+```
+
+모델 응답은 새 스키마(31일 Run에서 고친 것과 동일)를 정확히 따랐다 — `estimated_sentiment_distribution`
+만 반환했고 `dominant_sentiment`/`sentiment_score`는 없었다:
+
+```json
+{"estimated_sentiment_distribution": {"positive": 0.35, "neutral": 0.30, "negative": 0.35}, ...}
+```
+
+### 원인
+
+`derive_sentiment_fields()`가 `positive == negative`(둘 다 0.35, `neutral`은 0.30으로
+더 낮음)인 경우를 고려하지 않았다. `max()`는 dict 순서상 먼저 나오는 `"positive"`를
+그대로 골랐고, `sentiment_score = positive - negative = 0.0`이 됐다. `validate_sentiment_semantics`
+는 "dominant가 positive면 score는 0보다 커야 한다"를 검사하는데 `0.0 <= 0`이라 이
+검증에서 막혔다 — 11월 Kafka 장애, 12월 `dominant_sentiment` 불일치와는 다른, 이번에
+새로 나온 경계 케이스다.
+
+### 수정
+
+- `derive_sentiment_fields()`: `positive == negative`인 경우 `dominant_sentiment`를
+  `"neutral"`로 판정하도록 변경 (`llm_analysis/contract.py`)
+- `validate_sentiment_semantics()`: `neutral`이 실제 최댓값이 아니어도, `positive ==
+  negative`로 인한 동률 판정인 경우는 "최댓값과 일치해야 한다" 검사의 예외로 인정
+- 회귀 테스트 3건 추가(`tests/test_sentiment_contract.py`): 동률 시 `neutral` 판정,
+  검증 로직이 그 동률 케이스를 허용하는지, 진짜 최댓값이 아닌 `neutral`은 여전히
+  거부하는지
+
+### 재검증
+
+같은 원본 응답으로 재검증한 결과 `dominant_sentiment=neutral`, `sentiment_score=0.0`으로
+모든 검증을 통과했다. `submit_wait_validate_store_notify`(map_index=0)를 clear해
+동일 OpenAI Batch를 재사용(추가 비용 없음)해 재실행했고, `read_final_result`까지
+포함해 2013-01-01 Run 전체가 `success`로 종료됐다. PostgreSQL에도
+`sentiment=neutral, sentiment_score=0`으로 정상 저장된 것을 확인했다.
+
+### Error-Alert
+
+이 실패는 `on_failure_callback`을 통해 Error-Alert(`github.com/Halofty/Error-Alert`)
+의 `/ingest`로 보고됐고, 실제로 Slack 알림이 도착한 것을 확인했다 — 연동 이후 처음
+으로 **의도한 테스트가 아니라 실제 운영 중 실패**를 알림 경로 전체(Airflow →
+heartbeat/예외 감지 → `/ingest` → Error-Alert → Slack)로 확인한 사례다.
 
 ## 실행 식별자 (Kafka 포함, 31일)
 

@@ -57,6 +57,16 @@ AWS S3로 교체할 수 있다. 실제 전환 전에는 다음이 필요하다.
 - Kafka broker, Spark worker, PostgreSQL, MinIO의 장시간·복합 장애 실험
 - 분산 MinIO 또는 운영 object storage의 backup·restore 검증
 
+## 6. Jev 분류와 Luna 생성 역할 분리
+
+현재 Luna가 생성하는 감정 분포·polarization·tone share를 Jev의 제한된 판단으로
+분리하고, Luna에는 토픽·키워드·요약과 압축된 대표 근거만 보내는 hybrid 경로를
+검토한다. 이는 구현 완료 기능이 아니며 기존 v3 결과를 변경하지 않는다.
+
+source 50:50 집계, 실제 비용, 감정 분포 차이, 개인정보와 새 provider 운영 부담을
+검증한 뒤 선택적으로 도입한다. 상세 단계와 중단 조건은
+[Jev·Luna 비용 절감 계획](jev-llm-cost-optimization.md)을 따른다.
+
 ## 적용 원칙
 
 각 항목은 코드, 자동 테스트, 실제 실행 기록이 모두 준비된 뒤에만 README의 현재 구현과

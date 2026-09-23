@@ -197,6 +197,56 @@ def test_derive_sentiment_fields_does_not_mutate_input() -> None:
     assert "sentiment_score" not in model_output
 
 
+def test_derive_sentiment_fields_calls_exact_positive_negative_tie_neutral() -> None:
+    """Regression: 2013-01-01 real run, positive=negative=0.35 > neutral=0.30.
+
+    max() would pick "positive" (first in dict order) with sentiment_score=0.0,
+    which validate_sentiment_semantics then rejects as a direction conflict
+    (dominant=positive requires score>0). Calling an exact tie "neutral" avoids
+    a dominant label the score can't actually support, even when neutral is not
+    itself the largest share.
+    """
+    model_output = _model_output(_result())
+    model_output["estimated_sentiment_distribution"] = {
+        "positive": 0.35,
+        "neutral": 0.30,
+        "negative": 0.35,
+    }
+
+    derived = derive_sentiment_fields(model_output)
+
+    assert derived["dominant_sentiment"] == "neutral"
+    assert derived["sentiment_score"] == 0.0
+    validate_sentiment_semantics(derived)
+
+
+def test_validate_sentiment_semantics_accepts_neutral_tie_even_though_not_largest() -> None:
+    result = _result()
+    result["dominant_sentiment"] = "neutral"
+    result["sentiment_score"] = 0.0
+    result["estimated_sentiment_distribution"] = {
+        "positive": 0.35,
+        "neutral": 0.30,
+        "negative": 0.35,
+    }
+
+    validate_sentiment_semantics(result)  # must not raise
+
+
+def test_validate_sentiment_semantics_still_rejects_neutral_without_a_real_tie() -> None:
+    result = _result()
+    result["dominant_sentiment"] = "neutral"
+    result["sentiment_score"] = 0.1
+    result["estimated_sentiment_distribution"] = {
+        "positive": 0.5,
+        "neutral": 0.3,
+        "negative": 0.2,
+    }
+
+    with pytest.raises(ValueError, match="largest estimated share"):
+        validate_sentiment_semantics(result)
+
+
 def test_normalize_dominant_sentiment_corrects_mismatched_label() -> None:
     result = _result()
     result["dominant_sentiment"] = "negative"

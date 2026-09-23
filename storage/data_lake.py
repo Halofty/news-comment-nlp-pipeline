@@ -24,6 +24,7 @@ class ArtifactRoute:
 
 ROUTES = (
     ArtifactRoute("raw", "MINIO_RAW_BUCKET", "news-raw", "raw"),
+    ArtifactRoute("finalized", "MINIO_PROCESSED_BUCKET", "news-processed", "finalized"),
     ArtifactRoute("airflow-input", "MINIO_RAW_BUCKET", "news-raw", "airflow-input"),
     ArtifactRoute("selected", "MINIO_PROCESSED_BUCKET", "news-processed", "selected"),
     ArtifactRoute("experiments", "MINIO_PROCESSED_BUCKET", "news-processed", "experiments"),
